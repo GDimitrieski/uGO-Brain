@@ -207,15 +207,16 @@ def _compile_rotina380_plan(
         )
     )
 
-    for idx, (source_slot_id, centrifuge_slot_id) in enumerate(zip(source_slot_ids, centrifuge_slot_ids), start=1):
+    if resolved_mode == "LOAD":
         operations.append(
             DeviceActionStep(
-                name=f"MoveRotorToPos{idx}",
+                name="MoveRotorToPos",
                 task_key="SingleDeviceAction",
                 overrides={"ITM_ID": centrifuge_itm_id, "ACT": DEVICE_ACTION_MOVE_ROTOR},
             )
         )
 
+    for idx, (source_slot_id, centrifuge_slot_id) in enumerate(zip(source_slot_ids, centrifuge_slot_ids), start=1):
         if resolved_mode == "LOAD":
             rack_id = _rack_id_at(world, profile.source_station_id, source_slot_id)
             if not rack_id or rack_id not in world.racks:
@@ -245,6 +246,13 @@ def _compile_rotina380_plan(
             )
             continue
 
+        operations.append(
+            DeviceActionStep(
+                name=f"MoveRotorToPos{idx}",
+                task_key="SingleDeviceAction",
+                overrides={"ITM_ID": centrifuge_itm_id, "ACT": DEVICE_ACTION_MOVE_ROTOR},
+            )
+        )
         rack_id = _rack_id_at(world, profile.centrifuge_station_id, centrifuge_slot_id)
         if not rack_id or rack_id not in world.racks:
             raise ValueError(
@@ -310,4 +318,3 @@ def compile_centrifuge_usage_plan(*, world: Any, device: Any, mode: str = "AUTO"
     if isinstance(profile, Rotina380UsageProfile):
         return _compile_rotina380_plan(world=world, profile=profile, mode=mode)
     raise ValueError(f"No plan compiler available for profile '{type(profile).__name__}'")
-
