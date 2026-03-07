@@ -1,0 +1,68 @@
+{
+    "data": {
+        "userId": 4, 
+        "DeviceList": [
+            {
+                "uuid": "4708e15d-72d1-434e-add2-9815a0b37dad", 
+                "name": "abstractDevice", 
+                "ip": "hypothetical", 
+                "doingAction": false, 
+                "state": "STOPPED", 
+                "logger": {}, 
+                "availableTasks": [
+                    {"name": "RackCapabilityChange"}, 
+                    {"name": "ReagentNeed"}, 
+                    {"name": "UnloadReagent"}
+                ], 
+                "deviceType": "DummyUMobile"
+            }
+        ], 
+        "taskMap": {
+            "RequestId": "string", 
+            "InstrumentId": "string", 
+            "ModuleId": "string"
+        }, 
+        "RequestId": "22790a3e-4d5c-494c-9e6f-3f6a3aa125ee", 
+        "InstrumentId": "UGO_Node", 
+        "ModuleId": "UGOClient", 
+        "itemTaskType": "CustomTask", 
+        "assignedTasks": [
+            {
+                "task": {
+                    "DeviceList": [
+                        {
+                            "uuid": "4708e15d-72d1-434e-add2-9815a0b37dad",
+                             "name": "abstractDevice", 
+                             "ip": "hypothetical", 
+                             "doingAction": false, "state": "STOPPED", "logger": {}, 
+                             "availableTasks": [
+                                {"name": "RackCapabilityChange"}, 
+                                {"name": "ReagentNeed"}, 
+                                {"name": "UnloadReagent"}
+                            ], 
+                            "deviceType": "DummyUMobile"
+                        }
+                    ], 
+                    "taskMap": {
+                        "RequestId": "string", 
+                        "InstrumentId": "string", 
+                        "ModuleId": "string", 
+                        "ReagentName": "string", 
+                        "ReagentType": "string", 
+                        "ReagentSlotsAvailable": "string"
+                    }, 
+                    "RequestId": "22790a3e-4d5c-494c-9e6f-3f6a3aa125ee", 
+                    "InstrumentId": "UGO_Node", 
+                    "ModuleId": "UGOClient", 
+                    "ReagentName": "b", 
+                    "ReagentType": "CH", 
+                    "ReagentSlotsAvailable": "b", 
+                    "itemTaskType": "ReagentNeeded"
+                }, 
+                "availableTask": {
+                    "name": "ReagentNeed"
+                }
+            }
+        ]
+    }
+}

@@ -1,0 +1,693 @@
+stations:
+  - id: InputStation
+    name: InputStation
+    itm_id: 2
+    kind: EXTERNAL
+    amr_pos_target: "2"
+    landmark_id: LM_INPUT_001
+    slot_configs:
+      - slot_id: URGRackSlot
+        kind: URG_RACK_SLOT
+        jig_id: 1
+        itm_id: 2
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - URG_RACK
+
+  - id: CHARGE
+    name: CHARGE
+    itm_id: 3
+    kind: EXTERNAL
+    amr_pos_target: "3"
+    landmark_id: null
+    slot_configs: []
+
+  - id: BioRadIH500Station
+    name: BioRadIH500Station
+    itm_id: 7
+    kind: EXTERNAL
+    amr_pos_target: "7"
+    landmark_id: LM_IH500_001
+    slot_configs: []
+
+  - id: BioRadIH1000Station
+    name: BioRadIH1000Station
+    itm_id: 6
+    kind: EXTERNAL
+    amr_pos_target: "6"
+    landmark_id: LM_IH1000_001
+    slot_configs: []
+
+  - id: CentrifugeStation
+    name: CentrifugeStation
+    itm_id: 5
+    kind: EXTERNAL
+    amr_pos_target: "5"
+    landmark_id: LM_CENTRIFUGE_001
+    slot_configs:
+      - slot_id: CentrifugeRacksSlot1
+        kind: CENTRIFUGE_RACK_SLOT
+        jig_id: 2
+        itm_id: 5
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - CENTRIFUGE_RACK
+      - slot_id: CentrifugeRacksSlot2
+        kind: CENTRIFUGE_RACK_SLOT
+        jig_id: 2
+        itm_id: 5
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 2
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - CENTRIFUGE_RACK
+      - slot_id: CentrifugeRacksSlot3
+        kind: CENTRIFUGE_RACK_SLOT
+        jig_id: 2
+        itm_id: 5
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 3
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - CENTRIFUGE_RACK
+      - slot_id: CentrifugeRacksSlot4
+        kind: CENTRIFUGE_RACK_SLOT
+        jig_id: 2
+        itm_id: 5
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 4
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - CENTRIFUGE_RACK
+
+  - id: uLMPlateStation
+    name: uLMPlateStation
+    itm_id: 1
+    kind: ON_ROBOT_PLATE
+    amr_pos_target: null
+    landmark_id: null
+    slot_configs:
+      - slot_id: URGRackSlot
+        kind: URG_RACK_SLOT
+        jig_id: 1
+        itm_id: 1
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - URG_RACK
+      - slot_id: CentrifugeRacksSlot1
+        kind: CENTRIFUGE_RACK_SLOT
+        jig_id: 2
+        itm_id: 1
+        rack_capacity: 4
+        rack_pattern: 1x4
+        rack_rows: 1
+        rack_cols: 4
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - CENTRIFUGE_RACK
+      - slot_id: CentrifugeRacksSlot2
+        kind: CENTRIFUGE_RACK_SLOT
+        jig_id: 2
+        itm_id: 1
+        rack_capacity: 4
+        rack_pattern: 1x4
+        rack_rows: 1
+        rack_cols: 4
+        rack_index: 2
+        obj_nbr_offset: 9
+        accepted_rack_types:
+          - CENTRIFUGE_RACK
+      - slot_id: CentrifugeRacksSlot3
+        kind: CENTRIFUGE_RACK_SLOT
+        jig_id: 2
+        itm_id: 1
+        rack_capacity: 4
+        rack_pattern: 1x4
+        rack_rows: 1
+        rack_cols: 4
+        rack_index: 3
+        obj_nbr_offset: 18
+        accepted_rack_types:
+          - CENTRIFUGE_RACK
+      - slot_id: CentrifugeRacksSlot4
+        kind: CENTRIFUGE_RACK_SLOT
+        jig_id: 2
+        itm_id: 1
+        rack_capacity: 4
+        rack_pattern: 1x4
+        rack_rows: 1
+        rack_cols: 4
+        rack_index: 4
+        obj_nbr_offset: 27
+        accepted_rack_types:
+          - CENTRIFUGE_RACK
+      - slot_id: TaraRacksSlot1
+        kind: TARA_RACK_SLOT
+        jig_id: 3
+        itm_id: 1
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - TARA_RACK
+      - slot_id: IntermediateRackSlot1
+        kind: INTERMEDIATE_RACK_SLOT
+        jig_id: 4
+        itm_id: 1
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - INTERMEDIATE_RACK
+      - slot_id: BioRadIH500Slot1
+        kind: BIORAD_IH500_RACK_SLOT
+        jig_id: 10
+        itm_id: 1
+        rack_capacity: 3
+        rack_pattern: 1x3
+        rack_rows: 1
+        rack_cols: 3
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - BIORAD_IH500_RACK
+      - slot_id: BioRadIH500Slot2
+        kind: BIORAD_IH500_RACK_SLOT
+        jig_id: 10
+        itm_id: 1
+        rack_capacity: 3
+        rack_pattern: 1x3
+        rack_rows: 1
+        rack_cols: 3
+        rack_index: 2
+        obj_nbr_offset: 12
+        accepted_rack_types:
+          - BIORAD_IH500_RACK
+      - slot_id: BioRadIH500Slot3
+        kind: BIORAD_IH500_RACK_SLOT
+        jig_id: 10
+        itm_id: 1
+        rack_capacity: 3
+        rack_pattern: 1x3
+        rack_rows: 1
+        rack_cols: 3
+        rack_index: 3
+        obj_nbr_offset: 24
+        accepted_rack_types:
+          - BIORAD_IH500_RACK
+      - slot_id: BioRadIH1000Slot1
+        kind: BIORAD_IH1000_RACK_SLOT
+        jig_id: 11
+        itm_id: 1
+        rack_capacity: 3
+        rack_pattern: 1x3
+        rack_rows: 1
+        rack_cols: 3
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - BIORAD_IH1000_RACK
+      - slot_id: BioRadIH1000Slot2
+        kind: BIORAD_IH1000_RACK_SLOT
+        jig_id: 11
+        itm_id: 1
+        rack_capacity: 3
+        rack_pattern: 1x3
+        rack_rows: 1
+        rack_cols: 3
+        rack_index: 2
+        obj_nbr_offset: 12
+        accepted_rack_types:
+          - BIORAD_IH1000_RACK
+      - slot_id: BioRadIH1000Slot3
+        kind: BIORAD_IH1000_RACK_SLOT
+        jig_id: 11
+        itm_id: 1
+        rack_capacity: 3
+        rack_pattern: 1x3
+        rack_rows: 1
+        rack_cols: 3
+        rack_index: 3
+        obj_nbr_offset: 24
+        accepted_rack_types:
+          - BIORAD_IH1000_RACK
+
+  - id: 3-FingerGripperStation
+    name: 3-FingerGripperStation
+    itm_id: 1
+    kind: ON_ROBOT_PLATE
+    amr_pos_target: null
+    landmark_id: null
+    slot_configs:
+      - slot_id: SampleSlot1
+        kind: THREE_FINGER_GRIPPER_SAMPLE_SLOT
+        jig_id: 10
+        itm_id: 1
+        rack_capacity: 1
+        rack_pattern: 1x1
+        rack_rows: 1
+        rack_cols: 1
+        rack_index: 1
+        obj_nbr_offset: 0
+        accepted_rack_types:
+          - THREE_FINGER_GRIPPER_SAMPLE_HOLDER
+
+landmarks:
+  - id: LM_INPUT_001
+    code: LM_INPUT_001
+    station_id: InputStation
+  - id: LM_IH500_001
+    code: LM_IH500_001
+    station_id: BioRadIH500Station
+  - id: LM_IH1000_001
+    code: LM_IH1000_001
+    station_id: BioRadIH1000Station
+  - id: LM_CENTRIFUGE_001
+    code: LM_CENTRIFUGE_001
+    station_id: CentrifugeStation
+
+racks:
+  - id: RACK_INPUT_URG_01
+    rack_type: URG_RACK
+    capacity: 32
+    pattern: URG_4x8_PIN2
+    pin_obj_type: 9001
+    rows: 8
+    cols: 4
+    blocked_slots:
+      - 15
+      - 18
+  - id: RACK_ULM_CENTRIFUGE_01
+    rack_type: CENTRIFUGE_RACK
+    capacity: 9
+    pattern: CENTRIFUGE_3x3_PIN_CENTER
+    pin_obj_type: 9002
+    rows: 3
+    cols: 3
+    blocked_slots:
+      - 5
+  - id: RACK_ULM_CENTRIFUGE_02
+    rack_type: CENTRIFUGE_RACK
+    capacity: 9
+    pattern: CENTRIFUGE_3x3_PIN_CENTER
+    pin_obj_type: 9002
+    rows: 3
+    cols: 3
+    blocked_slots:
+      - 5
+  - id: RACK_ULM_CENTRIFUGE_03
+    rack_type: CENTRIFUGE_RACK
+    capacity: 9
+    pattern: CENTRIFUGE_3x3_PIN_CENTER
+    pin_obj_type: 9002
+    rows: 3
+    cols: 3
+    blocked_slots:
+      - 5
+  - id: RACK_ULM_CENTRIFUGE_04
+    rack_type: CENTRIFUGE_RACK
+    capacity: 9
+    pattern: CENTRIFUGE_3x3_PIN_CENTER
+    pin_obj_type: 9002
+    rows: 3
+    cols: 3
+    blocked_slots:
+      - 5
+  - id: RACK_ULM_TARA_01
+    rack_type: TARA_RACK
+    capacity: 6
+    pattern: TARA_1x6
+    pin_obj_type: 9010
+    rows: 1
+    cols: 6
+    blocked_slots: []
+    occupied_slots:
+      1: DUMMY_0001
+      2: DUMMY_0002
+      3: DUMMY_0003
+      4: DUMMY_0004
+      5: DUMMY_0005
+      6: DUMMY_0006
+  - id: RACK_ULM_INTERMEDIATE_01
+    rack_type: INTERMEDIATE_RACK
+    capacity: 24
+    pattern: INTERMEDIATE_4x6
+    pin_obj_type: 9011
+    rows: 4
+    cols: 6
+    blocked_slots: []
+  - id: RACK_ULM_BIORAD_IH500_01
+    rack_type: BIORAD_IH500_RACK
+    capacity: 12
+    pattern: BIORAD_IH500_1x12_PIN3
+    pin_obj_type: 9012
+    rows: 1
+    cols: 12
+    blocked_slots:
+      - 3
+      - 6
+      - 9
+  - id: RACK_ULM_BIORAD_IH500_02
+    rack_type: BIORAD_IH500_RACK
+    capacity: 12
+    pattern: BIORAD_IH500_1x12_PIN3
+    pin_obj_type: 9012
+    rows: 1
+    cols: 12
+    blocked_slots:
+      - 3
+      - 6
+      - 9
+  - id: RACK_ULM_BIORAD_IH500_03
+    rack_type: BIORAD_IH500_RACK
+    capacity: 12
+    pattern: BIORAD_IH500_1x12_PIN3
+    pin_obj_type: 9012
+    rows: 1
+    cols: 12
+    blocked_slots:
+      - 3
+      - 6
+      - 9
+  - id: RACK_ULM_BIORAD_IH1000_01
+    rack_type: BIORAD_IH1000_RACK
+    capacity: 12
+    pattern: BIORAD_IH1000_1x12_PIN2
+    pin_obj_type: 9013
+    rows: 1
+    cols: 12
+    blocked_slots:
+      - 5
+      - 7
+  - id: RACK_ULM_BIORAD_IH1000_02
+    rack_type: BIORAD_IH1000_RACK
+    capacity: 12
+    pattern: BIORAD_IH1000_1x12_PIN2
+    pin_obj_type: 9013
+    rows: 1
+    cols: 12
+    blocked_slots:
+      - 5
+      - 7
+  - id: RACK_ULM_BIORAD_IH1000_03
+    rack_type: BIORAD_IH1000_RACK
+    capacity: 12
+    pattern: BIORAD_IH1000_1x12_PIN2
+    pin_obj_type: 9013
+    rows: 1
+    cols: 12
+    blocked_slots:
+      - 5
+      - 7
+  - id: RACK_3FG_SAMPLE_HOLDER_01
+    rack_type: THREE_FINGER_GRIPPER_SAMPLE_HOLDER
+    capacity: 1
+    pattern: THREE_FINGER_GRIPPER_1x1
+    pin_obj_type: 9014
+    rows: 1
+    cols: 1
+    blocked_slots: []
+
+devices:
+  - id: CENTRIFUGE_DEVICE_01
+    name: Centrifuge
+    station_id: CentrifugeStation
+    model: Rotina380R
+    device_class: HettichRotina380RDevice
+    capabilities:
+      - CENTRIFUGATION
+    device_capabilities:
+      supported_processes:
+        - CENTRIFUGATION
+      refrigerated: true
+      automatic_rotor_recognition: true
+      powered_lid_lock: true
+      imbalance_detection: true
+      interfaces:
+        - RS232
+        - LOCAL_UI
+    rotor_configuration:
+      rotor_id: GENERIC_ROTOR
+      rotor_type: CONFIGURABLE
+      positions:
+        - index: 1
+          angle_deg: 0.0
+          opposite_index: 3
+        - index: 2
+          angle_deg: 90.0
+          opposite_index: 4
+        - index: 3
+          angle_deg: 180.0
+          opposite_index: 1
+        - index: 4
+          angle_deg: 270.0
+          opposite_index: 2
+      buckets: []
+      adapters: []
+    balance_model:
+      rule_type: OPPOSITE_POSITION
+      require_symmetry: true
+      tolerance_g: null
+      max_imbalance_g: null
+    lid_control_strategy:
+      type: manual
+      method: local_ui_or_api
+    start_strategy:
+      type: manual
+      method: local_ui_or_api
+    status_strategy:
+      type: in_memory
+      source: status_light_or_rs232
+      state_map: {}
+  - id: THREE_FINGER_GRIPPER_DEVICE_01
+    name: 3-FingerGripper
+    station_id: 3-FingerGripperStation
+    capabilities:
+      - CAP
+      - DECAP
+      - SAMPLE_TYPE_DETECTION
+  - id: BIORAD_IH500_DEVICE_01
+    name: BioRad IH-500
+    station_id: BioRadIH500Station
+    model: IH500
+    device_class: BioradIh500Device
+    capabilities:
+      - IMMUNOANALYSIS
+    device_capabilities:
+      supported_processes:
+        - IMMUNOANALYSIS
+      continuous_loading: true
+      auto_start: false
+      nominal_sample_capacity: 50
+    load_interface:
+      carrier_type: RACK
+      loading_area: SEPARATE_LOADING_AREA
+      rack_geometry: {}
+      slot_layout: {}
+    start_strategy:
+      type: manual
+      method: status_light_or_interface
+    status_strategy:
+      type: in_memory
+      source: status_light
+      state_map: {}
+  - id: BIORAD_IH1000_DEVICE_01
+    name: BioRad IH-1000
+    station_id: BioRadIH1000Station
+    model: IH1000
+    device_class: BioradIh1000Device
+    capabilities:
+      - IMMUNOANALYSIS
+    device_capabilities:
+      supported_processes:
+        - IMMUNOANALYSIS
+      continuous_loading: true
+      auto_start: true
+      nominal_sample_capacity: 180
+    load_interface:
+      carrier_type: RACK
+      loading_area: MAIN_LOADING_AREA
+      rack_geometry: {}
+      slot_layout: {}
+    start_strategy:
+      type: automatic
+      method: auto_start_documented
+    status_strategy:
+      type: in_memory
+      source: status_light_or_interface
+      state_map: {}
+
+rack_placements:
+  - station_id: InputStation
+    station_slot_id: URGRackSlot
+    rack_id: RACK_INPUT_URG_01
+  - station_id: uLMPlateStation
+    station_slot_id: CentrifugeRacksSlot1
+    rack_id: RACK_ULM_CENTRIFUGE_01
+  - station_id: uLMPlateStation
+    station_slot_id: CentrifugeRacksSlot2
+    rack_id: RACK_ULM_CENTRIFUGE_02
+  - station_id: uLMPlateStation
+    station_slot_id: CentrifugeRacksSlot3
+    rack_id: RACK_ULM_CENTRIFUGE_03
+  - station_id: uLMPlateStation
+    station_slot_id: CentrifugeRacksSlot4
+    rack_id: RACK_ULM_CENTRIFUGE_04
+  - station_id: uLMPlateStation
+    station_slot_id: TaraRacksSlot1
+    rack_id: RACK_ULM_TARA_01
+  - station_id: uLMPlateStation
+    station_slot_id: IntermediateRackSlot1
+    rack_id: RACK_ULM_INTERMEDIATE_01
+  - station_id: uLMPlateStation
+    station_slot_id: BioRadIH500Slot1
+    rack_id: RACK_ULM_BIORAD_IH500_01
+  - station_id: uLMPlateStation
+    station_slot_id: BioRadIH500Slot2
+    rack_id: RACK_ULM_BIORAD_IH500_02
+  - station_id: uLMPlateStation
+    station_slot_id: BioRadIH500Slot3
+    rack_id: RACK_ULM_BIORAD_IH500_03
+  - station_id: uLMPlateStation
+    station_slot_id: BioRadIH1000Slot1
+    rack_id: RACK_ULM_BIORAD_IH1000_01
+  - station_id: uLMPlateStation
+    station_slot_id: BioRadIH1000Slot2
+    rack_id: RACK_ULM_BIORAD_IH1000_02
+  - station_id: uLMPlateStation
+    station_slot_id: BioRadIH1000Slot3
+    rack_id: RACK_ULM_BIORAD_IH1000_03
+  - station_id: 3-FingerGripperStation
+    station_slot_id: SampleSlot1
+    rack_id: RACK_3FG_SAMPLE_HOLDER_01
+
+robot_current_station_id: InputStation
+samples:
+  - id: DUMMY_0001
+    barcode: DUMMY_0001
+    obj_type: 101
+    length_mm: 75.0
+    diameter_mm: 13.0
+    cap_state: CAPPED
+    required_processes:
+      - CENTRIFUGATION
+  - id: DUMMY_0002
+    barcode: DUMMY_0002
+    obj_type: 101
+    length_mm: 75.0
+    diameter_mm: 13.0
+    cap_state: CAPPED
+    required_processes:
+      - CENTRIFUGATION
+  - id: DUMMY_0003
+    barcode: DUMMY_0003
+    obj_type: 101
+    length_mm: 75.0
+    diameter_mm: 13.0
+    cap_state: CAPPED
+    required_processes:
+      - CENTRIFUGATION
+  - id: DUMMY_0004
+    barcode: DUMMY_0004
+    obj_type: 101
+    length_mm: 75.0
+    diameter_mm: 13.0
+    cap_state: CAPPED
+    required_processes:
+      - CENTRIFUGATION
+  - id: DUMMY_0005
+    barcode: DUMMY_0005
+    obj_type: 101
+    length_mm: 75.0
+    diameter_mm: 13.0
+    cap_state: CAPPED
+    required_processes:
+      - CENTRIFUGATION
+  - id: DUMMY_0006
+    barcode: DUMMY_0006
+    obj_type: 101
+    length_mm: 75.0
+    diameter_mm: 13.0
+    cap_state: CAPPED
+    required_processes:
+      - CENTRIFUGATION
+sample_states:
+  - sample_id: DUMMY_0001
+    location:
+      type: RACK
+      station_id: uLMPlateStation
+      station_slot_id: TaraRacksSlot1
+      rack_id: RACK_ULM_TARA_01
+      slot_index: 1
+    completed_processes: []
+  - sample_id: DUMMY_0002
+    location:
+      type: RACK
+      station_id: uLMPlateStation
+      station_slot_id: TaraRacksSlot1
+      rack_id: RACK_ULM_TARA_01
+      slot_index: 2
+    completed_processes: []
+  - sample_id: DUMMY_0003
+    location:
+      type: RACK
+      station_id: uLMPlateStation
+      station_slot_id: TaraRacksSlot1
+      rack_id: RACK_ULM_TARA_01
+      slot_index: 3
+    completed_processes: []
+  - sample_id: DUMMY_0004
+    location:
+      type: RACK
+      station_id: uLMPlateStation
+      station_slot_id: TaraRacksSlot1
+      rack_id: RACK_ULM_TARA_01
+      slot_index: 4
+    completed_processes: []
+  - sample_id: DUMMY_0005
+    location:
+      type: RACK
+      station_id: uLMPlateStation
+      station_slot_id: TaraRacksSlot1
+      rack_id: RACK_ULM_TARA_01
+      slot_index: 5
+    completed_processes: []
+  - sample_id: DUMMY_0006
+    location:
+      type: RACK
+      station_id: uLMPlateStation
+      station_slot_id: TaraRacksSlot1
+      rack_id: RACK_ULM_TARA_01
+      slot_index: 6
+    completed_processes: []

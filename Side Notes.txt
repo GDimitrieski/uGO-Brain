@@ -1,0 +1,72 @@
+
+### BioRad devices :
+
+BioRad IH-500 and BioRad IH-1000 are both devices that can perform Immunochematology tests 
+on the samples that require this step. They are both analyizers ich can hold and analyse 3
+ racks at the same time respectively.
+
+The task of the ULM will be to prepare the racks with samples and load them into the 
+devices for the analyis. Then wait until the analysis is finished and collect the racks back.
+
+Ideally separate structure of classes has to be created for the devices as they are complex by nature.
+
+A Device is noramlly linked to a Station i.e. ITM_ID and a Landmark 
+
+The Device has states (use best industry practice here), maybe some reduced PACKML state representation will be needed.
+The control System will have to start the device somehow (pressing a physical button by the arm, sending an API or other
+interface command), monitor its status (again via different ways- sensors, APIs, Camera ..) and react accordingly when the
+analysis is finished and the sample is out.
+
+
+Centrifuge Devices:
+Design classes for a centrifuge that behaves like:
+lid open -> load samples symmetrically -> validate balance -> close/lock lid -> start -> wait for completion and standstill -> unload
+
+Required:
+- base/interface: CentrifugeDevice
+- concrete class: HettichRotina380RDevice
+- models: DeviceIdentity, DeviceCapabilities, RotorConfiguration, RotorPosition, BucketConfiguration, AdapterConfiguration, TubeLoad, LoadPlan, BalanceModel, RunSession, DeviceStatusSnapshot
+- enums: Mode, LidState, RotorState, ProcessState
+- strategies: StartStrategy, StatusStrategy, LidControlStrategy
+
+Required methods:
+- GetStatus
+- CanAccept
+- OpenLid
+- Load
+- ValidateBalance
+- CloseLid
+- Start
+- WaitForCompletion
+- UnlockOrOpenAfterRun
+- Unload
+- Diagnose
+- ResetFault
+
+Constraints:
+- only sample/tube loading and unloading
+- no medical logic
+- no run parameter design
+- rotor/bucket/adapter layout must be configurable
+- balance rules must be explicit
+- lid control must be configurable
+- start method must be configurable
+- status source must be configurable
+
+Known device facts:
+- refrigerated benchtop centrifuge
+- automatic rotor recognition
+- powered lid lock
+- imbalance detection/shutoff
+- RS232 port
+- local UI exists
+
+Do not hardcode:
+- rotor type
+- bucket type
+- adapter type
+- tube layout
+- balance limits
+- lid interaction method
+- start mechanism
+- status mapping

@@ -1,0 +1,121 @@
+{
+  "Available_Tasks": {
+    "Navigate": {
+      "receiver": "AMR",
+      "payload_template": {
+        "taskName": "Navigate",
+        "AMR_PosTarget": "{AMR_PosTarget}",
+        "AMR_Footprint": "{AMR_Footprint}",
+        "AMR_DOCK": "{AMR_DOCK}"
+      },
+      "parameters": {
+        "AMR_PosTarget": { "type": "string", "default": "1" },
+        "AMR_Footprint": { "type": "string", "default": "1" },
+        "AMR_DOCK": { "type": "string", "default": "1" }
+      },
+      "required": ["AMR_PosTarget"]
+    },
+    "Charge": {
+      "receiver": "AMR",
+      "payload_template": {
+        "taskName": "Charge"
+      },
+      "parameters": {},
+      "required": []
+    },
+    "SingleTask": {
+      "receiver": "ARM",
+      "payload_template": {
+        "taskName": "SingleTask",
+        "ITM_ID": "{ITM_ID}",
+        "JIG_ID": "{JIG_ID}",
+        "OBJ_Nbr": "{OBJ_Nbr}",
+        "ACTION": "{ACTION}",
+        "OBJ_Type": "{OBJ_Type}"
+      },
+      "parameters": {
+        "ITM_ID":  { "type": "integer", "default": 0 },
+        "JIG_ID":  { "type": "integer", "default": 0 },
+        "OBJ_Nbr": { "type": "integer", "default": 0 },
+        "ACTION":  { "type": "integer", "default": 1, "enum": [1, 2, 3, 4, 5, 6, 7] },
+        "OBJ_Type":{ "type": "integer", "default": 0 }
+      },
+      "required": ["ITM_ID", "OBJ_Nbr", "ACTION", "OBJ_Type"],
+      "action_map": {
+        "1": "Pick",
+        "2": "Place",
+        "3": "Pull",
+        "4": "Push",
+        "5": "OpenWristGripper",
+        "6": "CloseWristGripper",
+        "7": "MoveOnly"
+      }
+    },
+    "SingleDeviceAction": {
+      "receiver": "ARM",
+      "payload_template": {
+        "taskName": "SingleDeviceAction",
+        "ITM_ID": "{ITM_ID}",
+        "ACT": "{ACT}"
+      },
+      "parameters": {
+        "ITM_ID": { "type": "integer", "default": 5 },
+        "ACT": { "type": "integer", "default": 1, "enum": [1, 2, 3, 4, 30] }
+      },
+      "required": ["ITM_ID", "ACT"],
+      "action_map": {
+        "1": "OpenHatch",
+        "2": "StartCentrifuge",
+        "3": "CloseHatch",
+        "4": "MoveRotor",
+        "30": "ScanLandMark"
+      },
+      "output": {
+        "Results": {
+          "type": "string",
+          "enum": ["Success", "Failure"]
+        }
+      }
+    },
+    "ProcessAt3FingerStation": {
+      "receiver": "3FG",
+      "payload_template": {
+        "taskName": "ProcessAt3FingerStation",
+        "ITM_ID": "{ITM_ID}",
+        "JIG_ID": "{JIG_ID}",
+        "ACTION": "{ACTION}"
+      },
+      "parameters": {
+        "ITM_ID": { "type": "integer", "default": 1 },
+        "JIG_ID": { "type": "integer", "default": 10 },
+        "ACTION": { "type": "integer", "default": 3, "enum": [1, 2, 3] }
+      },
+      "required": ["ITM_ID", "JIG_ID", "ACTION"],
+      "action_map": {
+        "1": "Capping",
+        "2": "Decapping",
+        "3": "DetermineSampleType"
+      },
+      "output": {
+        "on_action_3": {
+          "barcode": "string"
+        }
+      }
+    },
+    "InspectRackAtStation": {
+      "receiver": "WRIST_CAMERA",
+      "payload_template": {
+        "taskName": "CameraInspect",
+        "STATION": "{STATION}",
+        "JIG_ID": "{JIG_ID}",
+        "CAMERA": "{CAMERA}"
+      },
+      "parameters": {
+        "STATION": { "type": "string", "default": "InputStation" },
+        "JIG_ID": { "type": "integer", "default": 1 },
+        "CAMERA": { "type": "string", "default": "WRIST" }
+      },
+      "required": ["STATION", "JIG_ID"]
+    }
+  }
+}

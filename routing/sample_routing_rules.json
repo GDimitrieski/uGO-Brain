@@ -1,0 +1,99 @@
+{
+  "rules": [
+    {
+      "id": "barcode_class_00_hematology",
+      "match": {
+        "regex": "^00"
+      },
+      "recognized": true,
+      "classification": "RecognizedHematology",
+      "sample_class": "HEMATOLOGY",
+      "process_steps": [
+        "HEMATOLOGY_ANALYSIS",
+        "ARCHIVATION"
+      ],
+      "target_station_slot_id": "IntermediateRackSlot1",
+      "workflow_steps": [
+        "Load sample into XN-1000 rack",
+        "Route rack to SYSMEX XN-1000 device/station",
+        "After analysis return rack to uLM plate",
+        "Archive sample"
+      ]
+    },
+    {
+      "id": "barcode_class_01_clinical_chemistry",
+      "match": {
+        "regex": "^01"
+      },
+      "recognized": true,
+      "classification": "RecognizedClinicalChemistry",
+      "sample_class": "CLINICAL_CHEMISTRY",
+      "process_steps": [
+        "CLINICAL_CHEMISTRY_ANALYSIS",
+        "ARCHIVATION"
+      ],
+      "target_station_slot_id": "IntermediateRackSlot1",
+      "workflow_steps": [
+        "Route sample to clinical chemistry preparation flow",
+        "Run clinical chemistry analysis",
+        "Archive sample"
+      ]
+    },
+    {
+      "id": "barcode_class_02_immunohematology",
+      "match": {
+        "regex": "^02"
+      },
+      "recognized": true,
+      "classification": "RecognizedImmunohematology",
+      "sample_class": "IMMUNOHEMATOLOGY",
+      "process_steps": [
+        "CENTRIFUGATION",
+        "DECAP",
+        "IMMUNOANALYSIS",
+        "ARCHIVATION"
+      ],
+      "target_group": "CENTRIFUGE_ANY",
+      "workflow_steps": [
+        "Load sample in centrifuge rack",
+        "Route racks as pack-of-four to centrifuge device/station",
+        "After centrifugation return racks to uLM plate (JIG_ID=2)",
+        "If capped, decap sample at 3-Finger station",
+        "Load sample into BioRad IH-1000/IH-500 rack",
+        "Route full/timeout racks to BioRad analyzer",
+        "After analysis return rack to uLM plate",
+        "Archive sample"
+      ]
+    },
+    {
+      "id": "barcode_class_03_coagulation",
+      "match": {
+        "regex": "^03"
+      },
+      "recognized": true,
+      "classification": "RecognizedCoagulation",
+      "sample_class": "COAGULATION",
+      "process_steps": [
+        "COAGULATION_ANALYSIS",
+        "ARCHIVATION"
+      ],
+      "target_station_slot_id": "IntermediateRackSlot1",
+      "workflow_steps": [
+        "Route sample to coagulation preparation flow",
+        "Run coagulation analysis",
+        "Archive sample"
+      ],
+      "notes": "Device/rack specifics can be refined later"
+    }
+  ],
+  "default": {
+    "recognized": true,
+    "classification": "RecognizedUnmappedBarcode",
+    "sample_class": "UNMAPPED",
+    "process_steps": [
+      "ARCHIVATION"
+    ],
+    "target_station_slot_id": "IntermediateRackSlot1",
+    "notes": "Barcode present but no explicit class rule matched"
+  }
+}

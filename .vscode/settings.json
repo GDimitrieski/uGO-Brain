@@ -1,0 +1,12 @@
+{
+    "chat.agent.enabled": false,
+    "chat.customAgentInSubagent.enabled": false,
+    "chat.agent.codeBlockProgress": false,
+    "chat.agent.thinking.generateTitles": false,
+    "chat.agent.thinking.terminalTools": false,
+    "chat.agentsControl.enabled": false,
+    "chat.useAgentSkills": false,
+    "chat.useAgentsMdFile": false,
+    "chat.implicitContext.suggestedContext": false,
+    "chat.viewSessions.enabled": false
+}
