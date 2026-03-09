@@ -7,7 +7,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from engine.bt_nodes import ActionNode, Blackboard, ConditionNode, ForEachNode, RetryNode, SequenceNode, Status
 from engine.command_layer import CommandSender
-from planning.planner import Goal, RulePlanner
+from planning.planner import Goal, PlanStep, RulePlanner
 from routing.sample_routing import (
     ChainedSampleRouter,
     HardRuleRoutingProvider,
@@ -30,6 +30,7 @@ from devices.centrifuge.usage_strategy import (
     DeviceActionStep,
     RackTransferStep,
     RunningValidationStep,
+    SampleTransferStep,
     ValidationStep,
     compile_centrifuge_usage_plan,
 )
@@ -1186,21 +1187,18 @@ def build_tree(
 ) -> SequenceNode:
     """Build workflow tree with scaffold steps and executable centrifuge cycle phase."""
 
-    required_station_ids = [
+    workflow_mode = str(WORKFLOW_MODE).strip().upper()
+    required_station_ids = {
         INPUT_STATION_ID,
         PLATE_STATION_ID,
         THREE_FINGER_STATION_ID,
-        CENTRIFUGE_STATION_ID,
         "CHARGE",
-    ]
-    required_task_keys = [
-        "Navigate",
-        "Charge",
+    }
+    required_task_keys = {
         "SingleTask",
-        "SingleDeviceAction",
         "ProcessAt3FingerStation",
         "InspectRackAtStation",
-    ]
+    }
     scaffold_steps = [
         "NavigateToStation",
         "ScanStationLandmark",
@@ -1216,22 +1214,53 @@ def build_tree(
         "CENTRIFUGE",
         "ROTINA380_SERVICE",
     }
+    planner_goal = Goal(
+        name="GETTING_NEW_SAMPLES",
+        options={"workflow_mode": "GETTING_NEW_SAMPLES"},
+    )
+    planner_plan_steps: List[PlanStep] = []
+    planner_plan_error = ""
+    if workflow_mode == "GETTING_NEW_SAMPLES":
+        try:
+            planner_plan_steps = RulePlanner().build_plan(world, planner_goal)
+        except Exception as exc:
+            planner_plan_error = str(exc)
+        required_station_ids.update({INPUT_STATION_ID, PLATE_STATION_ID, THREE_FINGER_STATION_ID, "CHARGE"})
+    elif workflow_mode in centrifuge_modes:
+        required_station_ids.add(CENTRIFUGE_STATION_ID)
+        required_task_keys.update({"Navigate", "Charge", "SingleTask", "SingleDeviceAction"})
+
+    plan_step_by_id = {step.step_id: step for step in planner_plan_steps}
+    active_step_names = (
+        [step.step_id for step in planner_plan_steps]
+        if workflow_mode == "GETTING_NEW_SAMPLES" and planner_plan_steps
+        else list(scaffold_steps)
+    )
 
     def validate_scaffold_prerequisites(bb: Blackboard) -> bool:
-        missing_stations = [sid for sid in required_station_ids if sid not in world.stations]
+        missing_stations = [sid for sid in sorted(required_station_ids) if sid not in world.stations]
         if missing_stations:
             print(
-                "Blank scaffold prerequisite failed: missing stations in world config: "
+                "Workflow prerequisite failed: missing stations in world config: "
                 f"{missing_stations}"
             )
             return False
 
         available_tasks_raw = sender.catalog.raw.get("Available_Tasks", {})
         available_task_keys = set(available_tasks_raw.keys()) if isinstance(available_tasks_raw, dict) else set()
-        missing_task_keys = [key for key in required_task_keys if key not in available_task_keys]
+        required_task_keys_local = set(required_task_keys)
+        if workflow_mode == "GETTING_NEW_SAMPLES":
+            if planner_plan_error:
+                print(f"Planner prerequisite failed: cannot build GETTING_NEW_SAMPLES plan ({planner_plan_error})")
+                return False
+            if not planner_plan_steps:
+                print("Planner prerequisite failed: GETTING_NEW_SAMPLES plan is empty")
+                return False
+            required_task_keys_local.update(RulePlanner.task_keys(planner_plan_steps))
+        missing_task_keys = [key for key in sorted(required_task_keys_local) if key not in available_task_keys]
         if missing_task_keys:
             print(
-                "Blank scaffold prerequisite failed: missing task definitions in Available_Tasks.json: "
+                "Workflow prerequisite failed: missing task definitions in Available_Tasks.json: "
                 f"{missing_task_keys}"
             )
             return False
@@ -1239,9 +1268,13 @@ def build_tree(
         bb["workflow_mode"] = WORKFLOW_MODE
         bb["centrifuge_mode"] = CENTRIFUGE_MODE or "AUTO"
         bb["final_plate_target"] = FINAL_PLATE_TARGET or None
-        bb["tree_profile"] = "blank_scaffold_v1"
-        bb["scaffold_steps"] = list(scaffold_steps)
-        if str(WORKFLOW_MODE).strip().upper() in centrifuge_modes:
+        if workflow_mode == "GETTING_NEW_SAMPLES":
+            bb["tree_profile"] = "planner_getting_new_samples_v1"
+            bb["planned_steps"] = [step.step_id for step in planner_plan_steps]
+        else:
+            bb["tree_profile"] = "blank_scaffold_v1"
+        bb["scaffold_steps"] = list(active_step_names)
+        if workflow_mode in centrifuge_modes:
             centrifuge_devices = world.get_station_centrifuge_devices(CENTRIFUGE_STATION_ID)
             if not centrifuge_devices:
                 print("Centrifuge prerequisite failed: no centrifuge device found at CentrifugeStation")
@@ -1369,6 +1402,526 @@ def build_tree(
             print(f"{task_name} failed: {result.get('message', '')}")
         return ok, result
 
+    def _first_free_slot_index(station_id: str, station_slot_id: str) -> int:
+        rack = world.get_rack_at(station_id, station_slot_id)
+        occupied = {int(idx) for idx in rack.occupied_slots.keys()}
+        for idx in rack.available_slots():
+            if int(idx) not in occupied:
+                return int(idx)
+        raise ValueError(f"No free slot available at {station_id}.{station_slot_id}")
+
+    def _default_target_jig_for_processes(processes: Sequence[ProcessType]) -> int:
+        process_to_jig: Dict[ProcessType, int] = {
+            ProcessType.CENTRIFUGATION: 2,
+            ProcessType.IMMUNOANALYSIS: 10,
+            ProcessType.HEMATOLOGY_ANALYSIS: 11,
+        }
+
+        # Route by the first rack-bound process in the declared process sequence.
+        # This avoids skipping prerequisite handling (e.g. centrifugation before immunoanalysis).
+        for proc in processes:
+            jig = process_to_jig.get(proc)
+            if jig is not None:
+                return int(jig)
+
+        return 4
+
+    def _resolve_routing_target(
+        decision_processes: Sequence[ProcessType],
+        target_station_slot_id: Optional[str],
+        target_rack_index: Optional[int],
+    ) -> Tuple[str, str, int]:
+        target_station_id = PLATE_STATION_ID
+        explicit_slot_id = str(target_station_slot_id or "").strip()
+        if explicit_slot_id:
+            return target_station_id, explicit_slot_id, _first_free_slot_index(target_station_id, explicit_slot_id)
+
+        target_jig_id = _default_target_jig_for_processes(decision_processes)
+        if target_rack_index is not None:
+            slot_cfgs = [
+                cfg
+                for cfg in world.slots_for_jig(target_station_id, int(target_jig_id))
+                if int(getattr(cfg, "rack_index", 1)) == int(target_rack_index)
+            ]
+            if not slot_cfgs:
+                raise ValueError(
+                    f"No slot config found for station '{target_station_id}', "
+                    f"JIG_ID={int(target_jig_id)}, rack_index={int(target_rack_index)}"
+                )
+            for cfg in sorted(slot_cfgs, key=lambda c: int(getattr(c, "rack_index", 1))):
+                try:
+                    slot_idx = _first_free_slot_index(target_station_id, str(cfg.slot_id))
+                    return target_station_id, str(cfg.slot_id), int(slot_idx)
+                except Exception:
+                    continue
+            raise ValueError(
+                f"No free slot available for station '{target_station_id}', "
+                f"JIG_ID={int(target_jig_id)}, rack_index={int(target_rack_index)}"
+            )
+
+        slot_id, slot_idx = world.select_next_target_slot_for_jig(
+            station_id=target_station_id,
+            jig_id=int(target_jig_id),
+        )
+        return target_station_id, str(slot_id), int(slot_idx)
+
+    def _move_sample_between_slots(
+        *,
+        source_station_id: str,
+        source_station_slot_id: str,
+        source_slot_index: int,
+        target_station_id: str,
+        target_station_slot_id: str,
+        target_slot_index: int,
+        task_prefix: str,
+        phase: str,
+        reason: str = "",
+        expected_sample_id: Optional[str] = None,
+    ) -> Tuple[bool, Optional[str]]:
+        source_rack = world.get_rack_at(source_station_id, source_station_slot_id)
+        sample_id = source_rack.occupied_slots.get(int(source_slot_index))
+        if sample_id is None:
+            print(
+                f"{task_prefix} failed: source slot is empty "
+                f"({source_station_id}.{source_station_slot_id}[{int(source_slot_index)}])"
+            )
+            return False, None
+        sample_id_txt = str(sample_id)
+        sample = world.samples.get(sample_id_txt)
+        obj_type = int(getattr(sample, "obj_type", OBJ_TYPE_PROBE))
+
+        source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
+        target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
+        pick_overrides = {
+            "ITM_ID": int(source_cfg.itm_id),
+            "JIG_ID": int(source_cfg.jig_id),
+            "OBJ_Nbr": int(world.obj_nbr_for_slot_index(source_station_id, source_station_slot_id, source_slot_index)),
+            "ACTION": ACTION_PICK,
+            "OBJ_Type": int(obj_type),
+        }
+        ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.PickSample")
+        if not ok:
+            return False, None
+
+        place_overrides = {
+            "ITM_ID": int(target_cfg.itm_id),
+            "JIG_ID": int(target_cfg.jig_id),
+            "OBJ_Nbr": int(world.obj_nbr_for_slot_index(target_station_id, target_station_slot_id, target_slot_index)),
+            "ACTION": ACTION_PLACE,
+            "OBJ_Type": int(obj_type),
+        }
+        ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.PlaceSample")
+        if not ok:
+            return False, None
+
+        try:
+            moved_sample_id = world.move_sample(
+                source_station_id=source_station_id,
+                source_station_slot_id=source_station_slot_id,
+                source_slot_index=int(source_slot_index),
+                target_station_id=target_station_id,
+                target_station_slot_id=target_station_slot_id,
+                target_slot_index=int(target_slot_index),
+            )
+        except Exception as exc:
+            print(f"{task_prefix} world move failed: {exc}")
+            return False, None
+
+        if expected_sample_id and str(moved_sample_id) != str(expected_sample_id):
+            print(
+                f"{task_prefix} sample identity mismatch: "
+                f"expected={expected_sample_id}, moved={moved_sample_id}"
+            )
+            return False, None
+
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="SAMPLE_MOVED",
+            entity_type="SAMPLE",
+            entity_id=str(moved_sample_id),
+            source={
+                "station_id": source_station_id,
+                "station_slot_id": source_station_slot_id,
+                "slot_index": int(source_slot_index),
+            },
+            target={
+                "station_id": target_station_id,
+                "station_slot_id": target_station_slot_id,
+                "slot_index": int(target_slot_index),
+            },
+            details={
+                "phase": phase,
+                "reason": str(reason or ""),
+            },
+        )
+        return True, str(moved_sample_id)
+
+    def _execute_getting_new_samples_phase(step_id: str, bb: Blackboard) -> bool:
+        if step_id == "await_input_rack_present":
+            rack_id = _rack_id_at(world, INPUT_STATION_ID, INPUT_SLOT_ID)
+            if not rack_id:
+                print(
+                    "GettingNewSamples prerequisite failed: no rack at "
+                    f"{INPUT_STATION_ID}.{INPUT_SLOT_ID}"
+                )
+                return False
+            bb["input_rack_id"] = str(rack_id)
+            return True
+
+        if step_id == "transfer_input_rack":
+            if not bool(bb.get("input_landmark_scanned", False)):
+                print(
+                    "GettingNewSamples transfer prerequisite failed: InputStation landmark "
+                    "scan must complete before non-plate handling"
+                )
+                return False
+            source_rack_id = _rack_id_at(world, INPUT_STATION_ID, INPUT_SLOT_ID)
+            if source_rack_id is None:
+                print(
+                    "GettingNewSamples transfer failed: no rack at "
+                    f"{INPUT_STATION_ID}.{INPUT_SLOT_ID}"
+                )
+                return False
+            if _rack_id_at(world, PLATE_STATION_ID, PLATE_RACK_SLOT_ID) is not None:
+                print(
+                    "GettingNewSamples transfer failed: target slot already occupied "
+                    f"({PLATE_STATION_ID}.{PLATE_RACK_SLOT_ID})"
+                )
+                return False
+
+            source_cfg = world.get_slot_config(INPUT_STATION_ID, INPUT_SLOT_ID)
+            target_cfg = world.get_slot_config(PLATE_STATION_ID, PLATE_RACK_SLOT_ID)
+            rack = world.racks.get(source_rack_id)
+            if rack is None:
+                print(f"GettingNewSamples transfer failed: unknown source rack '{source_rack_id}'")
+                return False
+            obj_type = int(rack.pin_obj_type)
+            pick_overrides = {
+                "ITM_ID": int(source_cfg.itm_id),
+                "JIG_ID": int(source_cfg.jig_id),
+                "OBJ_Nbr": int(source_cfg.rack_index),
+                "ACTION": ACTION_PICK,
+                "OBJ_Type": int(obj_type),
+            }
+            ok, _ = _run_task("SingleTask", pick_overrides, "GettingNewSamples.TransferInputRack.Pick")
+            if not ok:
+                return False
+
+            place_overrides = {
+                "ITM_ID": int(target_cfg.itm_id),
+                "JIG_ID": int(target_cfg.jig_id),
+                "OBJ_Nbr": int(target_cfg.rack_index),
+                "ACTION": ACTION_PLACE,
+                "OBJ_Type": int(obj_type),
+            }
+            ok, _ = _run_task("SingleTask", place_overrides, "GettingNewSamples.TransferInputRack.Place")
+            if not ok:
+                return False
+
+            try:
+                moved_rack_id = world.move_rack(
+                    source_station_id=INPUT_STATION_ID,
+                    source_station_slot_id=INPUT_SLOT_ID,
+                    target_station_id=PLATE_STATION_ID,
+                    target_station_slot_id=PLATE_RACK_SLOT_ID,
+                )
+            except Exception as exc:
+                print(f"GettingNewSamples transfer failed: world move failed ({exc})")
+                return False
+
+            append_world_event(
+                occupancy_records,
+                world,
+                event_type="RACK_MOVED",
+                entity_type="RACK",
+                entity_id=str(moved_rack_id),
+                source={"station_id": INPUT_STATION_ID, "station_slot_id": INPUT_SLOT_ID},
+                target={"station_id": PLATE_STATION_ID, "station_slot_id": PLATE_RACK_SLOT_ID},
+                details={
+                    "phase": "GettingNewSamples",
+                    "step_id": step_id,
+                },
+            )
+            bb["input_rack_id"] = str(moved_rack_id)
+            return True
+
+        if step_id == "camera_inspect_urg_for_new_samples":
+            rack_id = _rack_id_at(world, PLATE_STATION_ID, PLATE_RACK_SLOT_ID)
+            if rack_id is None:
+                print(
+                    "GettingNewSamples inspect failed: no URG rack on plate "
+                    f"({PLATE_STATION_ID}.{PLATE_RACK_SLOT_ID})"
+                )
+                return False
+
+            inspect_overrides = {
+                "STATION": PLATE_STATION_ID,
+                "JIG_ID": int(world.get_slot_config(PLATE_STATION_ID, PLATE_RACK_SLOT_ID).jig_id),
+                "CAMERA": "WRIST",
+            }
+            ok, result = _run_task(
+                "InspectRackAtStation",
+                inspect_overrides,
+                "GettingNewSamples.CameraInspectUrgRack",
+            )
+            if not ok:
+                return False
+
+            rack = world.get_rack_at(PLATE_STATION_ID, PLATE_RACK_SLOT_ID)
+            detected_positions: List[int] = []
+            for pos in extract_positions(result):
+                try:
+                    pos_int = int(pos)
+                    rack.validate_slot(pos_int)
+                    detected_positions.append(pos_int)
+                except Exception:
+                    continue
+            detected_positions = sorted(set(detected_positions))
+            detected_sample_ids: List[str] = []
+            for pos in detected_positions:
+                sample_id = world.ensure_placeholder_sample(
+                    PLATE_STATION_ID,
+                    PLATE_RACK_SLOT_ID,
+                    int(pos),
+                    OBJ_TYPE_PROBE,
+                )
+                detected_sample_ids.append(str(sample_id))
+                append_world_event(
+                    occupancy_records,
+                    world,
+                    event_type="SAMPLE_DETECTED",
+                    entity_type="SAMPLE",
+                    entity_id=str(sample_id),
+                    source={
+                        "station_id": PLATE_STATION_ID,
+                        "station_slot_id": PLATE_RACK_SLOT_ID,
+                        "slot_index": int(pos),
+                    },
+                    details={
+                        "phase": "GettingNewSamples",
+                        "step_id": step_id,
+                    },
+                )
+
+            if not detected_sample_ids:
+                detected_sample_ids = [
+                    str(sid) for _, sid in sorted(rack.occupied_slots.items(), key=lambda item: int(item[0]))
+                ]
+
+            bb["detected_urg_positions"] = list(detected_positions)
+            bb["detected_sample_ids"] = list(detected_sample_ids)
+            return True
+
+        if step_id == "urg_sort_via_3fg_router":
+            rack_id = _rack_id_at(world, PLATE_STATION_ID, PLATE_RACK_SLOT_ID)
+            if rack_id is None:
+                print(
+                    "GettingNewSamples routing failed: no URG rack on plate "
+                    f"({PLATE_STATION_ID}.{PLATE_RACK_SLOT_ID})"
+                )
+                return False
+
+            router = build_sample_router()
+            sample_ids_raw = bb.get("detected_sample_ids", [])
+            sample_ids: List[str] = []
+            if isinstance(sample_ids_raw, list):
+                sample_ids = [str(x) for x in sample_ids_raw if str(x).strip()]
+            if not sample_ids:
+                source_rack = world.get_rack_at(PLATE_STATION_ID, PLATE_RACK_SLOT_ID)
+                sample_ids = [
+                    str(sid) for _, sid in sorted(source_rack.occupied_slots.items(), key=lambda item: int(item[0]))
+                ]
+            if not sample_ids:
+                print("GettingNewSamples routing: no samples to route from URG rack")
+                bb["routed_sample_ids"] = []
+                return True
+
+            routed_sample_ids: List[str] = []
+            three_fg_cfg = world.get_slot_config(THREE_FINGER_STATION_ID, THREE_FINGER_SLOT_ID)
+            process_overrides = {
+                "ITM_ID": int(three_fg_cfg.itm_id),
+                "JIG_ID": int(three_fg_cfg.jig_id),
+                "ACTION": 3,
+            }
+            for sample_id in sample_ids:
+                state = world.sample_states.get(sample_id)
+                if state is None or not isinstance(state.location, RackLocation):
+                    print(f"GettingNewSamples routing failed: sample '{sample_id}' has no rack location")
+                    return False
+                if (
+                    state.location.station_id != PLATE_STATION_ID
+                    or state.location.station_slot_id != PLATE_RACK_SLOT_ID
+                ):
+                    continue
+                source_slot_index = int(state.location.slot_index)
+
+                ok, moved_sample_id = _move_sample_between_slots(
+                    source_station_id=PLATE_STATION_ID,
+                    source_station_slot_id=PLATE_RACK_SLOT_ID,
+                    source_slot_index=source_slot_index,
+                    target_station_id=THREE_FINGER_STATION_ID,
+                    target_station_slot_id=THREE_FINGER_SLOT_ID,
+                    target_slot_index=1,
+                    task_prefix=f"GettingNewSamples.RouteSample.{sample_id}.To3FG",
+                    phase="GettingNewSamples",
+                    reason="to_3fg",
+                    expected_sample_id=sample_id,
+                )
+                if not ok or moved_sample_id is None:
+                    return False
+
+                ok, process_result = _run_task(
+                    "ProcessAt3FingerStation",
+                    process_overrides,
+                    f"GettingNewSamples.RouteSample.{sample_id}.DetermineSampleType",
+                )
+                if not ok:
+                    return False
+
+                sample_type = extract_sample_type(process_result)
+                barcode = extract_sample_barcode(process_result)
+                decision = router.route(
+                    SampleRoutingRequest(
+                        sample_id=sample_id,
+                        barcode=barcode,
+                        sample_type=sample_type,
+                    )
+                )
+                decision_processes = tuple(step.process for step in decision.process_steps)
+                try:
+                    target_station_id, target_slot_id, target_slot_index = _resolve_routing_target(
+                        decision_processes,
+                        decision.target_station_slot_id,
+                        decision.target_rack_index,
+                    )
+                except Exception as exc:
+                    print(f"GettingNewSamples routing failed for sample '{sample_id}': {exc}")
+                    return False
+
+                ok, moved_sample_id = _move_sample_between_slots(
+                    source_station_id=THREE_FINGER_STATION_ID,
+                    source_station_slot_id=THREE_FINGER_SLOT_ID,
+                    source_slot_index=1,
+                    target_station_id=target_station_id,
+                    target_station_slot_id=target_slot_id,
+                    target_slot_index=target_slot_index,
+                    task_prefix=f"GettingNewSamples.RouteSample.{sample_id}.ToDestination",
+                    phase="GettingNewSamples",
+                    reason=decision.classification,
+                    expected_sample_id=sample_id,
+                )
+                if not ok or moved_sample_id is None:
+                    return False
+
+                try:
+                    world.classify_sample(
+                        sample_id=sample_id,
+                        recognized=bool(decision.recognized),
+                        classification_source=str(decision.source),
+                        barcode=barcode,
+                        required_processes=decision_processes or None,
+                        assigned_route=str(decision.classification),
+                        assigned_route_station_slot_id=str(target_slot_id),
+                        assigned_route_rack_index=(
+                            int(decision.target_rack_index)
+                            if decision.target_rack_index is not None
+                            else None
+                        ),
+                        classification_details={
+                            "provider": str(decision.source),
+                            "recognized": bool(decision.recognized),
+                            "sample_type": decision.sample_type,
+                            "target_station_slot_id": decision.target_station_slot_id,
+                            "target_rack_index": decision.target_rack_index,
+                            "details": dict(decision.details or {}),
+                        },
+                    )
+                except Exception as exc:
+                    print(f"GettingNewSamples classification failed for sample '{sample_id}': {exc}")
+                    return False
+
+                resolved_sample_id = str(sample_id)
+                normalized_barcode = str(barcode).strip() if barcode is not None else ""
+                if normalized_barcode:
+                    try:
+                        resolved_sample_id = str(
+                            world.reidentify_sample(
+                                sample_id=sample_id,
+                                preferred_sample_id=normalized_barcode,
+                                barcode=normalized_barcode,
+                            )
+                        )
+                    except Exception as exc:
+                        print(
+                            "GettingNewSamples re-identification failed for sample "
+                            f"'{sample_id}' with barcode '{normalized_barcode}': {exc}"
+                        )
+                        return False
+
+                append_world_event(
+                    occupancy_records,
+                    world,
+                    event_type="SAMPLE_CLASSIFIED",
+                    entity_type="SAMPLE",
+                    entity_id=str(resolved_sample_id),
+                    target={
+                        "station_id": target_station_id,
+                        "station_slot_id": target_slot_id,
+                        "slot_index": int(target_slot_index),
+                    },
+                    details={
+                        "phase": "GettingNewSamples",
+                        "step_id": step_id,
+                        "classification": str(decision.classification),
+                        "provider": str(decision.source),
+                        "original_sample_id": str(sample_id),
+                        "resolved_sample_id": str(resolved_sample_id),
+                    },
+                )
+                routed_sample_ids.append(str(resolved_sample_id))
+
+            bb["routed_sample_ids"] = list(routed_sample_ids)
+            return True
+
+        if step_id == "handoff_to_state_driven_planning":
+            bb["state_driven_planning_requested"] = True
+            bb["state_driven_planning_handoff_ts"] = _local_now_iso()
+            append_world_event(
+                occupancy_records,
+                world,
+                event_type="WORKFLOW_PHASE_COMPLETED",
+                entity_type="WORKFLOW",
+                entity_id="GETTING_NEW_SAMPLES",
+                details={
+                    "phase": "GettingNewSamples",
+                    "step_id": step_id,
+                    "next_phase": "state_driven_planning",
+                },
+            )
+            return True
+
+        print(f"GettingNewSamples failed: unsupported phase '{step_id}'")
+        return False
+
+    def _execute_getting_new_samples_task(step: PlanStep, bb: Blackboard) -> bool:
+        if not step.task_key:
+            print(f"GettingNewSamples failed: task step '{step.step_id}' has no task_key")
+            return False
+        overrides = dict(step.overrides or {})
+        ok, _ = _run_task(step.task_key, overrides, f"GettingNewSamples.{step.step_id}")
+        if not ok:
+            return False
+
+        if step.task_key in {"Navigate", "Charge"} and step.station_id:
+            try:
+                world.set_robot_station(step.station_id)
+            except Exception:
+                pass
+        if step.step_id == "scan_input_landmark":
+            bb["input_landmark_scanned"] = True
+        return True
+
     def _is_centrifuge_ready(device: Any) -> Tuple[bool, Dict[str, Any], str]:
         try:
             diag = device.Diagnose()
@@ -1381,6 +1934,73 @@ def build_tree(
         if str(diag.get("process_state", "")).strip().upper() == "FAULTED":
             return False, diag, "Centrifuge not ready: process state is FAULTED"
         return True, diag, ""
+
+    def _execute_sample_transfer(op: SampleTransferStep) -> bool:
+        pick_overrides = {
+            "ITM_ID": int(op.source_itm_id),
+            "JIG_ID": int(op.source_jig_id),
+            "OBJ_Nbr": int(op.source_obj_nbr),
+            "ACTION": ACTION_PICK,
+            "OBJ_Type": int(op.obj_type),
+        }
+        ok, _ = _run_task("SingleTask", pick_overrides, f"CentrifugeCycle.{op.name}.PickSample")
+        if not ok:
+            return False
+
+        place_overrides = {
+            "ITM_ID": int(op.target_itm_id),
+            "JIG_ID": int(op.target_jig_id),
+            "OBJ_Nbr": int(op.target_obj_nbr),
+            "ACTION": ACTION_PLACE,
+            "OBJ_Type": int(op.obj_type),
+        }
+        ok, _ = _run_task("SingleTask", place_overrides, f"CentrifugeCycle.{op.name}.PlaceSample")
+        if not ok:
+            return False
+
+        try:
+            moved_sample_id = world.move_sample(
+                source_station_id=op.source_station_id,
+                source_station_slot_id=op.source_station_slot_id,
+                source_slot_index=int(op.source_slot_index),
+                target_station_id=op.target_station_id,
+                target_station_slot_id=op.target_station_slot_id,
+                target_slot_index=int(op.target_slot_index),
+            )
+        except Exception as exc:
+            print(f"CentrifugeCycle sample move failed ({op.name}): {exc}")
+            return False
+
+        if str(moved_sample_id) != str(op.sample_id):
+            print(
+                "CentrifugeCycle sample identity mismatch "
+                f"({op.name}): expected={op.sample_id}, moved={moved_sample_id}"
+            )
+            return False
+
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="SAMPLE_MOVED",
+            entity_type="SAMPLE",
+            entity_id=str(moved_sample_id),
+            source={
+                "station_id": op.source_station_id,
+                "station_slot_id": op.source_station_slot_id,
+                "slot_index": int(op.source_slot_index),
+            },
+            target={
+                "station_id": op.target_station_id,
+                "station_slot_id": op.target_station_slot_id,
+                "slot_index": int(op.target_slot_index),
+            },
+            details={
+                "phase": "CentrifugeCycle",
+                "operation": str(op.name),
+                "reason": str(op.reason or ""),
+            },
+        )
+        return True
 
     def _execute_rack_transfer(plan: CentrifugeUsagePlan, op: RackTransferStep, device: Any) -> bool:
         pick_overrides = {
@@ -1525,6 +2145,11 @@ def build_tree(
                     return False
                 continue
 
+            if isinstance(op, SampleTransferStep):
+                if not _execute_sample_transfer(op):
+                    return False
+                continue
+
             if isinstance(op, RackTransferStep):
                 if not _execute_rack_transfer(plan, op, device):
                     return False
@@ -1557,8 +2182,21 @@ def build_tree(
 
     def make_step(step_name: str):
         def _run(bb: Blackboard) -> bool:
+            if workflow_mode == "GETTING_NEW_SAMPLES":
+                step = plan_step_by_id.get(step_name)
+                if step is None:
+                    print(f"GettingNewSamples failed: planner step '{step_name}' not found")
+                    return False
+                bb["last_plan_step"] = str(step.step_id)
+                if str(step.step_type).strip().upper() == "TASK":
+                    return _execute_getting_new_samples_task(step, bb)
+                if str(step.step_type).strip().upper() == "PHASE":
+                    return _execute_getting_new_samples_phase(step.step_id, bb)
+                print(f"GettingNewSamples failed: unsupported step_type '{step.step_type}'")
+                return False
+
             bb["last_blank_step"] = step_name
-            if step_name == "CentrifugeCycle" and str(WORKFLOW_MODE).strip().upper() in centrifuge_modes:
+            if step_name == "CentrifugeCycle" and workflow_mode in centrifuge_modes:
                 return _execute_centrifuge_cycle(bb)
             print(f"[BLANK_NODE] {step_name}: no behavior implemented yet")
             return True
@@ -1572,7 +2210,7 @@ def build_tree(
             max_attempts=1,
         )
     ]
-    for step_name in scaffold_steps:
+    for step_name in active_step_names:
         nodes.append(
             RetryNode(
                 step_name,

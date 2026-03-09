@@ -60,6 +60,11 @@ class SampleClassificationStatus(str, Enum):
     UNRECOGNIZED = "UNRECOGNIZED"
 
 
+DEFAULT_LOADING_STRATEGY_BY_JIG: Dict[int, str] = {
+    2: "ROUND_ROBIN",
+}
+
+
 @dataclass(frozen=True)
 class Landmark:
     id: str
@@ -81,6 +86,8 @@ class RackSlotConfig:
     rack_index: int = 1
     # Offset for mapping per-rack sample slot index to task OBJ_Nbr within a jig.
     obj_nbr_offset: int = 0
+    # Optional strategy override. Empty means fallback to JIG defaults.
+    loading_strategy: str = ""
     accepted_rack_types: frozenset[RackType] = field(default_factory=frozenset)
 
 
@@ -237,6 +244,111 @@ class WorldModel:
         if cfg is None:
             raise KeyError(f"Unknown station slot '{station_slot_id}' for station '{station_id}'")
         return cfg
+
+    @staticmethod
+    def _normalize_loading_strategy(strategy_raw: Any) -> str:
+        txt = str(strategy_raw or "").strip().upper()
+        if txt in {"ROUND_ROBIN", "SEQUENTIAL"}:
+            return txt
+        return ""
+
+    def resolved_loading_strategy(self, station_id: str, station_slot_id: str) -> str:
+        cfg = self.get_slot_config(station_id, station_slot_id)
+        slot_strategy = self._normalize_loading_strategy(cfg.loading_strategy)
+        if slot_strategy:
+            return slot_strategy
+        return DEFAULT_LOADING_STRATEGY_BY_JIG.get(int(cfg.jig_id), "SEQUENTIAL")
+
+    def slots_for_jig(self, station_id: str, jig_id: int) -> List[RackSlotConfig]:
+        station = self.get_station(station_id)
+        out: List[RackSlotConfig] = [
+            cfg for cfg in station.slot_configs.values()
+            if int(cfg.jig_id) == int(jig_id)
+        ]
+        out.sort(key=lambda cfg: (int(cfg.rack_index), str(cfg.slot_id)))
+        return out
+
+    def obj_nbr_for_slot_index(self, station_id: str, station_slot_id: str, slot_index: int) -> int:
+        cfg = self.get_slot_config(station_id, station_slot_id)
+        return int(cfg.obj_nbr_offset) + int(slot_index)
+
+    def select_next_target_slot_for_jig(
+        self,
+        station_id: str,
+        jig_id: int,
+        *,
+        strategy: Optional[str] = None,
+    ) -> Tuple[str, int]:
+        slot_cfgs = self.slots_for_jig(station_id, jig_id)
+        if not slot_cfgs:
+            raise ValueError(
+                f"No slots configured for station '{station_id}' with JIG_ID={int(jig_id)}"
+            )
+
+        normalized_override = self._normalize_loading_strategy(strategy)
+        if normalized_override:
+            resolved_strategy = normalized_override
+        else:
+            resolved_strategy = self.resolved_loading_strategy(station_id, slot_cfgs[0].slot_id)
+
+        free_by_slot: Dict[str, List[int]] = {}
+        for cfg in slot_cfgs:
+            rack_id = self.rack_placements.get((station_id, cfg.slot_id))
+            if not rack_id:
+                continue
+            rack = self.racks.get(rack_id)
+            if rack is None:
+                continue
+            free_slots = [idx for idx in rack.available_slots() if idx not in rack.occupied_slots]
+            if free_slots:
+                free_by_slot[str(cfg.slot_id)] = free_slots
+
+        if not free_by_slot:
+            raise ValueError(
+                f"No free sample slots available for station '{station_id}' JIG_ID={int(jig_id)}"
+            )
+
+        if resolved_strategy == "SEQUENTIAL":
+            for cfg in slot_cfgs:
+                free_slots = free_by_slot.get(str(cfg.slot_id), [])
+                if free_slots:
+                    return (str(cfg.slot_id), int(free_slots[0]))
+            raise ValueError(
+                f"Sequential target resolution failed for station '{station_id}' JIG_ID={int(jig_id)}"
+            )
+
+        if resolved_strategy == "ROUND_ROBIN":
+            best_slot_id: Optional[str] = None
+            best_slot_index: Optional[int] = None
+            best_score: Optional[Tuple[int, int, int]] = None
+            for cfg in slot_cfgs:
+                slot_id = str(cfg.slot_id)
+                free_slots = free_by_slot.get(slot_id, [])
+                if not free_slots:
+                    continue
+                rack_id = self.rack_placements.get((station_id, slot_id))
+                if not rack_id or rack_id not in self.racks:
+                    continue
+                rack = self.racks[rack_id]
+                score = (
+                    len(rack.occupied_slots),
+                    int(cfg.rack_index),
+                    int(free_slots[0]),
+                )
+                if best_score is None or score < best_score:
+                    best_score = score
+                    best_slot_id = slot_id
+                    best_slot_index = int(free_slots[0])
+            if best_slot_id is not None and best_slot_index is not None:
+                return (best_slot_id, best_slot_index)
+            raise ValueError(
+                f"Round-robin target resolution failed for station '{station_id}' JIG_ID={int(jig_id)}"
+            )
+
+        raise ValueError(
+            f"Unsupported loading strategy '{resolved_strategy}' for station '{station_id}' "
+            f"JIG_ID={int(jig_id)}"
+        )
 
     def set_robot_station(self, station_id: str) -> None:
         self.get_station(station_id)
@@ -1544,6 +1656,7 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
                 rack_cols=None if raw_slot.get("rack_cols") is None else int(raw_slot.get("rack_cols")),
                 rack_index=int(raw_slot.get("rack_index", 1)),
                 obj_nbr_offset=int(raw_slot.get("obj_nbr_offset", 0)),
+                loading_strategy=str(raw_slot.get("loading_strategy", "") or "").strip(),
                 accepted_rack_types=accepted,
             )
 
@@ -1741,6 +1854,7 @@ def world_to_config(world: WorldModel) -> Dict[str, Any]:
                     "rack_cols": slot.rack_cols,
                     "rack_index": slot.rack_index,
                     "obj_nbr_offset": slot.obj_nbr_offset,
+                    "loading_strategy": slot.loading_strategy,
                     "accepted_rack_types": sorted(t.value for t in slot.accepted_rack_types),
                 }
             )
@@ -2061,6 +2175,7 @@ class WorldConfigManager:
         rack_cols: Optional[int] = None,
         rack_index: int = 1,
         obj_nbr_offset: int = 0,
+        loading_strategy: str = "",
         accepted_rack_types: Optional[Iterable[Union[RackType, str]]] = None,
     ) -> None:
         station = self._find_station(station_id)
@@ -2097,6 +2212,7 @@ class WorldConfigManager:
             "rack_cols": (None if final_rack_cols is None else int(final_rack_cols)),
             "rack_index": int(rack_index),
             "obj_nbr_offset": int(obj_nbr_offset),
+            "loading_strategy": str(loading_strategy or "").strip(),
             "accepted_rack_types": sorted(_as_enum(RackType, t).value for t in (accepted_rack_types or [])),
         }
         _upsert_dict_item(slots, "slot_id", slot_id, item)

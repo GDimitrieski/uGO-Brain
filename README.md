@@ -62,9 +62,8 @@ Environment variables used by the main workflow:
 - `UGO_FORCE_INPUT_RACK_AT_INPUT` (default off)
   - if enabled, input rack is prepared/reset at input station on startup
 - `UGO_WORKFLOW_MODE` (default `GETTING_NEW_SAMPLES`)
-  - supported: `GETTING_NEW_SAMPLES`
-- `UGO_FINAL_PLATE_TARGET` (optional)
-  - not required for the intake plan; reserved for downstream state-driven planning
+  - supported: `GETTING_NEW_SAMPLES`, `CENTRIFUGE`
+  - `CENTRIFUGE` enables the `CentrifugeCycle` BT phase
 
 PowerShell example:
 

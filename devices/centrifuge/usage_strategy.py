@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+from world.jig_rack_strategy import (
+    TARA_PROBE_PREFIXES_DEFAULT,
+    PlannedSampleMove,
+    is_tara_probe_sample_id,
+    plan_tara_balance_moves,
+)
 
 
 DEVICE_ACTION_OPEN_HATCH = 1
@@ -20,6 +27,26 @@ class DeviceActionStep:
     name: str
     task_key: str
     overrides: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class SampleTransferStep:
+    name: str
+    sample_id: str
+    source_station_id: str
+    source_station_slot_id: str
+    source_slot_index: int
+    source_itm_id: int
+    source_jig_id: int
+    source_obj_nbr: int
+    target_station_id: str
+    target_station_slot_id: str
+    target_slot_index: int
+    target_itm_id: int
+    target_jig_id: int
+    target_obj_nbr: int
+    obj_type: int
+    reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -64,6 +91,11 @@ class Rotina380UsageProfile(CentrifugeUsageProfile):
     source_station_id: str = "uLMPlateStation"
     centrifuge_station_id: str = "CentrifugeStation"
     fixed_receiver_obj_nbr: int = 1
+    target_loading_jig_id: int = 2
+    tara_probe_jig_id: int = 3
+    tara_probe_prefixes: Tuple[str, ...] = TARA_PROBE_PREFIXES_DEFAULT
+    enable_tara_balancing: bool = True
+    return_tara_probes_on_unload: bool = True
 
     def to_config_dict(self) -> Dict[str, Any]:
         return {
@@ -71,6 +103,11 @@ class Rotina380UsageProfile(CentrifugeUsageProfile):
             "source_station_id": self.source_station_id,
             "centrifuge_station_id": self.centrifuge_station_id,
             "fixed_receiver_obj_nbr": int(self.fixed_receiver_obj_nbr),
+            "target_loading_jig_id": int(self.target_loading_jig_id),
+            "tara_probe_jig_id": int(self.tara_probe_jig_id),
+            "tara_probe_prefixes": list(self.tara_probe_prefixes),
+            "enable_tara_balancing": bool(self.enable_tara_balancing),
+            "return_tara_probes_on_unload": bool(self.return_tara_probes_on_unload),
         }
 
 
@@ -90,10 +127,33 @@ def usage_profile_from_config(raw: Optional[Dict[str, Any]]) -> CentrifugeUsageP
             fixed_receiver_obj_nbr = int(cfg.get("fixed_receiver_obj_nbr", 1))
         except Exception:
             fixed_receiver_obj_nbr = 1
+        try:
+            target_loading_jig_id = int(cfg.get("target_loading_jig_id", 2))
+        except Exception:
+            target_loading_jig_id = 2
+        try:
+            tara_probe_jig_id = int(cfg.get("tara_probe_jig_id", 3))
+        except Exception:
+            tara_probe_jig_id = 3
+        raw_prefixes = cfg.get("tara_probe_prefixes", list(TARA_PROBE_PREFIXES_DEFAULT))
+        parsed_prefixes: Tuple[str, ...]
+        if isinstance(raw_prefixes, list):
+            parsed_prefixes = tuple(str(x).strip() for x in raw_prefixes if str(x).strip())
+        else:
+            parsed_prefixes = TARA_PROBE_PREFIXES_DEFAULT
+        if not parsed_prefixes:
+            parsed_prefixes = TARA_PROBE_PREFIXES_DEFAULT
+        enable_tara_balancing = bool(cfg.get("enable_tara_balancing", True))
+        return_tara_probes_on_unload = bool(cfg.get("return_tara_probes_on_unload", True))
         return Rotina380UsageProfile(
             source_station_id=source_station_id,
             centrifuge_station_id=centrifuge_station_id,
             fixed_receiver_obj_nbr=fixed_receiver_obj_nbr,
+            target_loading_jig_id=target_loading_jig_id,
+            tara_probe_jig_id=tara_probe_jig_id,
+            tara_probe_prefixes=parsed_prefixes,
+            enable_tara_balancing=enable_tara_balancing,
+            return_tara_probes_on_unload=return_tara_probes_on_unload,
         )
     raise ValueError(f"Unsupported centrifuge usage profile type '{cfg.get('type')}'")
 
@@ -121,6 +181,134 @@ def _rack_id_at(world: Any, station_id: str, slot_id: str) -> Optional[str]:
     if not rack_id:
         return None
     return str(rack_id)
+
+
+def _obj_nbr_for_slot_index(world: Any, station_id: str, slot_id: str, slot_index: int) -> int:
+    cfg = world.get_slot_config(station_id, slot_id)
+    return int(getattr(cfg, "obj_nbr_offset", 0)) + int(slot_index)
+
+
+def _sample_obj_type(world: Any, sample_id: str, fallback: int) -> int:
+    sample = world.samples.get(sample_id)
+    if sample is None:
+        return int(fallback)
+    return int(getattr(sample, "obj_type", fallback))
+
+
+def _sample_transfer_from_move(world: Any, move: PlannedSampleMove, *, name: str) -> SampleTransferStep:
+    source_cfg = world.get_slot_config(move.source_station_id, move.source_station_slot_id)
+    target_cfg = world.get_slot_config(move.target_station_id, move.target_station_slot_id)
+    fallback_obj_type = 0
+    target_rack_id = _rack_id_at(world, move.target_station_id, move.target_station_slot_id)
+    if target_rack_id and target_rack_id in world.racks:
+        fallback_obj_type = int(world.racks[target_rack_id].pin_obj_type)
+    obj_type = _sample_obj_type(
+        world,
+        sample_id=str(move.sample_id),
+        fallback=fallback_obj_type,
+    )
+    return SampleTransferStep(
+        name=name,
+        sample_id=str(move.sample_id),
+        source_station_id=str(move.source_station_id),
+        source_station_slot_id=str(move.source_station_slot_id),
+        source_slot_index=int(move.source_slot_index),
+        source_itm_id=int(source_cfg.itm_id),
+        source_jig_id=int(source_cfg.jig_id),
+        source_obj_nbr=_obj_nbr_for_slot_index(
+            world,
+            str(move.source_station_id),
+            str(move.source_station_slot_id),
+            int(move.source_slot_index),
+        ),
+        target_station_id=str(move.target_station_id),
+        target_station_slot_id=str(move.target_station_slot_id),
+        target_slot_index=int(move.target_slot_index),
+        target_itm_id=int(target_cfg.itm_id),
+        target_jig_id=int(target_cfg.jig_id),
+        target_obj_nbr=_obj_nbr_for_slot_index(
+            world,
+            str(move.target_station_id),
+            str(move.target_station_slot_id),
+            int(move.target_slot_index),
+        ),
+        obj_type=int(obj_type),
+        reason=str(move.reason or ""),
+    )
+
+
+def _tara_return_moves_for_unload(
+    *,
+    world: Any,
+    profile: Rotina380UsageProfile,
+    source_slot_ids: Sequence[str],
+    centrifuge_slot_ids: Sequence[str],
+) -> Sequence[PlannedSampleMove]:
+    # At UNLOAD compile time, probes are still in centrifuge-station racks.
+    # Map them to their post-unload source slots, then return to Tara jig.
+    if not profile.return_tara_probes_on_unload:
+        return []
+
+    predicted_probe_positions: List[Tuple[str, int, str]] = []
+    for source_slot_id, centrifuge_slot_id in zip(source_slot_ids, centrifuge_slot_ids):
+        rack_id = _rack_id_at(world, profile.centrifuge_station_id, centrifuge_slot_id)
+        if not rack_id or rack_id not in world.racks:
+            continue
+        rack = world.racks[rack_id]
+        for slot_index in sorted(rack.occupied_slots.keys()):
+            sample_id = str(rack.occupied_slots[slot_index])
+            if not is_tara_probe_sample_id(sample_id, probe_prefixes=profile.tara_probe_prefixes):
+                continue
+            predicted_probe_positions.append((str(source_slot_id), int(slot_index), sample_id))
+
+    if not predicted_probe_positions:
+        return []
+
+    tara_cfgs = world.slots_for_jig(profile.source_station_id, int(profile.tara_probe_jig_id))
+    if not tara_cfgs:
+        raise ValueError(
+            "Rotina380 unload prerequisite failed: no Tara rack slot available for probe return "
+            f"(station='{profile.source_station_id}', JIG_ID={int(profile.tara_probe_jig_id)})"
+        )
+
+    free_targets: List[Tuple[str, int]] = []
+    planned_occupied_by_slot: Dict[str, set[int]] = {}
+    for cfg in tara_cfgs:
+        slot_id = str(cfg.slot_id)
+        rack_id = _rack_id_at(world, profile.source_station_id, slot_id)
+        if not rack_id or rack_id not in world.racks:
+            continue
+        rack = world.racks[rack_id]
+        occupied = set(int(idx) for idx in rack.occupied_slots.keys())
+        free_slots = [idx for idx in rack.available_slots() if idx not in occupied]
+        for idx in free_slots:
+            if idx in planned_occupied_by_slot.setdefault(slot_id, set()):
+                continue
+            planned_occupied_by_slot[slot_id].add(int(idx))
+            free_targets.append((slot_id, int(idx)))
+
+    if len(free_targets) < len(predicted_probe_positions):
+        raise ValueError(
+            "Rotina380 unload prerequisite failed: insufficient Tara free slots for probe return. "
+            f"Need={len(predicted_probe_positions)}, Free={len(free_targets)}"
+        )
+
+    moves: List[PlannedSampleMove] = []
+    for idx, (source_slot_id, source_slot_index, sample_id) in enumerate(predicted_probe_positions):
+        target_slot_id, target_slot_index = free_targets[idx]
+        moves.append(
+            PlannedSampleMove(
+                sample_id=str(sample_id),
+                source_station_id=profile.source_station_id,
+                source_station_slot_id=str(source_slot_id),
+                source_slot_index=int(source_slot_index),
+                target_station_id=profile.source_station_id,
+                target_station_slot_id=str(target_slot_id),
+                target_slot_index=int(target_slot_index),
+                reason="tara_return",
+            )
+        )
+    return moves
 
 
 def _resolve_profile(profile_raw: Any) -> CentrifugeUsageProfile:
@@ -199,6 +387,23 @@ def _compile_rotina380_plan(
     centrifuge_itm_id = int(world.get_station(profile.centrifuge_station_id).itm_id)
 
     operations = [ValidationStep(name=f"Validate{resolved_mode}Prerequisites")]
+    if resolved_mode == "LOAD" and profile.enable_tara_balancing:
+        balance_moves = plan_tara_balance_moves(
+            world,
+            station_id=profile.source_station_id,
+            target_jig_id=int(profile.target_loading_jig_id),
+            tara_jig_id=int(profile.tara_probe_jig_id),
+            probe_prefixes=profile.tara_probe_prefixes,
+        )
+        for idx, move in enumerate(balance_moves, start=1):
+            operations.append(
+                _sample_transfer_from_move(
+                    world,
+                    move,
+                    name=f"BalanceWithTaraProbe{idx}",
+                )
+            )
+
     operations.append(
         DeviceActionStep(
             name="OpenLid",
@@ -287,6 +492,21 @@ def _compile_rotina380_plan(
             overrides={"ITM_ID": centrifuge_itm_id, "ACT": DEVICE_ACTION_CLOSE_HATCH},
         )
     )
+    if resolved_mode == "UNLOAD" and profile.return_tara_probes_on_unload:
+        return_moves = _tara_return_moves_for_unload(
+            world=world,
+            profile=profile,
+            source_slot_ids=source_slot_ids,
+            centrifuge_slot_ids=centrifuge_slot_ids,
+        )
+        for idx, move in enumerate(return_moves, start=1):
+            operations.append(
+                _sample_transfer_from_move(
+                    world,
+                    move,
+                    name=f"ReturnTaraProbe{idx}",
+                )
+            )
     if resolved_mode == "LOAD":
         operations.append(
             DeviceActionStep(
