@@ -64,12 +64,20 @@ Environment variables used by the main workflow:
 - `UGO_WORKFLOW_MODE` (default `GETTING_NEW_SAMPLES`)
   - supported: `GETTING_NEW_SAMPLES`, `CENTRIFUGE`
   - `CENTRIFUGE` enables the `CentrifugeCycle` BT phase
+- `UGO_SIMULATE_DEVICES` (default off)
+  - `1/true/yes`: use in-process simulated device/task execution (no login/backend calls)
+  - otherwise: use live uGO backend sender
+  - optional simulation tuning:
+    - `UGO_SIM_CAMERA_POSITIONS` (comma-separated, default `1,2,3,4`)
+    - `UGO_SIM_3FG_SAMPLE_TYPES` (comma-separated 1..4, default `1,2,3,4`)
+    - `UGO_SIM_BARCODE_PREFIX` (default `SIMBC`)
 
 PowerShell example:
 
 ```powershell
 $env:UGO_RESUME_FROM_LAST_WORLD_SNAPSHOT = "0"
 $env:UGO_WORKFLOW_MODE = "GETTING_NEW_SAMPLES"
+$env:UGO_SIMULATE_DEVICES = "1"
 python -m workflows.rack_probe_transfer_workflow
 ```
 
@@ -128,7 +136,7 @@ python -m world.export_world_snapshot_jsonl --config world/world_config.json --o
 - `workflows/`: executable workflow entrypoints and orchestration logic
 - `world/`: world model, config editing, state resume, snapshots, occupancy traces, and versioned trace backups
 - `routing/`: sample-routing providers, rule files, and training-catalog routing support
-- `devices/`: device abstractions and concrete implementations (for example centrifuge and BioRad)
+- `Device/`: runtime device abstractions and concrete implementations (currently centrifuge)
 - `tracing/`: execution/state trace export helpers and CSV outputs
 - `Library/`: low-level uGO API helper modules used by the engine and scripts
 - `docs/`: project and world-configuration documentation

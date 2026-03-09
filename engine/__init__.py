@@ -13,6 +13,7 @@ from routing.sample_routing import (
     TrainingCatalogRoutingProvider,
 )
 from engine.ugo_robot_client import UgoRobotClient
+from engine.simulated_robot_client import SimulatedRobotClient
 
 
 def build_sender():
@@ -23,6 +24,7 @@ def build_sender():
 
 __all__ = [
     "UgoRobotClient",
+    "SimulatedRobotClient",
     "TaskCatalog",
     "CommandSender",
     "Goal",

@@ -6,11 +6,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, Union
 
-from devices.centrifuge.device import CentrifugeDevice
-from devices.centrifuge_factory import create_centrifuge_device
-from devices.BioRAD.factory import create_processing_device
-from devices.sample_processing_device import SampleProcessingDevice
-
 
 class StationKind(str, Enum):
     EXTERNAL = "EXTERNAL"
@@ -184,8 +179,6 @@ class WorldModel:
     landmarks: Dict[str, Landmark]
     racks: Dict[str, Rack]
     devices: Dict[str, Device]
-    processing_devices: Dict[str, SampleProcessingDevice] = field(default_factory=dict)
-    centrifuge_devices: Dict[str, CentrifugeDevice] = field(default_factory=dict)
     samples: Dict[str, Sample] = field(default_factory=dict)
     sample_states: Dict[str, SampleState] = field(default_factory=dict)
     rack_placements: Dict[Tuple[str, str], str] = field(default_factory=dict)
@@ -207,36 +200,6 @@ class WorldModel:
             if dev.station_id == station_id:
                 out.append(dev)
         return out
-
-    def get_station_processing_devices(self, station_id: str) -> List[SampleProcessingDevice]:
-        self.get_station(station_id)
-        out: List[SampleProcessingDevice] = []
-        for dev_id in sorted(self.processing_devices.keys()):
-            dev = self.processing_devices[dev_id]
-            if dev.identity.station_id == station_id:
-                out.append(dev)
-        return out
-
-    def get_processing_device(self, device_id: str) -> SampleProcessingDevice:
-        dev = self.processing_devices.get(device_id)
-        if dev is None:
-            raise KeyError(f"Unknown processing device '{device_id}'")
-        return dev
-
-    def get_station_centrifuge_devices(self, station_id: str) -> List[CentrifugeDevice]:
-        self.get_station(station_id)
-        out: List[CentrifugeDevice] = []
-        for dev_id in sorted(self.centrifuge_devices.keys()):
-            dev = self.centrifuge_devices[dev_id]
-            if dev.identity.station_id == station_id:
-                out.append(dev)
-        return out
-
-    def get_centrifuge_device(self, device_id: str) -> CentrifugeDevice:
-        dev = self.centrifuge_devices.get(device_id)
-        if dev is None:
-            raise KeyError(f"Unknown centrifuge device '{device_id}'")
-        return dev
 
     def get_slot_config(self, station_id: str, station_slot_id: str) -> RackSlotConfig:
         station = self.get_station(station_id)
@@ -1401,6 +1364,16 @@ def default_world_config() -> Dict[str, Any]:
                     "source": "status_light_or_rs232",
                     "state_map": {},
                 },
+                "usage_profile": {
+                    "type": "Rotina380UsageProfile",
+                    "source_station_id": "uLMPlateStation",
+                    "centrifuge_station_id": "CentrifugeStation",
+                    "fixed_receiver_obj_nbr": 1,
+                    "target_loading_jig_id": 2,
+                    "tara_probe_jig_id": 3,
+                    "enable_tara_balancing": True,
+                    "return_tara_probes_on_unload": True,
+                },
             },
             {
                 "id": "THREE_FINGER_GRIPPER_DEVICE_01",
@@ -1703,8 +1676,6 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
         racks[rack.id] = rack
 
     devices: Dict[str, Device] = {}
-    processing_devices: Dict[str, SampleProcessingDevice] = {}
-    centrifuge_devices: Dict[str, CentrifugeDevice] = {}
     for raw_device in _to_list(config.get("devices")):
         caps = frozenset(_as_enum(ProcessType, c) for c in raw_device.get("capabilities", []))
         metadata = {
@@ -1720,24 +1691,9 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
             metadata=metadata,
         )
         devices[device.id] = device
-        built_device = create_processing_device(raw_device)
-        if built_device is not None:
-            processing_devices[built_device.identity.device_id] = built_device
-        built_centrifuge = create_centrifuge_device(raw_device)
-        if built_centrifuge is not None:
-            centrifuge_devices[built_centrifuge.identity.device_id] = built_centrifuge
-
-    for processing_device in processing_devices.values():
-        if processing_device.identity.station_id not in stations:
+        if device.station_id not in stations:
             raise ValueError(
-                f"Processing device '{processing_device.identity.device_id}' references unknown "
-                f"station '{processing_device.identity.station_id}'"
-            )
-    for centrifuge_device in centrifuge_devices.values():
-        if centrifuge_device.identity.station_id not in stations:
-            raise ValueError(
-                f"Centrifuge device '{centrifuge_device.identity.device_id}' references unknown "
-                f"station '{centrifuge_device.identity.station_id}'"
+                f"Device '{device.id}' references unknown station '{device.station_id}'"
             )
 
     station_device_links: Dict[str, Set[str]] = {
@@ -1746,14 +1702,6 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
     for dev in devices.values():
         if dev.station_id in station_device_links:
             station_device_links[dev.station_id].add(dev.id)
-    for processing_device in processing_devices.values():
-        station_device_links[processing_device.identity.station_id].add(
-            processing_device.identity.device_id
-        )
-    for centrifuge_device in centrifuge_devices.values():
-        station_device_links[centrifuge_device.identity.station_id].add(
-            centrifuge_device.identity.device_id
-        )
     for station_id, linked_ids in station_device_links.items():
         stations[station_id].linked_device_ids = tuple(sorted(linked_ids))
 
@@ -1807,8 +1755,6 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
         landmarks=landmarks,
         racks=racks,
         devices=devices,
-        processing_devices=processing_devices,
-        centrifuge_devices=centrifuge_devices,
         samples=samples,
         sample_states=sample_states,
     )
@@ -1904,20 +1850,6 @@ def world_to_config(world: WorldModel) -> Dict[str, Any]:
             "capabilities": sorted(p.value for p in dev.capabilities),
         }
         payload.update(dict(dev.metadata))
-        processing_device = world.processing_devices.get(dev_id)
-        if processing_device is not None:
-            configured = processing_device.to_config_dict()
-            for key, value in configured.items():
-                if key in {"id", "name", "station_id"}:
-                    continue
-                payload[key] = value
-        centrifuge_device = world.centrifuge_devices.get(dev_id)
-        if centrifuge_device is not None:
-            configured = centrifuge_device.to_config_dict()
-            for key, value in configured.items():
-                if key in {"id", "name", "station_id"}:
-                    continue
-                payload[key] = value
         devices_out.append(payload)
 
     samples_out = []

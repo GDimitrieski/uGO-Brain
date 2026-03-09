@@ -626,6 +626,16 @@
         "type": "in_memory",
         "source": "status_light_or_rs232",
         "state_map": {}
+      },
+      "usage_profile": {
+        "type": "Rotina380UsageProfile",
+        "source_station_id": "uLMPlateStation",
+        "centrifuge_station_id": "CentrifugeStation",
+        "fixed_receiver_obj_nbr": 1,
+        "target_loading_jig_id": 2,
+        "tara_probe_jig_id": 3,
+        "enable_tara_balancing": true,
+        "return_tara_probes_on_unload": true
       }
     },
     {

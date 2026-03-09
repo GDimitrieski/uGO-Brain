@@ -1,7 +1,8 @@
 import unittest
 
-from devices.centrifuge.usage_strategy import (
+from Device.centrifuge_usage_strategy import (
     DeviceActionStep,
+    RackTransferStep,
     Rotina380UsageProfile,
     SampleTransferStep,
     compile_centrifuge_usage_plan,
@@ -87,7 +88,37 @@ class CentrifugeUsageStrategyTests(unittest.TestCase):
         )
         self.assertGreater(first_return_idx, close_idx)
 
+    def test_unload_plan_moves_rotor_before_each_rack_unload(self) -> None:
+        world = build_default_world()
+        slot_ids = [
+            "CentrifugeRacksSlot1",
+            "CentrifugeRacksSlot2",
+            "CentrifugeRacksSlot3",
+            "CentrifugeRacksSlot4",
+        ]
+        for slot_id in slot_ids:
+            world.move_rack(
+                source_station_id=PLATE_STATION_ID,
+                source_station_slot_id=slot_id,
+                target_station_id=CENTRIFUGE_STATION_ID,
+                target_station_slot_id=slot_id,
+            )
+
+        device = _DummyDevice(Rotina380UsageProfile())
+        plan = compile_centrifuge_usage_plan(world=world, device=device, mode="UNLOAD")
+
+        unload_steps = [
+            (idx, op)
+            for idx, op in enumerate(plan.operations)
+            if isinstance(op, RackTransferStep) and op.name.startswith("UnloadRack")
+        ]
+        self.assertEqual(len(unload_steps), len(slot_ids))
+        for idx, op in unload_steps:
+            self.assertGreater(idx, 0)
+            prev_op = plan.operations[idx - 1]
+            self.assertIsInstance(prev_op, DeviceActionStep)
+            self.assertEqual(prev_op.name, f"MoveRotorToPos{int(op.transfer_index)}")
+
 
 if __name__ == "__main__":
     unittest.main()
-

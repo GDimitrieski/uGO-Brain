@@ -24,8 +24,7 @@ from routing.sample_routing import (
     SampleRoutingRequest,
     TrainingCatalogRoutingProvider,
 )
-from devices.centrifuge.models import TubeLoad
-from devices.centrifuge.usage_strategy import (
+from Device.centrifuge_usage_strategy import (
     CentrifugeUsagePlan,
     DeviceActionStep,
     RackTransferStep,
@@ -34,6 +33,7 @@ from devices.centrifuge.usage_strategy import (
     ValidationStep,
     compile_centrifuge_usage_plan,
 )
+from Device.registry import build_device_registry_from_world
 from engine.sender import build_sender
 from world.export_world_snapshot_jsonl import build_snapshot_records, write_jsonl
 from world.lab_world import (
@@ -1236,6 +1236,7 @@ def build_tree(
         if workflow_mode == "GETTING_NEW_SAMPLES" and planner_plan_steps
         else list(scaffold_steps)
     )
+    runtime_devices = build_device_registry_from_world(world)
 
     def validate_scaffold_prerequisites(bb: Blackboard) -> bool:
         missing_stations = [sid for sid in sorted(required_station_ids) if sid not in world.stations]
@@ -1275,14 +1276,11 @@ def build_tree(
             bb["tree_profile"] = "blank_scaffold_v1"
         bb["scaffold_steps"] = list(active_step_names)
         if workflow_mode in centrifuge_modes:
-            centrifuge_devices = world.get_station_centrifuge_devices(CENTRIFUGE_STATION_ID)
-            if not centrifuge_devices:
-                print("Centrifuge prerequisite failed: no centrifuge device found at CentrifugeStation")
-                return False
-            if getattr(centrifuge_devices[0], "usage_profile", None) is None:
+            runtime_centrifuges = runtime_devices.get_centrifuges_at_station(CENTRIFUGE_STATION_ID)
+            if not runtime_centrifuges:
                 print(
-                    "Centrifuge prerequisite failed: centrifuge device has no usage profile "
-                    "(expected Rotina380UsageProfile-compatible config)"
+                    "Centrifuge prerequisite failed: no runtime Device.Centrifuge available at "
+                    "CentrifugeStation"
                 )
                 return False
         return True
@@ -1924,15 +1922,15 @@ def build_tree(
 
     def _is_centrifuge_ready(device: Any) -> Tuple[bool, Dict[str, Any], str]:
         try:
-            diag = device.Diagnose()
+            diag = device.diagnose()
         except Exception as exc:
             return False, {}, f"Centrifuge diagnose failed: {exc}"
         if str(diag.get("fault_code", "")).strip():
             return False, diag, f"Centrifuge has fault: {diag.get('fault_code')} {diag.get('fault_message', '')}"
-        if str(diag.get("rotor_state", "")).strip().upper() == "SPINNING":
+        if bool(diag.get("rotor_spinning", False)):
             return False, diag, "Centrifuge not ready: rotor is spinning"
-        if str(diag.get("process_state", "")).strip().upper() == "FAULTED":
-            return False, diag, "Centrifuge not ready: process state is FAULTED"
+        if str(diag.get("packml_state", "")).strip().upper() == "FAULTED":
+            return False, diag, "Centrifuge not ready: packml state is FAULTED"
         return True, diag, ""
 
     def _execute_sample_transfer(op: SampleTransferStep) -> bool:
@@ -2002,7 +2000,11 @@ def build_tree(
         )
         return True
 
-    def _execute_rack_transfer(plan: CentrifugeUsagePlan, op: RackTransferStep, device: Any) -> bool:
+    def _execute_rack_transfer(
+        plan: CentrifugeUsagePlan,
+        op: RackTransferStep,
+        runtime_device: Any,
+    ) -> bool:
         pick_overrides = {
             "ITM_ID": int(op.source_itm_id),
             "JIG_ID": int(op.source_jig_id),
@@ -2038,18 +2040,21 @@ def build_tree(
 
         if plan.mode == "LOAD":
             try:
-                loaded = device.Load(
-                    TubeLoad(
-                        tube_id=str(moved_rack_id),
-                        position_index=int(op.transfer_index),
-                        metadata={"rack_id": str(moved_rack_id)},
-                    )
-                )
+                runtime_loaded = runtime_device.load_rack(str(moved_rack_id), "CENTRIFUGE_RACK")
             except Exception as exc:
-                print(f"CentrifugeCycle device load sync failed ({op.name}): {exc}")
+                print(f"CentrifugeCycle runtime device load sync failed ({op.name}): {exc}")
                 return False
-            if not loaded:
-                print(f"CentrifugeCycle device load sync rejected ({op.name})")
+            if not runtime_loaded:
+                print(f"CentrifugeCycle runtime device load sync rejected ({op.name})")
+                return False
+        elif plan.mode == "UNLOAD" and op.source_station_id == plan.centrifuge_station_id:
+            try:
+                runtime_unloaded = runtime_device.unload_rack(str(moved_rack_id))
+            except Exception as exc:
+                print(f"CentrifugeCycle runtime device unload sync failed ({op.name}): {exc}")
+                return False
+            if not runtime_unloaded:
+                print(f"CentrifugeCycle runtime device unload sync rejected ({op.name})")
                 return False
 
         append_world_event(
@@ -2070,31 +2075,48 @@ def build_tree(
 
     def _execute_centrifuge_cycle(bb: Blackboard) -> bool:
         mode = str(bb.get("centrifuge_mode", CENTRIFUGE_MODE or "AUTO")).strip().upper() or "AUTO"
-        device_candidates = world.get_station_centrifuge_devices(CENTRIFUGE_STATION_ID)
-        if not device_candidates:
-            print("CentrifugeCycle failed: no centrifuge device at CentrifugeStation")
+        runtime_device = runtime_devices.get_first_centrifuge_at_station(CENTRIFUGE_STATION_ID)
+        if runtime_device is None:
+            print("CentrifugeCycle failed: no runtime Device.Centrifuge at CentrifugeStation")
             return False
-        device = device_candidates[0]
-        if getattr(device, "usage_profile", None) is None:
-            print("CentrifugeCycle failed: centrifuge device has no usage profile")
-            return False
+        bb["active_runtime_centrifuge_id"] = str(runtime_device.identity.device_id)
 
         station = world.get_station(CENTRIFUGE_STATION_ID)
         scan_overrides = {"ITM_ID": int(station.itm_id), "ACT": DEVICE_ACTION_SCAN_LANDMARK}
         ok, _ = _run_task("SingleDeviceAction", scan_overrides, "CentrifugeCycle.ScanLandmark")
         if not ok:
             return False
+        try:
+            if not runtime_device.apply_single_device_action(DEVICE_ACTION_SCAN_LANDMARK):
+                print("CentrifugeCycle sync failed: runtime device rejected ScanLandmark")
+                return False
+        except Exception as exc:
+            print(f"CentrifugeCycle runtime device sync failed (ScanLandmark): {exc}")
+            return False
 
         try:
-            plan = compile_centrifuge_usage_plan(world=world, device=device, mode=mode)
+            plan = compile_centrifuge_usage_plan(world=world, device=runtime_device, mode=mode)
         except Exception as exc:
             print(f"CentrifugeCycle failed to compile usage plan: {exc}")
             return False
         bb["centrifuge_mode_resolved"] = str(plan.mode)
+        if plan.mode == "UNLOAD":
+            for slot_id in plan.centrifuge_slot_ids:
+                rack_id = world.rack_placements.get((plan.centrifuge_station_id, slot_id))
+                if not rack_id:
+                    continue
+                try:
+                    loaded = runtime_device.load_rack(str(rack_id), "CENTRIFUGE_RACK")
+                except Exception as exc:
+                    print(f"CentrifugeCycle runtime preload failed ({slot_id}): {exc}")
+                    return False
+                if not loaded:
+                    print(f"CentrifugeCycle runtime preload rejected ({slot_id}, rack={rack_id})")
+                    return False
 
         for op in plan.operations:
             if isinstance(op, ValidationStep):
-                ready, diag, reason = _is_centrifuge_ready(device)
+                ready, diag, reason = _is_centrifuge_ready(runtime_device)
                 if not ready:
                     print(f"CentrifugeCycle validation failed: {reason}")
                     return False
@@ -2130,18 +2152,11 @@ def build_tree(
                     return False
                 act = int(op.overrides.get("ACT", 0))
                 try:
-                    if act == DEVICE_ACTION_OPEN_HATCH:
-                        if not device.OpenLid():
-                            print("CentrifugeCycle sync failed: device rejected OpenLid")
-                            return False
-                    elif act == DEVICE_ACTION_CLOSE_HATCH:
-                        if not device.CloseLid():
-                            print("CentrifugeCycle sync failed: device rejected CloseLid")
-                            return False
-                    elif act == DEVICE_ACTION_START_CENTRIFUGE:
-                        device.Start()
+                    if not runtime_device.apply_single_device_action(act):
+                        print(f"CentrifugeCycle runtime device sync rejected ({op.name})")
+                        return False
                 except Exception as exc:
-                    print(f"CentrifugeCycle device sync failed ({op.name}): {exc}")
+                    print(f"CentrifugeCycle runtime device sync failed ({op.name}): {exc}")
                     return False
                 continue
 
@@ -2151,24 +2166,24 @@ def build_tree(
                 continue
 
             if isinstance(op, RackTransferStep):
-                if not _execute_rack_transfer(plan, op, device):
+                if not _execute_rack_transfer(plan, op, runtime_device):
                     return False
                 continue
 
             if isinstance(op, RunningValidationStep):
-                ready, diag, reason = _is_centrifuge_ready(device)
+                ready, diag, reason = _is_centrifuge_ready(runtime_device)
                 if ready:
                     print(
-                        "CentrifugeCycle running validation failed: centrifuge reports ready state "
+                        "CentrifugeCycle running validation failed: runtime Device reports ready state "
                         f"instead of running; diag={diag}"
                     )
                     return False
-                process_state = str(diag.get("process_state", "")).strip().upper()
-                rotor_state = str(diag.get("rotor_state", "")).strip().upper()
-                if process_state != "RUNNING" or rotor_state != "SPINNING":
+                runtime_state = str(diag.get("packml_state", "")).strip().upper()
+                runtime_spinning = bool(diag.get("rotor_spinning", False))
+                if runtime_state != "EXECUTE" or not runtime_spinning:
                     print(
-                        "CentrifugeCycle running validation failed: expected RUNNING/SPINNING, got "
-                        f"{process_state}/{rotor_state}; reason={reason}"
+                        "CentrifugeCycle running validation failed: runtime Device interface expected "
+                        f"EXECUTE + spinning, got state={runtime_state}, spinning={runtime_spinning}; reason={reason}"
                     )
                     return False
                 continue
