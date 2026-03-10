@@ -494,28 +494,30 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
     world._sample_counter = _sample_counter_from_ids(set(world.samples.keys()))
 
 
-def load_world_with_resume(world_config_file: Path, occupancy_events_file: Path) -> WorldModel:
+def load_world_with_resume(world_config_file: Path, occupancy_events_file: Path) -> Tuple[WorldModel, bool]:
     world = ensure_world_config_file(world_config_file)
     if not RESUME_FROM_LAST_WORLD_SNAPSHOT:
         if FORCE_INPUT_RACK_AT_INPUT_ON_START:
             prepare_input_rack_for_new_batch(world)
-        return world
+        return world, False
 
     last_state = load_last_world_state(occupancy_events_file)
     if last_state is None:
         print("World resume: no previous snapshot found, using world_config baseline")
         if FORCE_INPUT_RACK_AT_INPUT_ON_START:
             prepare_input_rack_for_new_batch(world)
-        return world
+        return world, False
 
     try:
         restore_world_from_state(world, last_state)
         print(f"World resume: restored from {occupancy_events_file.resolve()}")
+        resumed = True
     except Exception as exc:
         print(f"World resume failed ({exc}), using world_config baseline")
+        resumed = False
     if FORCE_INPUT_RACK_AT_INPUT_ON_START:
         prepare_input_rack_for_new_batch(world)
-    return world
+    return world, resumed
 
 
 def _rack_id_at(world: WorldModel, station_id: str, station_slot_id: str) -> Optional[str]:
@@ -607,7 +609,21 @@ def prepare_input_rack_for_new_batch(world: WorldModel) -> None:
     )
 
 
-def export_trace(records: List[Dict[str, Any]], path: Path) -> None:
+def _read_csv_header(path: Path) -> List[str]:
+    if not path.exists():
+        return []
+    try:
+        with open(path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            row = next(reader, [])
+            if not isinstance(row, list):
+                return []
+            return [str(x) for x in row if str(x)]
+    except Exception:
+        return []
+
+
+def export_trace(records: List[Dict[str, Any]], path: Path, *, append: bool = False) -> None:
     if not records:
         return
 
@@ -645,17 +661,30 @@ def export_trace(records: List[Dict[str, Any]], path: Path) -> None:
         "timestamp_returned",
     ]
 
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    use_append = False
+    writer_fieldnames = list(fieldnames)
+    if append and path.exists() and path.stat().st_size > 0:
+        existing_header = _read_csv_header(path)
+        if existing_header:
+            writer_fieldnames = existing_header
+            use_append = True
+
+    with open(path, "a" if use_append else "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=writer_fieldnames, extrasaction="ignore")
+        if not use_append:
+            writer.writeheader()
         for rec in records:
             writer.writerow(rec)
 
 
-def export_state_changes(records: List[Dict[str, Any]], path: Path) -> None:
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=STATE_CHANGE_FIELDNAMES)
-        writer.writeheader()
+def export_state_changes(records: List[Dict[str, Any]], path: Path, *, append: bool = False) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    use_append = bool(append and path.exists() and path.stat().st_size > 0)
+    with open(path, "a" if use_append else "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=STATE_CHANGE_FIELDNAMES, extrasaction="ignore")
+        if not use_append:
+            writer.writeheader()
         for rec in records:
             writer.writerow(rec)
 
@@ -710,14 +739,18 @@ def _trace_fieldnames_from_catalog(sender: CommandSender) -> List[str]:
     ]
 
 
-def _init_live_trace_files(trace_fieldnames: List[str]) -> None:
+def _init_live_trace_files(trace_fieldnames: List[str], *, reset: bool) -> None:
     TRACE_DIR.mkdir(parents=True, exist_ok=True)
-    with open(TRACE_WIP_FILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=trace_fieldnames)
-        writer.writeheader()
-    with open(STATE_CHANGES_WIP_FILE, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=STATE_CHANGE_FIELDNAMES)
-        writer.writeheader()
+
+    def _ensure_csv(path: Path, fieldnames: List[str]) -> None:
+        if not reset and path.exists() and path.stat().st_size > 0:
+            return
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+    _ensure_csv(TRACE_WIP_FILE, trace_fieldnames)
+    _ensure_csv(STATE_CHANGES_WIP_FILE, STATE_CHANGE_FIELDNAMES)
 
 
 def _append_live_trace_record(record: Dict[str, Any], trace_fieldnames: List[str]) -> None:
@@ -732,12 +765,14 @@ def _append_live_state_change(record: Dict[str, Any]) -> None:
         writer.writerow(record)
 
 
-def _init_live_world_files() -> None:
+def _init_live_world_files(*, reset: bool) -> None:
     WORLD_DIR.mkdir(parents=True, exist_ok=True)
-    with open(OCCUPANCY_TRACE_WIP_FILE, "w", encoding="utf-8") as f:
-        f.write("")
-    with open(OCCUPANCY_EVENTS_WIP_FILE, "w", encoding="utf-8") as f:
-        f.write("")
+    if reset or not OCCUPANCY_TRACE_WIP_FILE.exists():
+        with open(OCCUPANCY_TRACE_WIP_FILE, "w", encoding="utf-8") as f:
+            f.write("")
+    if reset or not OCCUPANCY_EVENTS_WIP_FILE.exists():
+        with open(OCCUPANCY_EVENTS_WIP_FILE, "w", encoding="utf-8") as f:
+            f.write("")
 
 
 def _append_live_world_event(event: Dict[str, Any]) -> None:
@@ -1127,12 +1162,17 @@ def export_occupancy_trace(
     records: List[Dict[str, Any]],
     path: Path,
     trace_records: Optional[List[Dict[str, Any]]] = None,
+    *,
+    append: bool = False,
 ) -> None:
     if trace_records:
         enrich_occupancy_records_with_task_context(records, trace_records)
     # Keep historical filename, but write JSONL records for digital-twin/event replay use.
-    _backup_world_file_once(path)
-    with open(path, "w", encoding="utf-8") as f:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    use_append = bool(append and path.exists() and path.stat().st_size > 0)
+    if not use_append:
+        _backup_world_file_once(path)
+    with open(path, "a" if use_append else "w", encoding="utf-8") as f:
         for rec in records:
             f.write(json.dumps(rec, ensure_ascii=True) + "\n")
 
@@ -1141,11 +1181,16 @@ def export_occupancy_events_jsonl(
     records: List[Dict[str, Any]],
     path: Path,
     trace_records: Optional[List[Dict[str, Any]]] = None,
+    *,
+    append: bool = False,
 ) -> None:
     if trace_records:
         enrich_occupancy_records_with_task_context(records, trace_records)
-    _backup_world_file_once(path)
-    with open(path, "w", encoding="utf-8") as f:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    use_append = bool(append and path.exists() and path.stat().st_size > 0)
+    if not use_append:
+        _backup_world_file_once(path)
+    with open(path, "a" if use_append else "w", encoding="utf-8") as f:
         for rec in records:
             f.write(json.dumps(rec, ensure_ascii=True) + "\n")
 
@@ -2242,9 +2287,14 @@ def main() -> None:
 
     sender = build_sender()
     trace_fieldnames = _trace_fieldnames_from_catalog(sender)
-    _init_live_trace_files(trace_fieldnames)
-    world = load_world_with_resume(WORLD_CONFIG_FILE, OCCUPANCY_EVENTS_FILE)
-    _init_live_world_files()
+    world, world_resumed = load_world_with_resume(WORLD_CONFIG_FILE, OCCUPANCY_EVENTS_FILE)
+    reset_trace_session = not world_resumed
+    if reset_trace_session:
+        print("Trace session: reset (world loaded from baseline)")
+    else:
+        print("Trace session: append (world resumed from previous snapshot)")
+    _init_live_trace_files(trace_fieldnames, reset=reset_trace_session)
+    _init_live_world_files(reset=reset_trace_session)
     trace_records: List[Dict[str, Any]] = []
     state_change_records: List[Dict[str, Any]] = []
     occupancy_records: List[Dict[str, Any]] = []
@@ -2288,10 +2338,20 @@ def main() -> None:
         )
     finally:
         if final_status == Status.SUCCESS:
-            export_trace(trace_records, TRACE_FILE)
-            export_state_changes(state_change_records, STATE_CHANGES_FILE)
-            export_occupancy_trace(occupancy_records, OCCUPANCY_TRACE_FILE, trace_records=trace_records)
-            export_occupancy_events_jsonl(occupancy_records, OCCUPANCY_EVENTS_FILE, trace_records=trace_records)
+            export_trace(trace_records, TRACE_FILE, append=world_resumed)
+            export_state_changes(state_change_records, STATE_CHANGES_FILE, append=world_resumed)
+            export_occupancy_trace(
+                occupancy_records,
+                OCCUPANCY_TRACE_FILE,
+                trace_records=trace_records,
+                append=world_resumed,
+            )
+            export_occupancy_events_jsonl(
+                occupancy_records,
+                OCCUPANCY_EVENTS_FILE,
+                trace_records=trace_records,
+                append=world_resumed,
+            )
             _finalize_world_snapshot_file(world)
             print(f"Trace written to {TRACE_FILE.resolve()}")
             print(f"State transitions written to {STATE_CHANGES_FILE.resolve()}")

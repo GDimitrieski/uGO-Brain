@@ -1,5 +1,8 @@
 # Project Agent Rules
 
+## General
+1. Always resume world unless not prompted to specifically reset to baseline
+
 ## Workflow Consistency Rules (Prompt-Time)
 1. Before changing any workflow from a user prompt, first parse the requested steps and validate them against:
   - `world/world_config.json`
@@ -9,7 +12,7 @@
 4. When edits are made, keep assumptions explicit in the response.
 
 ## Mandatory Sequence Rules
-1. When working on a station different than the uLM Plate, a CameraLandmarkScan Task must be sent to reference the robot coordinate system at the station
+1. When working on a station different than the uLM Plate and charge, a CameraLandmarkScan Task must be sent to reference the robot coordinate system at the station
 
 ## Consider. Be Aware
 1. There might be multiple devices of the same or different types that will do the same type of processing on the samples
@@ -81,3 +84,11 @@
     4. The processing steps for a sample can change during its life in the system
     5. The sample shall always "know" its position in the world (which rack, which station it is at)
     6. The sample shall always "know" which the transformations were done to it
+
+## Planner:
+  # It is certain that the plan for getting the samples into the world will be done with the "GETTING_NEW_SAMPLES" plan
+    1. This plan may later vary in how the samples are identified and placed into the world
+  # The main goal of the planning shall be then to reroute the samples based on the needed processes for each sample
+    1. The dynamic plan must reconsider the world before making decisions
+    2. The decisions of the dynamic planner shall be incremental and move the samples along their process maps towards the end
+    3. The dynamic plan must obey to the limitation posed by the Racks, Stations, Devices, Strategies
