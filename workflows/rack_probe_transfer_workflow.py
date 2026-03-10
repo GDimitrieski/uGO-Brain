@@ -1456,8 +1456,9 @@ def build_tree(
     def _default_target_jig_for_processes(processes: Sequence[ProcessType]) -> int:
         process_to_jig: Dict[ProcessType, int] = {
             ProcessType.CENTRIFUGATION: 2,
-            ProcessType.IMMUNOANALYSIS: 10,
+            ProcessType.IMMUNOANALYSIS: 12,
             ProcessType.HEMATOLOGY_ANALYSIS: 11,
+            ProcessType.ARCHIVATION: 13,
         }
 
         # Route by the first rack-bound process in the declared process sequence.

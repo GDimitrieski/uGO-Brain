@@ -19,6 +19,7 @@ class SlotKind(str, Enum):
     BIORAD_IH500_RACK_SLOT = "BIORAD_IH500_RACK_SLOT"
     BIORAD_IH1000_RACK_SLOT = "BIORAD_IH1000_RACK_SLOT"
     INTERMEDIATE_RACK_SLOT = "INTERMEDIATE_RACK_SLOT"
+    FRIDGE_URG_RACK_SLOT = "FRIDGE_URG_RACK_SLOT"
     THREE_FINGER_GRIPPER_SAMPLE_SLOT = "THREE_FINGER_GRIPPER_SAMPLE_SLOT"
 
 
@@ -29,6 +30,7 @@ class RackType(str, Enum):
     BIORAD_IH500_RACK = "BIORAD_IH500_RACK"
     BIORAD_IH1000_RACK = "BIORAD_IH1000_RACK"
     INTERMEDIATE_RACK = "INTERMEDIATE_RACK"
+    FRIDGE_URG_RACK = "FRIDGE_URG_RACK"
     THREE_FINGER_GRIPPER_SAMPLE_HOLDER = "THREE_FINGER_GRIPPER_SAMPLE_HOLDER"
 
 
@@ -941,6 +943,65 @@ def default_world_config() -> Dict[str, Any]:
                 ],
             },
             {
+                "id": "ArchiveStation",
+                "name": "ArchiveStation",
+                "itm_id": 9,
+                "kind": "EXTERNAL",
+                "amr_pos_target": "9",
+                "landmark_id": "LM_ARCHIVE_001",
+                "slot_configs": [
+                    {
+                        "slot_id": "URGFridgeRackSlot",
+                        "kind": "FRIDGE_URG_RACK_SLOT",
+                        "jig_id": 13,
+                        "itm_id": 9,
+                        "rack_capacity": 1,
+                        "rack_pattern": "1x1",
+                        "rack_rows": 1,
+                        "rack_cols": 1,
+                        "rack_index": 1,
+                        "obj_nbr_offset": 0,
+                        "accepted_rack_types": ["FRIDGE_URG_RACK"],
+                    }
+                ],
+            },
+            {
+                "id": "FridgeStation",
+                "name": "FridgeStation",
+                "itm_id": 8,
+                "kind": "EXTERNAL",
+                "amr_pos_target": "8",
+                "landmark_id": "LM_FRIDGE_001",
+                "slot_configs": [
+                    {
+                        "slot_id": "URGFridgeRackSlot1",
+                        "kind": "FRIDGE_URG_RACK_SLOT",
+                        "jig_id": 13,
+                        "itm_id": 8,
+                        "rack_capacity": 2,
+                        "rack_pattern": "1x2",
+                        "rack_rows": 1,
+                        "rack_cols": 2,
+                        "rack_index": 1,
+                        "obj_nbr_offset": 0,
+                        "accepted_rack_types": ["FRIDGE_URG_RACK"],
+                    },
+                    {
+                        "slot_id": "URGFridgeRackSlot2",
+                        "kind": "FRIDGE_URG_RACK_SLOT",
+                        "jig_id": 13,
+                        "itm_id": 8,
+                        "rack_capacity": 2,
+                        "rack_pattern": "1x2",
+                        "rack_rows": 1,
+                        "rack_cols": 2,
+                        "rack_index": 2,
+                        "obj_nbr_offset": 42,
+                        "accepted_rack_types": ["FRIDGE_URG_RACK"],
+                    },
+                ],
+            },
+            {
                 "id": "BioRadIH500Station",
                 "name": "BioRadIH500Station",
                 "itm_id": 7,
@@ -1058,9 +1119,22 @@ def default_world_config() -> Dict[str, Any]:
                         "accepted_rack_types": ["INTERMEDIATE_RACK"],
                     },
                     {
+                        "slot_id": "URGFridgeRackSlot",
+                        "kind": "FRIDGE_URG_RACK_SLOT",
+                        "jig_id": 13,
+                        "itm_id": 1,
+                        "rack_capacity": 1,
+                        "rack_pattern": "1x1",
+                        "rack_rows": 1,
+                        "rack_cols": 1,
+                        "rack_index": 1,
+                        "obj_nbr_offset": 0,
+                        "accepted_rack_types": ["FRIDGE_URG_RACK"],
+                    },
+                    {
                         "slot_id": "BioRadIH500Slot1",
                         "kind": "BIORAD_IH500_RACK_SLOT",
-                        "jig_id": 10,
+                        "jig_id": 12,
                         "itm_id": 1,
                         "rack_capacity": 3,
                         "rack_pattern": "1x3",
@@ -1073,7 +1147,7 @@ def default_world_config() -> Dict[str, Any]:
                     {
                         "slot_id": "BioRadIH500Slot2",
                         "kind": "BIORAD_IH500_RACK_SLOT",
-                        "jig_id": 10,
+                        "jig_id": 12,
                         "itm_id": 1,
                         "rack_capacity": 3,
                         "rack_pattern": "1x3",
@@ -1086,7 +1160,7 @@ def default_world_config() -> Dict[str, Any]:
                     {
                         "slot_id": "BioRadIH500Slot3",
                         "kind": "BIORAD_IH500_RACK_SLOT",
-                        "jig_id": 10,
+                        "jig_id": 12,
                         "itm_id": 1,
                         "rack_capacity": 3,
                         "rack_pattern": "1x3",
@@ -1164,6 +1238,8 @@ def default_world_config() -> Dict[str, Any]:
         "landmarks": [
             {"id": "LM_INPUT_001", "code": "LM_INPUT_001", "station_id": "InputStation"},
             {"id": "LM_CENTRIFUGE_001", "code": "LM_CENTRIFUGE_001", "station_id": "CentrifugeStation"},
+            {"id": "LM_ARCHIVE_001", "code": "LM_ARCHIVE_001", "station_id": "ArchiveStation"},
+            {"id": "LM_FRIDGE_001", "code": "LM_FRIDGE_001", "station_id": "FridgeStation"},
             {"id": "LM_IH500_001", "code": "LM_IH500_001", "station_id": "BioRadIH500Station"},
             {"id": "LM_IH1000_001", "code": "LM_IH1000_001", "station_id": "BioRadIH1000Station"},
         ],
@@ -1221,19 +1297,16 @@ def default_world_config() -> Dict[str, Any]:
             {
                 "id": "RACK_ULM_TARA_01",
                 "rack_type": "TARA_RACK",
-                "capacity": 6,
-                "pattern": "TARA_1x6",
+                "capacity": 3,
+                "pattern": "1x3",
                 "pin_obj_type": 9010,
                 "rows": 1,
-                "cols": 6,
+                "cols": 3,
                 "blocked_slots": [],
                 "occupied_slots": {
                     1: "DUMMY_0001",
                     2: "DUMMY_0002",
                     3: "DUMMY_0003",
-                    4: "DUMMY_0004",
-                    5: "DUMMY_0005",
-                    6: "DUMMY_0006",
                 },
             },
             {
@@ -1305,6 +1378,16 @@ def default_world_config() -> Dict[str, Any]:
                 "rows": 1,
                 "cols": 12,
                 "blocked_slots": [5, 7],
+            },
+            {
+                "id": "RACK_FRIDGE_URG_4x11_01",
+                "rack_type": "FRIDGE_URG_RACK",
+                "capacity": 42,
+                "pattern": "ARCHIVE_4x11_PIN2",
+                "pin_obj_type": 9015,
+                "rows": 11,
+                "cols": 4,
+                "blocked_slots": [2, 3],
             },
             {
                 "id": "RACK_3FG_SAMPLE_HOLDER_01",
@@ -1448,6 +1531,7 @@ def default_world_config() -> Dict[str, Any]:
             {"station_id": "uLMPlateStation", "station_slot_id": "CentrifugeRacksSlot4", "rack_id": "RACK_ULM_CENTRIFUGE_04"},
             {"station_id": "uLMPlateStation", "station_slot_id": "TaraRacksSlot1", "rack_id": "RACK_ULM_TARA_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "IntermediateRackSlot1", "rack_id": "RACK_ULM_INTERMEDIATE_01"},
+            {"station_id": "uLMPlateStation", "station_slot_id": "URGFridgeRackSlot", "rack_id": "RACK_FRIDGE_URG_4x11_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "BioRadIH500Slot1", "rack_id": "RACK_ULM_BIORAD_IH500_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "BioRadIH500Slot2", "rack_id": "RACK_ULM_BIORAD_IH500_02"},
             {"station_id": "uLMPlateStation", "station_slot_id": "BioRadIH500Slot3", "rack_id": "RACK_ULM_BIORAD_IH500_03"},
@@ -1479,33 +1563,6 @@ def default_world_config() -> Dict[str, Any]:
             {
                 "id": "DUMMY_0003",
                 "barcode": "DUMMY_0003",
-                "obj_type": 101,
-                "length_mm": 75.0,
-                "diameter_mm": 13.0,
-                "cap_state": "CAPPED",
-                "required_processes": ["CENTRIFUGATION"],
-            },
-            {
-                "id": "DUMMY_0004",
-                "barcode": "DUMMY_0004",
-                "obj_type": 101,
-                "length_mm": 75.0,
-                "diameter_mm": 13.0,
-                "cap_state": "CAPPED",
-                "required_processes": ["CENTRIFUGATION"],
-            },
-            {
-                "id": "DUMMY_0005",
-                "barcode": "DUMMY_0005",
-                "obj_type": 101,
-                "length_mm": 75.0,
-                "diameter_mm": 13.0,
-                "cap_state": "CAPPED",
-                "required_processes": ["CENTRIFUGATION"],
-            },
-            {
-                "id": "DUMMY_0006",
-                "barcode": "DUMMY_0006",
                 "obj_type": 101,
                 "length_mm": 75.0,
                 "diameter_mm": 13.0,
@@ -1544,39 +1601,6 @@ def default_world_config() -> Dict[str, Any]:
                     "station_slot_id": "TaraRacksSlot1",
                     "rack_id": "RACK_ULM_TARA_01",
                     "slot_index": 3,
-                },
-                "completed_processes": [],
-            },
-            {
-                "sample_id": "DUMMY_0004",
-                "location": {
-                    "type": "RACK",
-                    "station_id": "uLMPlateStation",
-                    "station_slot_id": "TaraRacksSlot1",
-                    "rack_id": "RACK_ULM_TARA_01",
-                    "slot_index": 4,
-                },
-                "completed_processes": [],
-            },
-            {
-                "sample_id": "DUMMY_0005",
-                "location": {
-                    "type": "RACK",
-                    "station_id": "uLMPlateStation",
-                    "station_slot_id": "TaraRacksSlot1",
-                    "rack_id": "RACK_ULM_TARA_01",
-                    "slot_index": 5,
-                },
-                "completed_processes": [],
-            },
-            {
-                "sample_id": "DUMMY_0006",
-                "location": {
-                    "type": "RACK",
-                    "station_id": "uLMPlateStation",
-                    "station_slot_id": "TaraRacksSlot1",
-                    "rack_id": "RACK_ULM_TARA_01",
-                    "slot_index": 6,
                 },
                 "completed_processes": [],
             },

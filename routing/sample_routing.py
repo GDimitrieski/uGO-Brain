@@ -70,7 +70,7 @@ PROCESS_HINTS: Dict[ProcessType, Dict[str, str]] = {
     },
     ProcessType.IMMUNOANALYSIS: {
         "station_id": "uLMPlateStation",
-        "device_id": "IH500_ANALYZER_DEVICE_01",
+        "device_id": "BIORAD_IH500_DEVICE_01",
     },
     ProcessType.HEMATOLOGY_ANALYSIS: {
         "station_id": "uLMPlateStation",
