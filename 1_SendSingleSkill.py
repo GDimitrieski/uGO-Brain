@@ -40,12 +40,12 @@ def wait_for_complete(
 if __name__ == "__main__":
 
     payload = {
-        "taskName": "SingleDeviceAction",
-        "ACT" : 30,
-        "ITM_ID" : 7
+        "taskName": "UpdateWorldState_From_uLM",
     }
     print(payload)
 
     task_id = task_post_send(credentials["url"], token, payload)
+    if not task_id:
+        raise RuntimeError("Task submission failed; no RequestId returned.")
     final_status = wait_for_complete(credentials["url"], token, task_id)
     print("Final status:", final_status)

@@ -15,7 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from engine.bt_nodes import ActionNode, Blackboard, ConditionNode, ForEachNode, RetryNode, SequenceNode, Status
 from engine.command_layer import CommandSender
-from planning.planner import Goal, PlanStep, RulePlanner
+from planning.planner import DynamicPlanAction, DynamicStatePlanner, Goal, PlanStep, RulePlanner
 from routing.sample_routing import (
     ChainedSampleRouter,
     HardRuleRoutingProvider,
@@ -38,6 +38,7 @@ from engine.sender import build_sender
 from world.export_world_snapshot_jsonl import build_snapshot_records, write_jsonl
 from world.lab_world import (
     CapState,
+    Device,
     GripperLocation,
     ProcessType,
     RackLocation,
@@ -45,12 +46,17 @@ from world.lab_world import (
     Sample,
     SampleState,
     SlotKind,
+    StationKind,
     WorldModel,
     ensure_world_config_file,
+    load_world_config_file,
 )
+from world.update_world_mapper import map_update_world_devices_to_assigned_world_devices
 
 ACTION_PICK = 1
 ACTION_PLACE = 2
+ACTION_PULL_RACK_OUT = 3
+ACTION_PUSH_RACK_IN = 4
 DEVICE_ACTION_OPEN_HATCH = 1
 DEVICE_ACTION_START_CENTRIFUGE = 2
 DEVICE_ACTION_CLOSE_HATCH = 3
@@ -66,6 +72,10 @@ PLATE_RACK_SLOT_ID = "URGRackSlot"
 THREE_FINGER_STATION_ID = "3-FingerGripperStation"
 THREE_FINGER_SLOT_ID = "SampleSlot1"
 CENTRIFUGE_STATION_ID = "CentrifugeStation"
+IH500_STATION_ID = "BioRadIH500Station"
+IH500_SOURCE_JIG_ID = 12
+IH500_DEVICE_JIG_ID = 50
+CHARGE_STATION_ID = "CHARGE"
 BASE_DIR = PROJECT_ROOT
 WORLD_DIR = PROJECT_ROOT / "world"
 TRACE_DIR = PROJECT_ROOT / "tracing"
@@ -97,6 +107,9 @@ CENTRIFUGE_MODE = os.getenv("UGO_CENTRIFUGE_MODE", "AUTO").strip().upper()
 SAMPLE_ROUTING_RULES_FILE = Path(
     os.getenv("UGO_SAMPLE_ROUTING_RULES_FILE", str(PROJECT_ROOT / "routing" / "sample_routing_rules.json"))
 ).resolve()
+PROCESS_POLICIES_FILE = Path(
+    os.getenv("UGO_PROCESS_POLICIES_FILE", str(PROJECT_ROOT / "planning" / "process_policies.json"))
+).resolve()
 TRAINING_WORKFLOWS_FILE = Path(
     os.getenv(
         "UGO_TRAINING_WORKFLOWS_FILE",
@@ -121,6 +134,15 @@ try:
     LIS_ROUTING_TIMEOUT_S = float(os.getenv("UGO_LIS_ROUTING_TIMEOUT_S", "2.0").strip())
 except Exception:
     LIS_ROUTING_TIMEOUT_S = 2.0
+try:
+    STATE_DRIVEN_MAX_ACTIONS = int(os.getenv("UGO_STATE_DRIVEN_MAX_ACTIONS", "200").strip())
+except Exception:
+    STATE_DRIVEN_MAX_ACTIONS = 200
+try:
+    STATE_DRIVEN_WAIT_POLL_S = float(os.getenv("UGO_STATE_DRIVEN_WAIT_POLL_S", "1.0").strip())
+except Exception:
+    STATE_DRIVEN_WAIT_POLL_S = 1.0
+WAIT_READY_PACKML_STATES = {"COMPLETE", "IDLE", "STOPPED"}
 _WORLD_FILE_BACKUPS_DONE: Set[Path] = set()
 STATE_CHANGE_FIELDNAMES = [
     "task_id",
@@ -358,7 +380,7 @@ def _ensure_sample_exists(world: WorldModel, sample_id: str) -> None:
         length_mm=75.0,
         diameter_mm=13.0,
         cap_state=CapState.CAPPED,
-        required_processes=(ProcessType.CENTRIFUGATION,),
+        required_processes=(),
     )
 
 
@@ -1265,11 +1287,17 @@ def build_tree(
     )
     planner_plan_steps: List[PlanStep] = []
     planner_plan_error = ""
+    dynamic_state_planner: Optional[DynamicStatePlanner] = None
+    dynamic_state_planner_error = ""
     if workflow_mode == "GETTING_NEW_SAMPLES":
         try:
             planner_plan_steps = RulePlanner().build_plan(world, planner_goal)
         except Exception as exc:
             planner_plan_error = str(exc)
+        try:
+            dynamic_state_planner = DynamicStatePlanner.from_file(PROCESS_POLICIES_FILE)
+        except Exception as exc:
+            dynamic_state_planner_error = str(exc)
         required_station_ids.update({INPUT_STATION_ID, PLATE_STATION_ID, THREE_FINGER_STATION_ID, "CHARGE"})
     elif workflow_mode in centrifuge_modes:
         required_station_ids.add(CENTRIFUGE_STATION_ID)
@@ -1282,6 +1310,27 @@ def build_tree(
         else list(scaffold_steps)
     )
     runtime_devices = build_device_registry_from_world(world)
+    baseline_rack_home_by_id: Dict[str, Tuple[str, str]] = {}
+    baseline_rack_home_error = ""
+    try:
+        baseline_cfg = load_world_config_file(WORLD_CONFIG_FILE)
+        raw_placements = baseline_cfg.get("rack_placements", [])
+        placements: List[Dict[str, Any]] = []
+        if isinstance(raw_placements, list):
+            placements = [x for x in raw_placements if isinstance(x, dict)]
+        elif isinstance(raw_placements, dict):
+            placements = [x for x in raw_placements.values() if isinstance(x, dict)]
+        for placement in placements:
+            rack_id = str(placement.get("rack_id", "")).strip()
+            station_id = str(placement.get("station_id", "")).strip()
+            station_slot_id = str(placement.get("station_slot_id", "")).strip()
+            if not rack_id or not station_id or not station_slot_id:
+                continue
+            if rack_id in baseline_rack_home_by_id:
+                continue
+            baseline_rack_home_by_id[rack_id] = (station_id, station_slot_id)
+    except Exception as exc:
+        baseline_rack_home_error = str(exc)
 
     def validate_scaffold_prerequisites(bb: Blackboard) -> bool:
         missing_stations = [sid for sid in sorted(required_station_ids) if sid not in world.stations]
@@ -1302,6 +1351,29 @@ def build_tree(
             if not planner_plan_steps:
                 print("Planner prerequisite failed: GETTING_NEW_SAMPLES plan is empty")
                 return False
+            if dynamic_state_planner_error:
+                print(
+                    "Planner prerequisite failed: cannot load dynamic process policies "
+                    f"({PROCESS_POLICIES_FILE}): {dynamic_state_planner_error}"
+                )
+                return False
+            if dynamic_state_planner is None:
+                print(
+                    "Planner prerequisite failed: dynamic process policy loader "
+                    "did not return an active planner instance"
+                )
+                return False
+            if baseline_rack_home_error:
+                print(
+                    "Planner prerequisite warning: unable to load baseline rack-home map "
+                    f"from world config ({baseline_rack_home_error}). Rack auto-return will be skipped."
+                )
+            elif not baseline_rack_home_by_id:
+                print(
+                    "Planner prerequisite warning: baseline rack-home map is empty in world config. "
+                    "Rack auto-return will be skipped."
+                )
+            required_task_keys_local.add("UpdateWorldState_From_uLM")
             required_task_keys_local.update(RulePlanner.task_keys(planner_plan_steps))
         missing_task_keys = [key for key in sorted(required_task_keys_local) if key not in available_task_keys]
         if missing_task_keys:
@@ -1317,6 +1389,7 @@ def build_tree(
         if workflow_mode == "GETTING_NEW_SAMPLES":
             bb["tree_profile"] = "planner_getting_new_samples_v1"
             bb["planned_steps"] = [step.step_id for step in planner_plan_steps]
+            bb["dynamic_process_policies_file"] = str(PROCESS_POLICIES_FILE)
         else:
             bb["tree_profile"] = "blank_scaffold_v1"
         bb["scaffold_steps"] = list(active_step_names)
@@ -1444,6 +1517,218 @@ def build_tree(
         if not ok:
             print(f"{task_name} failed: {result.get('message', '')}")
         return ok, result
+
+    def _extract_update_world_devices_payload(result: Dict[str, Any]) -> str:
+        raw = result.get("raw", {})
+        data = raw.get("data", {}) if isinstance(raw, dict) else {}
+        outputs = data.get("outputs", {}) if isinstance(data, dict) else {}
+
+        candidates = [
+            outputs.get("Devices") if isinstance(outputs, dict) else None,
+            outputs.get("devices") if isinstance(outputs, dict) else None,
+            outputs.get("Results") if isinstance(outputs, dict) else None,
+            outputs.get("results") if isinstance(outputs, dict) else None,
+            data.get("Devices") if isinstance(data, dict) else None,
+            data.get("devices") if isinstance(data, dict) else None,
+            data.get("Results") if isinstance(data, dict) else None,
+            data.get("results") if isinstance(data, dict) else None,
+            result.get("message"),
+        ]
+        for candidate in candidates:
+            if candidate is None:
+                continue
+            txt = str(candidate).strip()
+            if not txt or txt.lower() in {"none", "null"}:
+                continue
+            if "-" not in txt:
+                continue
+            return txt
+        return ""
+
+    def _set_world_device_packml_state(device_id: str, packml_state: str) -> None:
+        dev = world.devices.get(str(device_id))
+        if dev is None:
+            raise KeyError(f"Unknown world device '{device_id}'")
+        metadata = dict(dev.metadata) if isinstance(dev.metadata, dict) else {}
+        metadata["packml_state"] = str(packml_state).strip().upper()
+        metadata["packml_state_ts"] = _local_now_iso()
+        metadata["packml_state_source"] = "UpdateWorldState_From_uLM"
+        world.devices[str(device_id)] = Device(
+            id=str(dev.id),
+            name=str(dev.name),
+            station_id=str(dev.station_id),
+            capabilities=dev.capabilities,
+            metadata=metadata,
+        )
+
+    def _get_world_device_packml_state(device_id: str) -> str:
+        dev = world.devices.get(str(device_id))
+        if dev is None:
+            return ""
+        metadata = dict(dev.metadata) if isinstance(dev.metadata, dict) else {}
+        return str(metadata.get("packml_state", "")).strip().upper()
+
+    def _sync_runtime_device_packml_state(device_id: str, packml_state: str) -> None:
+        desired = str(packml_state or "").strip().upper()
+        if not desired:
+            return
+        try:
+            runtime_centrifuge = runtime_devices.get_centrifuge(str(device_id))
+        except Exception:
+            return
+
+        try:
+            current = str(runtime_centrifuge.diagnose().get("packml_state", "")).strip().upper()
+        except Exception:
+            current = ""
+        if current == desired:
+            return
+
+        try:
+            if desired == "COMPLETE" and current == "EXECUTE":
+                runtime_centrifuge.complete_cycle()
+            elif desired == "STOPPED" and current == "EXECUTE":
+                runtime_centrifuge.stop_centrifuge()
+            elif desired == "IDLE":
+                if current == "EXECUTE":
+                    runtime_centrifuge.complete_cycle()
+                    current = str(runtime_centrifuge.diagnose().get("packml_state", "")).strip().upper()
+                if current in {"COMPLETE", "STOPPED", "ABORTED", "FAULTED"}:
+                    runtime_centrifuge.transition("RESET")
+        except Exception as exc:
+            print(
+                "StateDriven runtime sync warning: failed to align runtime device "
+                f"'{device_id}' to PACKML '{desired}' ({exc})"
+            )
+
+    def _resolve_wait_ready_states(raw_states: Any) -> Set[str]:
+        if isinstance(raw_states, (list, tuple, set)):
+            parsed = {str(x).strip().upper() for x in raw_states if str(x).strip()}
+            if parsed:
+                return parsed
+        txt = str(raw_states or "").strip()
+        if txt:
+            tokens = [str(x).strip().upper() for x in txt.split(",") if str(x).strip()]
+            if tokens:
+                return set(tokens)
+        return set(WAIT_READY_PACKML_STATES)
+
+    def _is_external_wait_satisfied(bb: Blackboard, loop_index: int) -> bool:
+        wait_device_id = str(bb.get("state_driven_wait_device_id", "")).strip()
+        wait_reason = str(bb.get("state_driven_waiting_reason", "")).strip()
+        wait_process = str(bb.get("state_driven_wait_process", "")).strip().upper()
+        ready_states = _resolve_wait_ready_states(bb.get("state_driven_wait_ready_states", ()))
+
+        if not wait_device_id:
+            print(
+                "StateDriven waiting: no wait device id configured; continuing UpdateWorldState polling. "
+                f"reason='{wait_reason or 'unspecified'}'"
+            )
+            return False
+
+        current_state = _get_world_device_packml_state(wait_device_id)
+        bb["state_driven_wait_last_packml_state"] = str(current_state)
+        if current_state in ready_states:
+            bb["state_driven_waiting_external_completion"] = False
+            bb["state_driven_waiting_reason"] = ""
+            bb["state_driven_wait_satisfied_ts"] = _local_now_iso()
+            append_world_event(
+                occupancy_records,
+                world,
+                event_type="STATE_DRIVEN_WAIT_SATISFIED",
+                entity_type="WORKFLOW",
+                entity_id="STATE_DRIVEN_PLANNING",
+                details={
+                    "phase": "StateDrivenPlanning",
+                    "loop_index": int(loop_index),
+                    "process": str(wait_process),
+                    "device_id": str(wait_device_id),
+                    "packml_state": str(current_state),
+                    "ready_states": sorted(ready_states),
+                },
+            )
+            return True
+
+        print(
+            "StateDriven waiting: external completion pending "
+            f"(process={wait_process or 'UNKNOWN'}, device={wait_device_id}, "
+            f"packml_state={current_state or 'UNKNOWN'}, ready_states={sorted(ready_states)})"
+        )
+        return False
+
+    def _refresh_world_device_states_from_ulm(bb: Blackboard, loop_index: int) -> bool:
+        task_key = "UpdateWorldState_From_uLM"
+        if task_key not in sender.catalog.raw.get("Available_Tasks", {}):
+            print(f"StateDriven prerequisite failed: missing task '{task_key}' in Available_Tasks.json")
+            return False
+
+        task_name = f"StateDriven.UpdateWorldState.loop{int(loop_index)}"
+        ok, result = _run_task(task_key, {}, task_name)
+        if not ok:
+            return False
+
+        raw_devices = _extract_update_world_devices_payload(result)
+        if not raw_devices:
+            print(
+                f"{task_name} failed: no device status payload found in response outputs. "
+                "Expected e.g. 'Devices: (5-COMPLETE; 7-COMPLETE)'."
+            )
+            return False
+
+        try:
+            mapping_result = map_update_world_devices_to_assigned_world_devices(world, raw_devices)
+        except Exception as exc:
+            print(f"{task_name} failed: cannot map device payload to world devices ({exc})")
+            return False
+
+        for assignment in mapping_result.assignments:
+            try:
+                _set_world_device_packml_state(assignment.device_id, assignment.packml_state)
+                _sync_runtime_device_packml_state(assignment.device_id, assignment.packml_state)
+            except Exception as exc:
+                print(
+                    f"{task_name} failed: cannot update device '{assignment.device_id}' "
+                    f"PACKML state '{assignment.packml_state}' ({exc})"
+                )
+                return False
+
+        if mapping_result.unmapped:
+            print(
+                f"{task_name}: unmapped statuses detected: "
+                f"{[{'itm_id': x.itm_id, 'packml_state': x.packml_state, 'reason': x.reason} for x in mapping_result.unmapped]}"
+            )
+
+        bb["device_status_update_raw"] = str(raw_devices)
+        bb["device_status_update_assignments"] = [
+            {
+                "itm_id": int(x.itm_id),
+                "packml_state": str(x.packml_state),
+                "station_id": str(x.station_id),
+                "device_id": str(x.device_id),
+            }
+            for x in mapping_result.assignments
+        ]
+        bb["device_status_update_unmapped"] = [
+            {"itm_id": int(x.itm_id), "packml_state": str(x.packml_state), "reason": str(x.reason)}
+            for x in mapping_result.unmapped
+        ]
+
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="DEVICE_STATUS_UPDATED",
+            entity_type="WORKFLOW",
+            entity_id="STATE_DRIVEN_PLANNING",
+            details={
+                "phase": "StateDrivenPlanning",
+                "source_task": task_key,
+                "raw_devices": str(raw_devices),
+                "assignments": bb["device_status_update_assignments"],
+                "unmapped": bb["device_status_update_unmapped"],
+                "loop_index": int(loop_index),
+            },
+        )
+        return True
 
     def _first_free_slot_index(station_id: str, station_slot_id: str) -> int:
         rack = world.get_rack_at(station_id, station_slot_id)
@@ -1600,6 +1885,1166 @@ def build_tree(
             },
         )
         return True, str(moved_sample_id)
+
+    def _requires_station_reference_scan(station_id: str) -> bool:
+        if str(station_id) == CHARGE_STATION_ID:
+            return False
+        station = world.get_station(station_id)
+        return station.kind != StationKind.ON_ROBOT_PLATE
+
+    def _ensure_station_reference(station_id: str, task_prefix: str) -> bool:
+        if not _requires_station_reference_scan(station_id):
+            return True
+
+        station = world.get_station(station_id)
+        if world.needs_navigation(station_id):
+            if not station.amr_pos_target:
+                print(
+                    f"{task_prefix} prerequisite failed: station '{station_id}' has no AMR position target"
+                )
+                return False
+            navigate_overrides = {
+                "AMR_PosTarget": str(station.amr_pos_target),
+                "AMR_Footprint": "1",
+                "AMR_DOCK": "1",
+            }
+            ok, _ = _run_task("Navigate", navigate_overrides, f"{task_prefix}.Navigate.{station_id}")
+            if not ok:
+                return False
+            try:
+                world.set_robot_station(station_id)
+            except Exception:
+                pass
+
+        scan_overrides = {
+            "ITM_ID": int(station.itm_id),
+            "ACT": DEVICE_ACTION_SCAN_LANDMARK,
+        }
+        ok, _ = _run_task(
+            "SingleDeviceAction",
+            scan_overrides,
+            f"{task_prefix}.ScanLandmark.{station_id}",
+        )
+        return ok
+
+    def _set_sample_cap_state(sample_id: str, cap_state: CapState) -> None:
+        sample = world.samples.get(sample_id)
+        if sample is None:
+            raise KeyError(f"Unknown sample '{sample_id}'")
+        world.samples[sample_id] = Sample(
+            id=sample.id,
+            barcode=sample.barcode,
+            obj_type=sample.obj_type,
+            length_mm=sample.length_mm,
+            diameter_mm=sample.diameter_mm,
+            cap_state=cap_state,
+            required_processes=sample.required_processes,
+        )
+
+    def _append_process_completed_event(sample_id: str, process: ProcessType, details: Optional[Dict[str, Any]] = None) -> None:
+        payload = {
+            "phase": "StateDrivenPlanning",
+            "process": process.value,
+        }
+        if isinstance(details, dict):
+            payload.update({str(k): v for k, v in details.items()})
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="SAMPLE_PROCESS_COMPLETED",
+            entity_type="SAMPLE",
+            entity_id=str(sample_id),
+            details=payload,
+        )
+
+    def _policy_for_process(process: ProcessType) -> Optional[Any]:
+        if dynamic_state_planner is None:
+            return None
+        return dynamic_state_planner.policies.get(process)
+
+    def _locked_racks(bb: Blackboard) -> Dict[str, Dict[str, Any]]:
+        raw = bb.get("state_driven_locked_racks", {})
+        if isinstance(raw, dict):
+            out: Dict[str, Dict[str, Any]] = {}
+            for key, payload in raw.items():
+                if not isinstance(payload, dict):
+                    continue
+                out[str(key)] = dict(payload)
+            return out
+        return {}
+
+    def _set_rack_lock(bb: Blackboard, rack_id: str, payload: Dict[str, Any]) -> None:
+        locks = _locked_racks(bb)
+        locks[str(rack_id)] = dict(payload)
+        bb["state_driven_locked_racks"] = locks
+
+    def _clear_rack_lock(bb: Blackboard, rack_id: str) -> None:
+        locks = _locked_racks(bb)
+        locks.pop(str(rack_id), None)
+        bb["state_driven_locked_racks"] = locks
+
+    def _is_rack_locked(bb: Blackboard, rack_id: str) -> bool:
+        locks = _locked_racks(bb)
+        return str(rack_id) in locks
+
+    def _sample_ids_with_pending_process(process: ProcessType) -> List[str]:
+        pending_ids: List[str] = []
+        for sample_id in sorted(world.sample_states.keys()):
+            try:
+                pending = world.pending_processes(str(sample_id))
+            except Exception:
+                continue
+            if process in pending:
+                pending_ids.append(str(sample_id))
+        return pending_ids
+
+    def _execute_state_driven_provision_rack_action(action: DynamicPlanAction, bb: Blackboard) -> bool:
+        task_prefix = f"StateDriven.{action.sample_id}.{action.process.value}.ProvisionRack"
+
+        source_station_id = str(action.source_station_id)
+        source_station_slot_id = str(action.source_station_slot_id)
+        target_station_id = str(action.target_station_id)
+        target_station_slot_id = str(action.target_station_slot_id)
+
+        source_rack_id = _rack_id_at(world, source_station_id, source_station_slot_id)
+        if source_rack_id is None:
+            print(
+                f"{task_prefix} prerequisite failed: no rack at source "
+                f"{source_station_id}.{source_station_slot_id}"
+            )
+            return False
+        if _rack_id_at(world, target_station_id, target_station_slot_id) is not None:
+            print(
+                f"{task_prefix} prerequisite failed: target slot already has a rack "
+                f"({target_station_id}.{target_station_slot_id})"
+            )
+            return False
+
+        rack = world.racks.get(str(source_rack_id))
+        if rack is None:
+            print(f"{task_prefix} prerequisite failed: unknown source rack '{source_rack_id}'")
+            return False
+
+        source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
+        target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
+        obj_type = int(rack.pin_obj_type)
+
+        if not _ensure_station_reference(source_station_id, task_prefix):
+            return False
+
+        pick_overrides = {
+            "ITM_ID": int(source_cfg.itm_id),
+            "JIG_ID": int(source_cfg.jig_id),
+            "OBJ_Nbr": int(source_cfg.rack_index),
+            "ACTION": ACTION_PICK,
+            "OBJ_Type": int(obj_type),
+        }
+        ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.Pick")
+        if not ok:
+            return False
+
+        if not _ensure_station_reference(target_station_id, task_prefix):
+            return False
+
+        place_overrides = {
+            "ITM_ID": int(target_cfg.itm_id),
+            "JIG_ID": int(target_cfg.jig_id),
+            "OBJ_Nbr": int(target_cfg.rack_index),
+            "ACTION": ACTION_PLACE,
+            "OBJ_Type": int(obj_type),
+        }
+        ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.Place")
+        if not ok:
+            return False
+
+        try:
+            moved_rack_id = world.move_rack(
+                source_station_id=source_station_id,
+                source_station_slot_id=source_station_slot_id,
+                target_station_id=target_station_id,
+                target_station_slot_id=target_station_slot_id,
+            )
+        except Exception as exc:
+            print(f"{task_prefix} world move failed: {exc}")
+            return False
+
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="RACK_MOVED",
+            entity_type="RACK",
+            entity_id=str(moved_rack_id),
+            source={"station_id": source_station_id, "station_slot_id": source_station_slot_id},
+            target={"station_id": target_station_id, "station_slot_id": target_station_slot_id},
+            details={
+                "phase": "StateDrivenPlanning",
+                "action_type": "PROVISION_RACK",
+                "process": action.process.value,
+            },
+        )
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="STATE_DRIVEN_ACTION_EXECUTED",
+            entity_type="RACK",
+            entity_id=str(moved_rack_id),
+            details={
+                "phase": "StateDrivenPlanning",
+                "action_type": "PROVISION_RACK",
+                "process": action.process.value,
+            },
+        )
+
+        provisioned = bb.get("state_driven_provisioned_racks", {})
+        if not isinstance(provisioned, dict):
+            provisioned = {}
+        provisioned[str(moved_rack_id)] = {
+            "process": action.process.value,
+            "source_station_id": source_station_id,
+            "source_station_slot_id": source_station_slot_id,
+            "target_station_id": target_station_id,
+            "target_station_slot_id": target_station_slot_id,
+            "target_jig_id": int(action.target_jig_id),
+            "provisioned_ts": _local_now_iso(),
+        }
+        bb["state_driven_provisioned_racks"] = provisioned
+        _set_rack_lock(
+            bb,
+            str(moved_rack_id),
+            {
+                "lock_type": "PROCESS",
+                "process": action.process.value,
+                "reason": "provisioned_for_process",
+                "timestamp": _local_now_iso(),
+            },
+        )
+        bb["state_driven_last_action"] = action.to_dict()
+        return True
+
+    def _maybe_return_provisioned_racks_after_process(process: ProcessType, bb: Blackboard) -> bool:
+        policy = _policy_for_process(process)
+        if policy is None:
+            return True
+        if not bool(getattr(policy, "return_provisioned_rack_after_process", False)):
+            return True
+
+        pending_for_process = _sample_ids_with_pending_process(process)
+        if pending_for_process:
+            return True
+
+        provisioned = bb.get("state_driven_provisioned_racks", {})
+        if not isinstance(provisioned, dict) or not provisioned:
+            return True
+
+        for rack_id, payload in list(provisioned.items()):
+            if not isinstance(payload, dict):
+                continue
+            if str(payload.get("process", "")).strip().upper() != process.value:
+                continue
+
+            source_station_id = str(payload.get("source_station_id", "")).strip()
+            source_station_slot_id = str(payload.get("source_station_slot_id", "")).strip()
+            target_station_id = str(payload.get("target_station_id", "")).strip()
+            target_station_slot_id = str(payload.get("target_station_slot_id", "")).strip()
+            if not source_station_id or not source_station_slot_id or not target_station_id or not target_station_slot_id:
+                continue
+
+            mounted_rack_id = _rack_id_at(world, target_station_id, target_station_slot_id)
+            if str(mounted_rack_id or "") != str(rack_id):
+                provisioned.pop(str(rack_id), None)
+                _clear_rack_lock(bb, str(rack_id))
+                continue
+
+            # Keep rack on plate if any sample inside still has this process pending.
+            try:
+                mounted_rack = world.get_rack_at(target_station_id, target_station_slot_id)
+            except Exception as exc:
+                print(
+                    "StateDriven return-rack prerequisite failed: cannot resolve mounted rack "
+                    f"at {target_station_id}.{target_station_slot_id} ({exc})"
+                )
+                return False
+            for sid in mounted_rack.occupied_slots.values():
+                try:
+                    if process in world.pending_processes(str(sid)):
+                        return True
+                except Exception:
+                    continue
+
+            source_slot_rack_id = _rack_id_at(world, source_station_id, source_station_slot_id)
+            if source_slot_rack_id is not None and str(source_slot_rack_id) != str(rack_id):
+                print(
+                    "StateDriven return-rack prerequisite failed: source slot is occupied "
+                    f"({source_station_id}.{source_station_slot_id} -> {source_slot_rack_id})"
+                )
+                return False
+
+            task_prefix = f"StateDriven.{process.value}.ReturnProvisionedRack.{rack_id}"
+            source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
+            target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
+            rack = world.racks.get(str(rack_id))
+            if rack is None:
+                print(f"{task_prefix} prerequisite failed: unknown rack '{rack_id}'")
+                return False
+
+            if not _ensure_station_reference(target_station_id, task_prefix):
+                return False
+            pick_overrides = {
+                "ITM_ID": int(target_cfg.itm_id),
+                "JIG_ID": int(target_cfg.jig_id),
+                "OBJ_Nbr": int(target_cfg.rack_index),
+                "ACTION": ACTION_PICK,
+                "OBJ_Type": int(rack.pin_obj_type),
+            }
+            ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.Pick")
+            if not ok:
+                return False
+
+            if not _ensure_station_reference(source_station_id, task_prefix):
+                return False
+            place_overrides = {
+                "ITM_ID": int(source_cfg.itm_id),
+                "JIG_ID": int(source_cfg.jig_id),
+                "OBJ_Nbr": int(source_cfg.rack_index),
+                "ACTION": ACTION_PLACE,
+                "OBJ_Type": int(rack.pin_obj_type),
+            }
+            ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.Place")
+            if not ok:
+                return False
+
+            try:
+                moved_rack_id = world.move_rack(
+                    source_station_id=target_station_id,
+                    source_station_slot_id=target_station_slot_id,
+                    target_station_id=source_station_id,
+                    target_station_slot_id=source_station_slot_id,
+                )
+            except Exception as exc:
+                print(f"{task_prefix} world move failed: {exc}")
+                return False
+
+            append_world_event(
+                occupancy_records,
+                world,
+                event_type="RACK_MOVED",
+                entity_type="RACK",
+                entity_id=str(moved_rack_id),
+                source={"station_id": target_station_id, "station_slot_id": target_station_slot_id},
+                target={"station_id": source_station_id, "station_slot_id": source_station_slot_id},
+                details={
+                    "phase": "StateDrivenPlanning",
+                    "process": process.value,
+                    "action": "RETURN_PROVISIONED_RACK",
+                },
+            )
+            provisioned.pop(str(rack_id), None)
+            _clear_rack_lock(bb, str(rack_id))
+
+        bb["state_driven_provisioned_racks"] = provisioned
+        return True
+
+    def _baseline_home_for_rack(rack_id: str) -> Optional[Tuple[str, str]]:
+        home = baseline_rack_home_by_id.get(str(rack_id))
+        if not home:
+            return None
+        station_id = str(home[0]).strip()
+        station_slot_id = str(home[1]).strip()
+        if not station_id or not station_slot_id:
+            return None
+        try:
+            world.get_slot_config(station_id, station_slot_id)
+        except Exception:
+            return None
+        return station_id, station_slot_id
+
+    def _rack_has_pending_sample_processes(rack_id: str) -> bool:
+        rack = world.racks.get(str(rack_id))
+        if rack is None:
+            return True
+        for sample_id in rack.occupied_slots.values():
+            try:
+                if world.pending_processes(str(sample_id)):
+                    return True
+            except Exception:
+                # Unknown sample linkage should never trigger an implicit rack return.
+                return True
+        return False
+
+    def _next_idle_rack_return_candidate(bb: Blackboard) -> Optional[Dict[str, Any]]:
+        if not baseline_rack_home_by_id:
+            return None
+
+        for (station_id, station_slot_id), rack_id in sorted(world.rack_placements.items()):
+            rack_id_txt = str(rack_id)
+            if _is_rack_locked(bb, rack_id_txt):
+                continue
+            home = _baseline_home_for_rack(rack_id_txt)
+            if home is None:
+                continue
+            home_station_id, home_station_slot_id = home
+            if str(station_id) == home_station_id and str(station_slot_id) == home_station_slot_id:
+                continue
+            if _rack_has_pending_sample_processes(rack_id_txt):
+                continue
+
+            home_slot_rack_id = _rack_id_at(world, home_station_id, home_station_slot_id)
+            if home_slot_rack_id is not None and str(home_slot_rack_id) != rack_id_txt:
+                continue
+
+            rack = world.racks.get(rack_id_txt)
+            if rack is None:
+                continue
+            reason = (
+                "rack_empty_return_to_baseline"
+                if not rack.occupied_slots
+                else "rack_idle_return_to_baseline"
+            )
+            return {
+                "rack_id": rack_id_txt,
+                "source_station_id": str(station_id),
+                "source_station_slot_id": str(station_slot_id),
+                "target_station_id": home_station_id,
+                "target_station_slot_id": home_station_slot_id,
+                "reason": reason,
+            }
+        return None
+
+    def _return_rack_action_payload(candidate: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "action_type": "RETURN_RACK_HOME",
+            "rack_id": str(candidate.get("rack_id", "")),
+            "source_station_id": str(candidate.get("source_station_id", "")),
+            "source_station_slot_id": str(candidate.get("source_station_slot_id", "")),
+            "target_station_id": str(candidate.get("target_station_id", "")),
+            "target_station_slot_id": str(candidate.get("target_station_slot_id", "")),
+            "reason": str(candidate.get("reason", "")),
+        }
+
+    def _execute_return_rack_home(candidate: Dict[str, Any], bb: Blackboard) -> bool:
+        rack_id = str(candidate.get("rack_id", "")).strip()
+        source_station_id = str(candidate.get("source_station_id", "")).strip()
+        source_station_slot_id = str(candidate.get("source_station_slot_id", "")).strip()
+        target_station_id = str(candidate.get("target_station_id", "")).strip()
+        target_station_slot_id = str(candidate.get("target_station_slot_id", "")).strip()
+        reason = str(candidate.get("reason", "")).strip()
+        if not rack_id or not source_station_id or not source_station_slot_id or not target_station_id or not target_station_slot_id:
+            print(
+                "StateDriven rack-return failed: invalid candidate payload "
+                f"({candidate})"
+            )
+            return False
+
+        mounted_rack_id = _rack_id_at(world, source_station_id, source_station_slot_id)
+        if str(mounted_rack_id or "") != rack_id:
+            return False
+        home_slot_rack_id = _rack_id_at(world, target_station_id, target_station_slot_id)
+        if home_slot_rack_id is not None and str(home_slot_rack_id) != rack_id:
+            print(
+                "StateDriven rack-return prerequisite failed: baseline slot occupied "
+                f"({target_station_id}.{target_station_slot_id} -> {home_slot_rack_id})"
+            )
+            return False
+
+        rack = world.racks.get(rack_id)
+        if rack is None:
+            print(f"StateDriven rack-return prerequisite failed: unknown rack '{rack_id}'")
+            return False
+        source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
+        target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
+
+        task_prefix = f"StateDriven.RackReturn.{rack_id}"
+        if not _ensure_station_reference(source_station_id, task_prefix):
+            return False
+        pick_overrides = {
+            "ITM_ID": int(source_cfg.itm_id),
+            "JIG_ID": int(source_cfg.jig_id),
+            "OBJ_Nbr": int(source_cfg.rack_index),
+            "ACTION": ACTION_PICK,
+            "OBJ_Type": int(rack.pin_obj_type),
+        }
+        ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.Pick")
+        if not ok:
+            return False
+
+        if not _ensure_station_reference(target_station_id, task_prefix):
+            return False
+        place_overrides = {
+            "ITM_ID": int(target_cfg.itm_id),
+            "JIG_ID": int(target_cfg.jig_id),
+            "OBJ_Nbr": int(target_cfg.rack_index),
+            "ACTION": ACTION_PLACE,
+            "OBJ_Type": int(rack.pin_obj_type),
+        }
+        ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.Place")
+        if not ok:
+            return False
+
+        try:
+            moved_rack_id = world.move_rack(
+                source_station_id=source_station_id,
+                source_station_slot_id=source_station_slot_id,
+                target_station_id=target_station_id,
+                target_station_slot_id=target_station_slot_id,
+            )
+        except Exception as exc:
+            print(f"{task_prefix} world move failed: {exc}")
+            return False
+
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="RACK_MOVED",
+            entity_type="RACK",
+            entity_id=str(moved_rack_id),
+            source={"station_id": source_station_id, "station_slot_id": source_station_slot_id},
+            target={"station_id": target_station_id, "station_slot_id": target_station_slot_id},
+            details={
+                "phase": "StateDrivenPlanning",
+                "action_type": "RETURN_RACK_HOME",
+                "reason": reason,
+            },
+        )
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="STATE_DRIVEN_ACTION_EXECUTED",
+            entity_type="RACK",
+            entity_id=str(moved_rack_id),
+            details={
+                "phase": "StateDrivenPlanning",
+                "action_type": "RETURN_RACK_HOME",
+                "reason": reason,
+            },
+        )
+        bb["state_driven_last_action"] = _return_rack_action_payload(candidate)
+
+        executed = bb.get("state_driven_rack_returns_executed", [])
+        if not isinstance(executed, list):
+            executed = []
+        executed.append(
+            {
+                "rack_id": str(moved_rack_id),
+                "source_station_id": source_station_id,
+                "source_station_slot_id": source_station_slot_id,
+                "target_station_id": target_station_id,
+                "target_station_slot_id": target_station_slot_id,
+                "reason": reason,
+                "timestamp": _local_now_iso(),
+            }
+        )
+        bb["state_driven_rack_returns_executed"] = executed
+        return True
+
+    def _sample_ids_in_jig(station_id: str, jig_id: int) -> List[str]:
+        ids: Set[str] = set()
+        for cfg in world.slots_for_jig(station_id, int(jig_id)):
+            rack_id = world.rack_placements.get((station_id, str(cfg.slot_id)))
+            if not rack_id:
+                continue
+            rack = world.racks.get(str(rack_id))
+            if rack is None:
+                continue
+            for sample_id in rack.occupied_slots.values():
+                ids.add(str(sample_id))
+        return sorted(ids)
+
+    def _slot_cfg_by_rack_index_for_jig(station_id: str, jig_id: int) -> Dict[int, Any]:
+        out: Dict[int, Any] = {}
+        for cfg in world.slots_for_jig(station_id, int(jig_id)):
+            idx = int(getattr(cfg, "rack_index", 0))
+            if idx <= 0:
+                raise ValueError(
+                    f"Invalid rack_index for station '{station_id}', JIG_ID={int(jig_id)}, "
+                    f"slot='{getattr(cfg, 'slot_id', '?')}'"
+                )
+            if idx in out:
+                raise ValueError(
+                    f"Duplicate rack_index={idx} for station '{station_id}', JIG_ID={int(jig_id)}"
+                )
+            out[idx] = cfg
+        return out
+
+    def _ih500_slot_pairs() -> List[Tuple[int, Any, Any]]:
+        source_by_idx = _slot_cfg_by_rack_index_for_jig(PLATE_STATION_ID, IH500_SOURCE_JIG_ID)
+        target_by_idx = _slot_cfg_by_rack_index_for_jig(IH500_STATION_ID, IH500_DEVICE_JIG_ID)
+        source_idx = set(source_by_idx.keys())
+        target_idx = set(target_by_idx.keys())
+        if not source_idx:
+            raise ValueError(
+                f"No source rack slots configured for '{PLATE_STATION_ID}' JIG_ID={IH500_SOURCE_JIG_ID}"
+            )
+        if not target_idx:
+            raise ValueError(
+                f"No device rack slots configured for '{IH500_STATION_ID}' JIG_ID={IH500_DEVICE_JIG_ID}"
+            )
+        if source_idx != target_idx:
+            missing_on_target = sorted(source_idx - target_idx)
+            missing_on_source = sorted(target_idx - source_idx)
+            raise ValueError(
+                "IH500 slot mapping mismatch by rack_index "
+                f"(missing_on_target={missing_on_target}, missing_on_source={missing_on_source})"
+            )
+        return [(idx, source_by_idx[idx], target_by_idx[idx]) for idx in sorted(source_idx)]
+
+    def _execute_ih500_immuno_cycle(sample_id: str, bb: Blackboard) -> bool:
+        task_prefix = f"StateDriven.{sample_id}.IMMUNOANALYSIS.Process"
+        sample_state = world.sample_states.get(str(sample_id))
+        if sample_state is None:
+            print(f"{task_prefix} prerequisite failed: unknown sample '{sample_id}'")
+            return False
+        sample = world.samples.get(str(sample_id))
+        if sample is None:
+            print(f"{task_prefix} prerequisite failed: unknown sample payload '{sample_id}'")
+            return False
+        if sample.cap_state != CapState.DECAPPED:
+            print(
+                f"{task_prefix} prerequisite failed: sample is not decapped "
+                f"(sample='{sample_id}', cap_state='{sample.cap_state.value}')"
+            )
+            return False
+        try:
+            slot_pairs = _ih500_slot_pairs()
+        except Exception as exc:
+            print(f"{task_prefix} prerequisite failed: {exc}")
+            return False
+
+        pair_state: List[Tuple[int, Any, Any, Optional[str], Optional[str]]] = []
+        source_count = 0
+        target_count = 0
+        for idx, source_cfg, target_cfg in slot_pairs:
+            source_rack_id = _rack_id_at(world, PLATE_STATION_ID, str(source_cfg.slot_id))
+            target_rack_id = _rack_id_at(world, IH500_STATION_ID, str(target_cfg.slot_id))
+            if source_rack_id:
+                source_count += 1
+            if target_rack_id:
+                target_count += 1
+            pair_state.append((idx, source_cfg, target_cfg, source_rack_id, target_rack_id))
+
+        pair_count = len(pair_state)
+        mode = ""
+        if source_count == pair_count and target_count == 0:
+            mode = "LOAD_UNLOAD"
+        elif source_count == 0 and target_count == pair_count:
+            mode = "UNLOAD_ONLY"
+        else:
+            print(
+                f"{task_prefix} prerequisite failed: ambiguous rack distribution for IH500 cycle "
+                f"(source_jig={source_count}/{pair_count}, device_jig={target_count}/{pair_count})"
+            )
+            return False
+
+        active_pairs: List[Tuple[int, Any, Any, Optional[str], Optional[str]]] = []
+        if mode == "LOAD_UNLOAD":
+            for idx, source_cfg, target_cfg, source_rack_id, target_rack_id in pair_state:
+                if not source_rack_id:
+                    print(
+                        f"{task_prefix} load failed: expected source rack at "
+                        f"{PLATE_STATION_ID}.{source_cfg.slot_id}"
+                    )
+                    return False
+                rack = world.racks.get(str(source_rack_id))
+                if rack is None:
+                    print(f"{task_prefix} load failed: unknown rack '{source_rack_id}'")
+                    return False
+                if rack.occupied_slots:
+                    active_pairs.append((idx, source_cfg, target_cfg, source_rack_id, target_rack_id))
+        else:
+            for idx, source_cfg, target_cfg, source_rack_id, target_rack_id in pair_state:
+                if not target_rack_id:
+                    print(
+                        f"{task_prefix} unload failed: expected device rack at "
+                        f"{IH500_STATION_ID}.{target_cfg.slot_id}"
+                    )
+                    return False
+                rack = world.racks.get(str(target_rack_id))
+                if rack is None:
+                    print(f"{task_prefix} unload failed: unknown rack '{target_rack_id}'")
+                    return False
+                if rack.occupied_slots:
+                    active_pairs.append((idx, source_cfg, target_cfg, source_rack_id, target_rack_id))
+
+        if not active_pairs:
+            print(f"{task_prefix}: no racks with samples; skipping IH500 rack movement.")
+            bb["state_driven_waiting_external_completion"] = False
+            bb["state_driven_waiting_reason"] = ""
+            bb["last_ih500_cycle_mode"] = str(mode)
+            bb["last_ih500_cycle_ts"] = _local_now_iso()
+            return True
+
+        if not _ensure_station_reference(IH500_STATION_ID, task_prefix):
+            return False
+
+        if mode == "LOAD_UNLOAD":
+            for idx, source_cfg, target_cfg, source_rack_id, _ in active_pairs:
+                rack = world.racks.get(str(source_rack_id))
+                if rack is None:
+                    print(f"{task_prefix} load failed: unknown rack '{source_rack_id}'")
+                    return False
+
+                load_overrides = {
+                    "ITM_ID": int(target_cfg.itm_id),
+                    "JIG_ID": int(target_cfg.jig_id),
+                    "OBJ_Nbr": int(target_cfg.rack_index),
+                    "ACTION": ACTION_PUSH_RACK_IN,
+                    "OBJ_Type": int(rack.pin_obj_type),
+                }
+                ok, _ = _run_task(
+                    "SingleTask",
+                    load_overrides,
+                    f"{task_prefix}.LoadRack{int(idx)}.PushRackIn",
+                )
+                if not ok:
+                    return False
+
+                try:
+                    moved_rack_id = world.move_rack(
+                        source_station_id=PLATE_STATION_ID,
+                        source_station_slot_id=str(source_cfg.slot_id),
+                        target_station_id=IH500_STATION_ID,
+                        target_station_slot_id=str(target_cfg.slot_id),
+                    )
+                except Exception as exc:
+                    print(f"{task_prefix} load world move failed (rack_index={int(idx)}): {exc}")
+                    return False
+
+                append_world_event(
+                    occupancy_records,
+                    world,
+                    event_type="RACK_MOVED",
+                    entity_type="RACK",
+                    entity_id=str(moved_rack_id),
+                    source={"station_id": PLATE_STATION_ID, "station_slot_id": str(source_cfg.slot_id)},
+                    target={"station_id": IH500_STATION_ID, "station_slot_id": str(target_cfg.slot_id)},
+                    details={
+                        "phase": "StateDrivenPlanning",
+                        "process": ProcessType.IMMUNOANALYSIS.value,
+                        "mode": "LOAD",
+                        "transfer_index": int(idx),
+                        "action": "PushRackIn",
+                    },
+                )
+
+        for idx, source_cfg, target_cfg, _, _ in active_pairs:
+            device_rack_id = _rack_id_at(world, IH500_STATION_ID, str(target_cfg.slot_id))
+            if not device_rack_id:
+                print(
+                    f"{task_prefix} unload failed: expected device rack at "
+                    f"{IH500_STATION_ID}.{target_cfg.slot_id}"
+                )
+                return False
+            rack = world.racks.get(str(device_rack_id))
+            if rack is None:
+                print(f"{task_prefix} unload failed: unknown rack '{device_rack_id}'")
+                return False
+
+            unload_overrides = {
+                "ITM_ID": int(target_cfg.itm_id),
+                "JIG_ID": int(target_cfg.jig_id),
+                "OBJ_Nbr": int(target_cfg.rack_index),
+                "ACTION": ACTION_PULL_RACK_OUT,
+                "OBJ_Type": int(rack.pin_obj_type),
+            }
+            ok, _ = _run_task(
+                "SingleTask",
+                unload_overrides,
+                f"{task_prefix}.UnloadRack{int(idx)}.PullRackOut",
+            )
+            if not ok:
+                return False
+
+            try:
+                moved_rack_id = world.move_rack(
+                    source_station_id=IH500_STATION_ID,
+                    source_station_slot_id=str(target_cfg.slot_id),
+                    target_station_id=PLATE_STATION_ID,
+                    target_station_slot_id=str(source_cfg.slot_id),
+                )
+            except Exception as exc:
+                print(f"{task_prefix} unload world move failed (rack_index={int(idx)}): {exc}")
+                return False
+
+            append_world_event(
+                occupancy_records,
+                world,
+                event_type="RACK_MOVED",
+                entity_type="RACK",
+                entity_id=str(moved_rack_id),
+                source={"station_id": IH500_STATION_ID, "station_slot_id": str(target_cfg.slot_id)},
+                target={"station_id": PLATE_STATION_ID, "station_slot_id": str(source_cfg.slot_id)},
+                details={
+                    "phase": "StateDrivenPlanning",
+                    "process": ProcessType.IMMUNOANALYSIS.value,
+                    "mode": "UNLOAD",
+                    "transfer_index": int(idx),
+                    "action": "PullRackOut",
+                },
+            )
+
+        completed_sample_ids = _sample_ids_in_jig(PLATE_STATION_ID, IH500_SOURCE_JIG_ID)
+        for sid in completed_sample_ids:
+            try:
+                world.mark_process_completed(sid, ProcessType.IMMUNOANALYSIS)
+            except Exception:
+                continue
+            _append_process_completed_event(
+                sid,
+                ProcessType.IMMUNOANALYSIS,
+                {"mode": mode, "source_jig_id": IH500_SOURCE_JIG_ID, "device_jig_id": IH500_DEVICE_JIG_ID},
+            )
+
+        bb["state_driven_waiting_external_completion"] = False
+        bb["state_driven_waiting_reason"] = ""
+        bb["last_ih500_cycle_mode"] = str(mode)
+        bb["last_ih500_cycle_ts"] = _local_now_iso()
+        return True
+
+    def _execute_state_driven_stage_action(action: DynamicPlanAction, bb: Blackboard) -> bool:
+        sample_id = str(action.sample_id)
+        state = world.sample_states.get(sample_id)
+        if state is None or not isinstance(state.location, RackLocation):
+            print(
+                "StateDriven stage failed: sample has no rack location "
+                f"(sample='{sample_id}')"
+            )
+            return False
+
+        source_station_id = str(state.location.station_id)
+        source_station_slot_id = str(state.location.station_slot_id)
+        source_slot_index = int(state.location.slot_index)
+        target_station_id = str(action.target_station_id)
+        target_station_slot_id = str(action.target_station_slot_id)
+        target_slot_index = int(action.target_slot_index)
+        task_prefix = f"StateDriven.{sample_id}.{action.process.value}.Stage"
+
+        if not _ensure_station_reference(source_station_id, task_prefix):
+            return False
+
+        source_rack = world.get_rack_at(source_station_id, source_station_slot_id)
+        sample_id_at_source = source_rack.occupied_slots.get(int(source_slot_index))
+        if sample_id_at_source is None:
+            print(
+                f"{task_prefix} failed: source slot is empty "
+                f"({source_station_id}.{source_station_slot_id}[{int(source_slot_index)}])"
+            )
+            return False
+        if str(sample_id_at_source) != sample_id:
+            print(
+                f"{task_prefix} failed: source sample mismatch "
+                f"(expected={sample_id}, found={sample_id_at_source})"
+            )
+            return False
+
+        sample = world.samples.get(sample_id)
+        obj_type = int(getattr(sample, "obj_type", OBJ_TYPE_PROBE))
+        source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
+        target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
+
+        pick_overrides = {
+            "ITM_ID": int(source_cfg.itm_id),
+            "JIG_ID": int(source_cfg.jig_id),
+            "OBJ_Nbr": int(
+                world.obj_nbr_for_slot_index(source_station_id, source_station_slot_id, source_slot_index)
+            ),
+            "ACTION": ACTION_PICK,
+            "OBJ_Type": int(obj_type),
+        }
+        ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.PickSample")
+        if not ok:
+            return False
+
+        if target_station_id != source_station_id:
+            if not _ensure_station_reference(target_station_id, task_prefix):
+                return False
+
+        place_overrides = {
+            "ITM_ID": int(target_cfg.itm_id),
+            "JIG_ID": int(target_cfg.jig_id),
+            "OBJ_Nbr": int(
+                world.obj_nbr_for_slot_index(target_station_id, target_station_slot_id, target_slot_index)
+            ),
+            "ACTION": ACTION_PLACE,
+            "OBJ_Type": int(obj_type),
+        }
+        ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.PlaceSample")
+        if not ok:
+            return False
+
+        try:
+            moved_sample_id = world.move_sample(
+                source_station_id=source_station_id,
+                source_station_slot_id=source_station_slot_id,
+                source_slot_index=int(source_slot_index),
+                target_station_id=target_station_id,
+                target_station_slot_id=target_station_slot_id,
+                target_slot_index=int(target_slot_index),
+            )
+        except Exception as exc:
+            print(f"{task_prefix} world move failed: {exc}")
+            return False
+        if str(moved_sample_id) != sample_id:
+            print(
+                f"{task_prefix} sample identity mismatch: "
+                f"expected={sample_id}, moved={moved_sample_id}"
+            )
+            return False
+
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="SAMPLE_MOVED",
+            entity_type="SAMPLE",
+            entity_id=str(moved_sample_id),
+            source={
+                "station_id": source_station_id,
+                "station_slot_id": source_station_slot_id,
+                "slot_index": int(source_slot_index),
+            },
+            target={
+                "station_id": target_station_id,
+                "station_slot_id": target_station_slot_id,
+                "slot_index": int(target_slot_index),
+            },
+            details={
+                "phase": "StateDrivenPlanning",
+                "reason": f"stage_for_{action.process.value}",
+            },
+        )
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="STATE_DRIVEN_ACTION_EXECUTED",
+            entity_type="SAMPLE",
+            entity_id=str(moved_sample_id),
+            details={
+                "phase": "StateDrivenPlanning",
+                "action_type": str(action.action_type),
+                "process": action.process.value,
+            },
+        )
+        bb["state_driven_last_action"] = action.to_dict()
+        return True
+
+    def _execute_state_driven_process_action(action: DynamicPlanAction, bb: Blackboard) -> bool:
+        sample_id = str(action.sample_id)
+        process = action.process
+        task_prefix = f"StateDriven.{sample_id}.{process.value}.Process"
+
+        if process in {ProcessType.CAP, ProcessType.DECAP, ProcessType.SAMPLE_TYPE_DETECTION}:
+            state = world.sample_states.get(sample_id)
+            if state is None or not isinstance(state.location, RackLocation):
+                print(
+                    "StateDriven process failed: sample has no rack location "
+                    f"(sample='{sample_id}')"
+                )
+                return False
+            if str(state.location.station_id) != THREE_FINGER_STATION_ID:
+                print(
+                    "StateDriven process prerequisite failed: sample is not at 3-Finger station "
+                    f"(sample='{sample_id}', station='{state.location.station_id}')"
+                )
+                return False
+
+            if not _ensure_station_reference(str(state.location.station_id), task_prefix):
+                return False
+
+            action_code_by_process = {
+                ProcessType.CAP: 1,
+                ProcessType.DECAP: 2,
+                ProcessType.SAMPLE_TYPE_DETECTION: 3,
+            }
+            slot_cfg = world.get_slot_config(str(state.location.station_id), str(state.location.station_slot_id))
+            overrides = {
+                "ITM_ID": int(slot_cfg.itm_id),
+                "JIG_ID": int(slot_cfg.jig_id),
+                "ACTION": int(action_code_by_process[process]),
+            }
+            ok, _ = _run_task("ProcessAt3FingerStation", overrides, task_prefix)
+            if not ok:
+                return False
+            if process == ProcessType.DECAP:
+                _set_sample_cap_state(sample_id, CapState.DECAPPED)
+            elif process == ProcessType.CAP:
+                _set_sample_cap_state(sample_id, CapState.CAPPED)
+            world.mark_process_completed(sample_id, process)
+            _append_process_completed_event(sample_id, process)
+            bb["state_driven_last_action"] = action.to_dict()
+            return True
+
+        if process == ProcessType.CENTRIFUGATION:
+            ok = _execute_centrifuge_cycle(bb)
+            if not ok:
+                return False
+            resolved_mode = str(bb.get("centrifuge_mode_resolved", "")).strip().upper()
+            if resolved_mode == "UNLOAD":
+                completed_sample_ids = _sample_ids_in_jig(PLATE_STATION_ID, 2)
+                for sid in completed_sample_ids:
+                    try:
+                        world.mark_process_completed(sid, ProcessType.CENTRIFUGATION)
+                    except Exception:
+                        continue
+                    _append_process_completed_event(
+                        sid,
+                        ProcessType.CENTRIFUGATION,
+                        {"mode": "UNLOAD"},
+                    )
+                bb["state_driven_waiting_external_completion"] = False
+                bb["state_driven_waiting_reason"] = ""
+                bb.pop("state_driven_wait_process", None)
+                bb.pop("state_driven_wait_device_id", None)
+                bb.pop("state_driven_wait_ready_states", None)
+                bb.pop("state_driven_wait_last_packml_state", None)
+            elif resolved_mode == "LOAD":
+                wait_device_id = str(
+                    action.selected_device_id or bb.get("active_runtime_centrifuge_id", "")
+                ).strip()
+                bb["state_driven_waiting_external_completion"] = True
+                bb["state_driven_waiting_reason"] = (
+                    "Centrifuge started in LOAD mode. Unload cycle is required before "
+                    "CENTRIFUGATION completion can be marked."
+                )
+                bb["state_driven_wait_process"] = ProcessType.CENTRIFUGATION.value
+                bb["state_driven_wait_device_id"] = str(wait_device_id)
+                bb["state_driven_wait_ready_states"] = sorted(WAIT_READY_PACKML_STATES)
+                if wait_device_id:
+                    bb["state_driven_wait_last_packml_state"] = _get_world_device_packml_state(wait_device_id)
+            bb["state_driven_last_action"] = action.to_dict()
+            return True
+
+        if process == ProcessType.ARCHIVATION:
+            world.mark_process_completed(sample_id, ProcessType.ARCHIVATION)
+            _append_process_completed_event(sample_id, ProcessType.ARCHIVATION)
+            if not _maybe_return_provisioned_racks_after_process(ProcessType.ARCHIVATION, bb):
+                return False
+            bb["state_driven_last_action"] = action.to_dict()
+            return True
+
+        if process == ProcessType.IMMUNOANALYSIS:
+            ok = _execute_ih500_immuno_cycle(sample_id, bb)
+            if not ok:
+                return False
+            bb["state_driven_last_action"] = action.to_dict()
+            return True
+
+        if process in {
+            ProcessType.HEMATOLOGY_ANALYSIS,
+            ProcessType.CLINICAL_CHEMISTRY_ANALYSIS,
+            ProcessType.COAGULATION_ANALYSIS,
+        }:
+            print(
+                "StateDriven process prerequisite failed: no execution handler configured for "
+                f"process '{process.value}'. Add task mapping and executor implementation first."
+            )
+            return False
+
+        print(f"StateDriven process failed: unsupported process '{process.value}'")
+        return False
+
+    def _execute_state_driven_action(action: DynamicPlanAction, bb: Blackboard) -> bool:
+        action_type = str(action.action_type).strip().upper()
+        if action_type == "STAGE_SAMPLE":
+            return _execute_state_driven_stage_action(action, bb)
+        if action_type == "PROCESS_SAMPLE":
+            return _execute_state_driven_process_action(action, bb)
+        if action_type == "PROVISION_RACK":
+            return _execute_state_driven_provision_rack_action(action, bb)
+        print(f"StateDriven action failed: unsupported action_type '{action.action_type}'")
+        return False
+
+    def _run_state_driven_planning_loop(bb: Blackboard) -> bool:
+        if dynamic_state_planner is None:
+            print(
+                "StateDriven planning failed: dynamic planner is unavailable "
+                f"(policies file: {PROCESS_POLICIES_FILE})"
+            )
+            return False
+
+        max_actions = max(1, int(STATE_DRIVEN_MAX_ACTIONS))
+        executed_actions: List[Dict[str, Any]] = []
+        bb["state_driven_waiting_external_completion"] = False
+        bb["state_driven_waiting_reason"] = ""
+
+        for loop_index in range(1, max_actions + 1):
+            if not _refresh_world_device_states_from_ulm(bb, loop_index):
+                return False
+            if bool(bb.get("state_driven_waiting_external_completion", False)):
+                if not _is_external_wait_satisfied(bb, loop_index):
+                    if STATE_DRIVEN_WAIT_POLL_S > 0:
+                        time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
+                    continue
+            try:
+                dynamic_result = dynamic_state_planner.plan_next(world)
+            except Exception as exc:
+                print(f"StateDriven planning failed: planner error ({exc})")
+                return False
+
+            dynamic_payload = dynamic_result.to_dict()
+            status = str(dynamic_result.status).strip().upper()
+            bb["state_driven_plan_next"] = dynamic_payload
+            bb["state_driven_plan_status"] = status
+            bb["state_driven_loop_iterations"] = int(loop_index)
+
+            event_type = "STATE_DRIVEN_PLAN_IDLE"
+            if status == "READY":
+                event_type = "STATE_DRIVEN_PLAN_READY"
+            elif status == "BLOCKED":
+                event_type = "STATE_DRIVEN_PLAN_BLOCKED"
+
+            append_world_event(
+                occupancy_records,
+                world,
+                event_type=event_type,
+                entity_type="WORKFLOW",
+                entity_id="STATE_DRIVEN_PLANNING",
+                details={
+                    "phase": "StateDrivenPlanning",
+                    "loop_index": int(loop_index),
+                    "dynamic_plan": dynamic_payload,
+                },
+            )
+
+            if status == "IDLE":
+                return_candidate = _next_idle_rack_return_candidate(bb)
+                if return_candidate is not None:
+                    if not _execute_return_rack_home(return_candidate, bb):
+                        return False
+                    executed_actions.append(_return_rack_action_payload(return_candidate))
+                    bb["state_driven_actions_executed"] = list(executed_actions)
+                    continue
+                bb["state_driven_actions_executed"] = list(executed_actions)
+                return True
+
+            if status == "BLOCKED":
+                blocked_reason = ""
+                if dynamic_result.blocked:
+                    blocked_reason = str(dynamic_result.blocked[0].get("reason", ""))
+                print(
+                    "StateDriven planning blocked: no actionable step found. "
+                    f"First blocked reason: {blocked_reason or 'unknown'}"
+                )
+                return False
+
+            action = dynamic_result.action
+            if action is None:
+                print("StateDriven planning failed: READY status returned without action payload")
+                return False
+
+            bb["state_driven_plan_action"] = action.to_dict()
+            if not _execute_state_driven_action(action, bb):
+                return False
+            executed_actions.append(action.to_dict())
+
+            if bool(bb.get("state_driven_waiting_external_completion", False)):
+                bb["state_driven_actions_executed"] = list(executed_actions)
+                if STATE_DRIVEN_WAIT_POLL_S > 0:
+                    time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
+                continue
+
+        print(
+            "StateDriven planning failed: maximum action limit reached "
+            f"({max_actions}). Check for planning loop conditions."
+        )
+        return False
 
     def _execute_getting_new_samples_phase(step_id: str, bb: Blackboard) -> bool:
         if step_id == "await_input_rack_present":
@@ -1864,7 +3309,7 @@ def build_tree(
                         recognized=bool(decision.recognized),
                         classification_source=str(decision.source),
                         barcode=barcode,
-                        required_processes=decision_processes or None,
+                        required_processes=decision_processes,
                         assigned_route=str(decision.classification),
                         assigned_route_station_slot_id=str(target_slot_id),
                         assigned_route_rack_index=(
@@ -1943,7 +3388,7 @@ def build_tree(
                     "next_phase": "state_driven_planning",
                 },
             )
-            return True
+            return _run_state_driven_planning_loop(bb)
 
         print(f"GettingNewSamples failed: unsupported phase '{step_id}'")
         return False

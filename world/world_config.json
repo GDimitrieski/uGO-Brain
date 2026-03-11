@@ -41,7 +41,53 @@
       "kind": "EXTERNAL",
       "amr_pos_target": "7",
       "landmark_id": "LM_IH500_001",
-      "slot_configs": []
+      "slot_configs": [
+        {
+          "slot_id": "BioRadIH500Slot1",
+          "kind": "BIORAD_IH500_RACK_SLOT",
+          "jig_id": 50,
+          "itm_id": 7,
+          "rack_capacity": 3,
+          "rack_pattern": "1x3",
+          "rack_rows": 1,
+          "rack_cols": 3,
+          "rack_index": 1,
+          "obj_nbr_offset": 0,
+          "accepted_rack_types": [
+            "BIORAD_IH500_RACK"
+          ]
+        },
+        {
+          "slot_id": "BioRadIH500Slot2",
+          "kind": "BIORAD_IH500_RACK_SLOT",
+          "jig_id": 50,
+          "itm_id": 7,
+          "rack_capacity": 3,
+          "rack_pattern": "1x3",
+          "rack_rows": 1,
+          "rack_cols": 3,
+          "rack_index": 2,
+          "obj_nbr_offset": 12,
+          "accepted_rack_types": [
+            "BIORAD_IH500_RACK"
+          ]
+        },
+        {
+          "slot_id": "BioRadIH500Slot3",
+          "kind": "BIORAD_IH500_RACK_SLOT",
+          "jig_id": 50,
+          "itm_id": 7,
+          "rack_capacity": 3,
+          "rack_pattern": "1x3",
+          "rack_rows": 1,
+          "rack_cols": 3,
+          "rack_index": 3,
+          "obj_nbr_offset": 24,
+          "accepted_rack_types": [
+            "BIORAD_IH500_RACK"
+          ]
+        }
+      ]
     },
     {
       "id": "BioRadIH1000Station",
@@ -647,6 +693,19 @@
       ]
     },
     {
+      "id": "RACK_ARCHIVE_URG_4x11_01",
+      "rack_type": "FRIDGE_URG_RACK",
+      "capacity": 42,
+      "pattern": "ARCHIVE_4x11_PIN2",
+      "pin_obj_type": 9015,
+      "rows": 11,
+      "cols": 4,
+      "blocked_slots": [
+        2,
+        3
+      ]
+    },
+    {
       "id": "RACK_3FG_SAMPLE_HOLDER_01",
       "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
       "capacity": 1,
@@ -852,9 +911,14 @@
       "rack_id": "RACK_ULM_INTERMEDIATE_01"
     },
     {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "URGFridgeRackSlot",
+      "station_id": "FridgeStation",
+      "station_slot_id": "URGFridgeRackSlot1",
       "rack_id": "RACK_FRIDGE_URG_4x11_01"
+    },
+    {
+      "station_id": "ArchiveStation",
+      "station_slot_id": "URGFridgeRackSlot",
+      "rack_id": "RACK_ARCHIVE_URG_4x11_01"
     },
     {
       "station_id": "uLMPlateStation",
@@ -901,9 +965,7 @@
       "length_mm": 75.0,
       "diameter_mm": 13.0,
       "cap_state": "CAPPED",
-      "required_processes": [
-        "CENTRIFUGATION"
-      ]
+      "required_processes": []
     },
     {
       "id": "DUMMY_0002",
@@ -912,9 +974,7 @@
       "length_mm": 75.0,
       "diameter_mm": 13.0,
       "cap_state": "CAPPED",
-      "required_processes": [
-        "CENTRIFUGATION"
-      ]
+      "required_processes": []
     },
     {
       "id": "DUMMY_0003",
@@ -923,9 +983,7 @@
       "length_mm": 75.0,
       "diameter_mm": 13.0,
       "cap_state": "CAPPED",
-      "required_processes": [
-        "CENTRIFUGATION"
-      ]
+      "required_processes": []
     }
   ],
   "sample_states": [

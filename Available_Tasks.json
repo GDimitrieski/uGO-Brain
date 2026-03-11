@@ -23,6 +23,20 @@
       "parameters": {},
       "required": []
     },
+    "UpdateWorldState_From_uLM": {
+      "receiver": "uLM",
+      "payload_template": {
+        "taskName": "UpdateWorldState_From_uLM"
+      },
+      "parameters": {},
+      "required": [],
+      "output": {
+        "Devices": {
+          "type": "string",
+          "example": "Devices: (5-COMPLETE; 7-COMPLETE)"
+        }
+      }
+    },
     "SingleTask": {
       "receiver": "ARM",
       "payload_template": {
@@ -44,8 +58,8 @@
       "action_map": {
         "1": "Pick",
         "2": "Place",
-        "3": "Pull",
-        "4": "Push",
+        "3": "PullRackOut",
+        "4": "PushRackIn",
         "5": "OpenWristGripper",
         "6": "CloseWristGripper",
         "7": "MoveOnly"

@@ -25,4 +25,32 @@ def prepare_input_rack_for_new_batch(*args, **kwargs):
     return _prepare_input_rack_for_new_batch(*args, **kwargs)
 
 
-__all__ = ["load_last_world_state", "restore_world_from_state", "load_world_with_resume", "prepare_input_rack_for_new_batch"]
+def parse_update_world_device_statuses(*args, **kwargs):
+    from world.update_world_mapper import parse_update_world_device_statuses as _parse_update_world_device_statuses
+
+    return _parse_update_world_device_statuses(*args, **kwargs)
+
+
+def map_update_world_devices_to_assigned_world_devices(*args, **kwargs):
+    from world.update_world_mapper import (
+        map_update_world_devices_to_assigned_world_devices as _map_update_world_devices_to_assigned_world_devices,
+    )
+
+    return _map_update_world_devices_to_assigned_world_devices(*args, **kwargs)
+
+
+def mapped_packml_state_by_device_id(*args, **kwargs):
+    from world.update_world_mapper import mapped_packml_state_by_device_id as _mapped_packml_state_by_device_id
+
+    return _mapped_packml_state_by_device_id(*args, **kwargs)
+
+
+__all__ = [
+    "load_last_world_state",
+    "restore_world_from_state",
+    "load_world_with_resume",
+    "prepare_input_rack_for_new_batch",
+    "parse_update_world_device_statuses",
+    "map_update_world_devices_to_assigned_world_devices",
+    "mapped_packml_state_by_device_id",
+]

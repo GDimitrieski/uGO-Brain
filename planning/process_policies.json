@@ -1,0 +1,84 @@
+{
+  "default_target_station_id": "uLMPlateStation",
+  "process_policies": {
+    "CENTRIFUGATION": {
+      "target_station_id": "uLMPlateStation",
+      "target_jig_ids": [2],
+      "required_rack_types": ["CENTRIFUGE_RACK"],
+      "preferred_device_ids": ["CENTRIFUGE_DEVICE_01"],
+      "candidate_device_station_ids": ["CentrifugeStation"],
+      "requires_device": true,
+      "loading_strategy": "ROUND_ROBIN"
+    },
+    "DECAP": {
+      "target_station_id": "3-FingerGripperStation",
+      "target_jig_ids": [10],
+      "required_rack_types": ["THREE_FINGER_GRIPPER_SAMPLE_HOLDER"],
+      "preferred_device_ids": ["THREE_FINGER_GRIPPER_DEVICE_01"],
+      "candidate_device_station_ids": ["3-FingerGripperStation"],
+      "requires_device": true,
+      "loading_strategy": "SEQUENTIAL"
+    },
+    "CAP": {
+      "target_station_id": "3-FingerGripperStation",
+      "target_jig_ids": [10],
+      "required_rack_types": ["THREE_FINGER_GRIPPER_SAMPLE_HOLDER"],
+      "preferred_device_ids": ["THREE_FINGER_GRIPPER_DEVICE_01"],
+      "candidate_device_station_ids": ["3-FingerGripperStation"],
+      "requires_device": true,
+      "loading_strategy": "SEQUENTIAL"
+    },
+    "SAMPLE_TYPE_DETECTION": {
+      "target_station_id": "3-FingerGripperStation",
+      "target_jig_ids": [10],
+      "required_rack_types": ["THREE_FINGER_GRIPPER_SAMPLE_HOLDER"],
+      "preferred_device_ids": ["THREE_FINGER_GRIPPER_DEVICE_01"],
+      "candidate_device_station_ids": ["3-FingerGripperStation"],
+      "requires_device": true,
+      "loading_strategy": "SEQUENTIAL"
+    },
+    "IMMUNOANALYSIS": {
+      "target_station_id": "uLMPlateStation",
+      "target_jig_ids": [12],
+      "required_rack_types": ["BIORAD_IH500_RACK"],
+      "preferred_device_ids": ["BIORAD_IH500_DEVICE_01"],
+      "candidate_device_station_ids": ["BioRadIH500Station"],
+      "requires_device": true,
+      "loading_strategy": "SEQUENTIAL"
+    },
+    "HEMATOLOGY_ANALYSIS": {
+      "target_station_id": "uLMPlateStation",
+      "target_jig_ids": [4],
+      "required_rack_types": ["INTERMEDIATE_RACK"],
+      "candidate_device_station_ids": [],
+      "requires_device": true,
+      "loading_strategy": "SEQUENTIAL"
+    },
+    "CLINICAL_CHEMISTRY_ANALYSIS": {
+      "target_station_id": "uLMPlateStation",
+      "target_jig_ids": [4],
+      "required_rack_types": ["INTERMEDIATE_RACK"],
+      "candidate_device_station_ids": [],
+      "requires_device": true,
+      "loading_strategy": "SEQUENTIAL"
+    },
+    "COAGULATION_ANALYSIS": {
+      "target_station_id": "uLMPlateStation",
+      "target_jig_ids": [4],
+      "required_rack_types": ["INTERMEDIATE_RACK"],
+      "candidate_device_station_ids": [],
+      "requires_device": true,
+      "loading_strategy": "SEQUENTIAL"
+    },
+    "ARCHIVATION": {
+      "target_station_id": "uLMPlateStation",
+      "target_jig_ids": [13],
+      "required_rack_types": ["FRIDGE_URG_RACK"],
+      "candidate_device_station_ids": ["ArchiveStation", "FridgeStation"],
+      "rack_source_station_ids": ["ArchiveStation", "FridgeStation"],
+      "requires_device": false,
+      "return_provisioned_rack_after_process": true,
+      "loading_strategy": "SEQUENTIAL"
+    }
+  }
+}

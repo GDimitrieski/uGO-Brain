@@ -45,7 +45,7 @@ class TaskCatalog:
             raise ValueError(f"Unknown task '{task_key}'")
 
         receiver = str(task_def.get("receiver", "")).strip().upper()
-        if receiver in {"AMR", "ARM", "WRIST_CAMERA"}:
+        if receiver in {"AMR", "ARM", "WRIST_CAMERA", "3FG", "ULM"}:
             return receiver
 
         # Backward-compatible inference if "receiver" is missing in catalog.

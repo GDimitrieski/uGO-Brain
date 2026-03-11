@@ -16,6 +16,7 @@ from world.lab_world import (
     WorldModel,
     ensure_world_config_file,
 )
+from world.jig_rack_strategy import is_tara_probe_sample_id
 
 INPUT_STATION_ID = "InputStation"
 INPUT_SLOT_ID = "URGRackSlot"
@@ -53,6 +54,8 @@ def _slot_map_from_raw(raw: Any) -> Dict[int, str]:
 def _ensure_sample_exists(world: WorldModel, sample_id: str) -> None:
     if sample_id in world.samples:
         return
+    # Tara probes are balancing helpers, not workflow samples.
+    required_processes = () if is_tara_probe_sample_id(sample_id) else (ProcessType.CENTRIFUGATION,)
     world.samples[sample_id] = Sample(
         id=sample_id,
         barcode=sample_id,
@@ -60,7 +63,7 @@ def _ensure_sample_exists(world: WorldModel, sample_id: str) -> None:
         length_mm=75.0,
         diameter_mm=13.0,
         cap_state=CapState.CAPPED,
-        required_processes=(ProcessType.CENTRIFUGATION,),
+        required_processes=required_processes,
     )
 
 

@@ -74,6 +74,7 @@
     5. The Rack can have blocked positions  
     6. The Racks have gripping pins, where the uLM arm can grip to transfer them 
     7. The Racks have unique virtual (logical) IDs in the world for inventory tracking
+    8. The Rack shall have attribute that marks it's home position in the world, i.e. when the rack is not needed it shall be taken to its home position
   # Samples / Blood Samples
     1. The Samples are objects with geometry : length, diametar
     2. They have caps in different colours (usually indicating the sample type i.e. what analysis the sample needs )
@@ -85,10 +86,28 @@
     5. The sample shall always "know" its position in the world (which rack, which station it is at)
     6. The sample shall always "know" which the transformations were done to it
 
+## Naming Conventions (Stations, JIGs, Racks)
+  1. Keep IDs stable. Once introduced, do not rename IDs unless all references are updated in `world_config`, code, and routing/planning mappings.
+  2. Station IDs use clear functional names, typically `PascalCase` ending with `Station` (example: `InputStation`, `BioRadIH500Station`). Legacy constants (example: `CHARGE`) may remain unchanged.
+  3. Slot IDs describe purpose + receiver position (example: `URGRackSlot`, `BioRadIH500Slot1`, `URGFridgeRackSlot`).
+  4. `SlotKind` enum values use uppercase snake case and end with `_RACK_SLOT` or `_SAMPLE_SLOT` (example: `URG_FRIDGE_RACK_SLOT`).
+  5. `RackType` enum values use uppercase snake case and end with `_RACK` (example: `FRIDGE_URG_RACK`).
+  6. Rack instance IDs use: `RACK_<LOCATION>_<TYPE>_<INDEX>` (example: `RACK_FRIDGE_URG_4x11_01`, `RACK_ULM_BIORAD_IH1000_03`).
+  7. Rack `pattern` must match physical layout naming and be consistent with `rows/cols/blocked_slots` (example: `ARCHIVE_4x11_PIN2`).
+  8. `JIG_ID` is numeric and represents one mechanical interface family; do not reuse an existing `JIG_ID` for a different physical interface.
+  9. Every slot must explicitly define `accepted_rack_types`; do not rely on implicit compatibility.
+
+
 ## Planner:
+  # HARD CONSTRAINGS:
+    1. Once identified and classified - A sample must never be processed outside of its process requirements
   # It is certain that the plan for getting the samples into the world will be done with the "GETTING_NEW_SAMPLES" plan
     1. This plan may later vary in how the samples are identified and placed into the world
   # The main goal of the planning shall be then to reroute the samples based on the needed processes for each sample
     1. The dynamic plan must reconsider the world before making decisions
     2. The decisions of the dynamic planner shall be incremental and move the samples along their process maps towards the end
+      2.1 The dynamic plan shall optimize batch loading i.e. staging of samples when possible
     3. The dynamic plan must obey to the limitation posed by the Racks, Stations, Devices, Strategies
+    4. The planner shall not plan moving empty racks into the devices and move only racks that have samples in them
+  # Optional
+    1. Low priority task : When planner is IDLE : Try to keep the racks at their home positions as defined in their properties when the Rack is not needed in the next step according to the planner.
