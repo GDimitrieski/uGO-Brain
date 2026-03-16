@@ -517,7 +517,7 @@
       "rack_type": "URG_RACK",
       "capacity": 32,
       "pattern": "URG_4x8_PIN2",
-      "pin_obj_type": 9001,
+      "pin_obj_type": 551,
       "rows": 8,
       "cols": 4,
       "blocked_slots": [
@@ -530,7 +530,7 @@
       "rack_type": "CENTRIFUGE_RACK",
       "capacity": 9,
       "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
-      "pin_obj_type": 9002,
+      "pin_obj_type": 520,
       "rows": 3,
       "cols": 3,
       "blocked_slots": [
@@ -542,7 +542,7 @@
       "rack_type": "CENTRIFUGE_RACK",
       "capacity": 9,
       "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
-      "pin_obj_type": 9002,
+      "pin_obj_type": 520,
       "rows": 3,
       "cols": 3,
       "blocked_slots": [
@@ -554,7 +554,7 @@
       "rack_type": "CENTRIFUGE_RACK",
       "capacity": 9,
       "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
-      "pin_obj_type": 9002,
+      "pin_obj_type": 520,
       "rows": 3,
       "cols": 3,
       "blocked_slots": [
@@ -566,7 +566,7 @@
       "rack_type": "CENTRIFUGE_RACK",
       "capacity": 9,
       "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
-      "pin_obj_type": 9002,
+      "pin_obj_type": 520,
       "rows": 3,
       "cols": 3,
       "blocked_slots": [
@@ -601,43 +601,43 @@
     {
       "id": "RACK_ULM_BIORAD_IH500_01",
       "rack_type": "BIORAD_IH500_RACK",
-      "capacity": 12,
-      "pattern": "BIORAD_IH500_1x12_PIN3",
-      "pin_obj_type": 9012,
+      "capacity": 13,
+      "pattern": "BIORAD_IH500_1x13_PIN3",
+      "pin_obj_type": 520,
       "rows": 1,
-      "cols": 12,
+      "cols": 13,
       "blocked_slots": [
-        3,
-        6,
-        9
+        4,
+        7,
+        11
       ]
     },
     {
       "id": "RACK_ULM_BIORAD_IH500_02",
       "rack_type": "BIORAD_IH500_RACK",
-      "capacity": 12,
-      "pattern": "BIORAD_IH500_1x12_PIN3",
-      "pin_obj_type": 9012,
+      "capacity": 13,
+      "pattern": "BIORAD_IH500_1x13_PIN3",
+      "pin_obj_type": 520,
       "rows": 1,
-      "cols": 12,
+      "cols": 13,
       "blocked_slots": [
-        3,
-        6,
-        9
+        4,
+        7,
+        11
       ]
     },
     {
       "id": "RACK_ULM_BIORAD_IH500_03",
       "rack_type": "BIORAD_IH500_RACK",
-      "capacity": 12,
-      "pattern": "BIORAD_IH500_1x12_PIN3",
-      "pin_obj_type": 9012,
+      "capacity": 13,
+      "pattern": "BIORAD_IH500_1x13_PIN3",
+      "pin_obj_type": 520,
       "rows": 1,
-      "cols": 12,
+      "cols": 13,
       "blocked_slots": [
-        3,
-        6,
-        9
+        4,
+        7,
+        11
       ]
     },
     {
@@ -814,11 +814,11 @@
       "model": "IH500",
       "device_class": "BioradIh500Device",
       "capabilities": [
-        "IMMUNOANALYSIS"
+        "IMMUNOHEMATOLOGY_ANALYSIS"
       ],
       "device_capabilities": {
         "supported_processes": [
-          "IMMUNOANALYSIS"
+          "IMMUNOHEMATOLOGY_ANALYSIS"
         ],
         "continuous_loading": true,
         "auto_start": false,
@@ -847,11 +847,11 @@
       "model": "IH1000",
       "device_class": "BioradIh1000Device",
       "capabilities": [
-        "IMMUNOANALYSIS"
+        "IMMUNOHEMATOLOGY_ANALYSIS"
       ],
       "device_capabilities": {
         "supported_processes": [
-          "IMMUNOANALYSIS"
+          "IMMUNOHEMATOLOGY_ANALYSIS"
         ],
         "continuous_loading": true,
         "auto_start": true,
@@ -961,7 +961,7 @@
     {
       "id": "DUMMY_0001",
       "barcode": "DUMMY_0001",
-      "obj_type": 101,
+      "obj_type": 810,
       "length_mm": 75.0,
       "diameter_mm": 13.0,
       "cap_state": "CAPPED",
@@ -970,7 +970,7 @@
     {
       "id": "DUMMY_0002",
       "barcode": "DUMMY_0002",
-      "obj_type": 101,
+      "obj_type": 810,
       "length_mm": 75.0,
       "diameter_mm": 13.0,
       "cap_state": "CAPPED",
@@ -979,7 +979,7 @@
     {
       "id": "DUMMY_0003",
       "barcode": "DUMMY_0003",
-      "obj_type": 101,
+      "obj_type": 810,
       "length_mm": 75.0,
       "diameter_mm": 13.0,
       "cap_state": "CAPPED",

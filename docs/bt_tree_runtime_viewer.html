@@ -1,0 +1,923 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BT Runtime Trace Viewer</title>
+<style>
+:root {
+  --bg: #f4f6f8;
+  --panel: #ffffff;
+  --line: #d8dde4;
+  --text: #0f1720;
+  --muted: #536273;
+  --accent: #0f5bd8;
+  --ok: #1f9f47;
+  --bad: #cc1f1f;
+  --warn: #b27a00;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: var(--text);
+  background: linear-gradient(180deg, #f9fbfd 0%, var(--bg) 100%);
+}
+main {
+  max-width: 1700px;
+  margin: 0 auto;
+  padding: 16px;
+}
+h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+}
+.subtitle {
+  margin-top: 6px;
+  color: var(--muted);
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 8px 20px rgba(8, 18, 35, 0.06);
+}
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+.blockTitle {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+textarea {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #152033;
+}
+.actions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+button {
+  border: none;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #ffffff;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+button.secondary {
+  background: #dfe7f6;
+  color: #12356e;
+}
+input[type="file"] {
+  max-width: 290px;
+}
+#status {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.layout {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 12px;
+  min-height: 780px;
+}
+#treePane {
+  min-height: 780px;
+  overflow: auto;
+}
+#treeHost {
+  min-height: 760px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+#treeHost svg {
+  max-width: none;
+}
+.nodeHint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend {
+  margin-top: 8px;
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--muted);
+}
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+.swatch.ok { background: #d5f5de; border: 1px solid var(--ok); }
+.swatch.bad { background: #ffd8d8; border: 1px solid var(--bad); }
+.swatch.none { background: #eceff4; border: 1px solid #8fa0b7; }
+#inspectorHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+#nodeTitle {
+  margin: 0;
+  font-size: 18px;
+}
+#nodeStats {
+  color: var(--muted);
+  font-size: 12px;
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 80px;
+}
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.tableWrap {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 430px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  background: #f0f4fa;
+  z-index: 1;
+}
+th, td {
+  border-bottom: 1px solid #e6ebf1;
+  padding: 6px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+tr:hover td {
+  background: #f8fbff;
+}
+tr.active td {
+  background: #e8f1ff;
+}
+.cmdTag {
+  border-radius: 10px;
+  padding: 2px 7px;
+  background: #e8eef9;
+  color: #163f8a;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.resultOk { color: var(--ok); font-weight: 700; }
+.resultBad { color: var(--bad); font-weight: 700; }
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #e5e9ef;
+}
+.summaryRow:last-child { border-bottom: none; }
+.empty {
+  color: var(--muted);
+  font-style: italic;
+}
+.mermaidNodeSuccess rect,
+.mermaidNodeSuccess polygon,
+.mermaidNodeSuccess path,
+.mermaidNodeSuccess circle,
+.mermaidNodeSuccess ellipse {
+  fill: #d5f5de !important;
+  stroke: #1f9f47 !important;
+  stroke-width: 2px !important;
+}
+.mermaidNodeFailure rect,
+.mermaidNodeFailure polygon,
+.mermaidNodeFailure path,
+.mermaidNodeFailure circle,
+.mermaidNodeFailure ellipse {
+  fill: #ffd8d8 !important;
+  stroke: #cc1f1f !important;
+  stroke-width: 2px !important;
+}
+.mermaidNodeEmpty rect,
+.mermaidNodeEmpty polygon,
+.mermaidNodeEmpty path,
+.mermaidNodeEmpty circle,
+.mermaidNodeEmpty ellipse {
+  fill: #eceff4 !important;
+  stroke: #8fa0b7 !important;
+}
+.mermaidNodeSelected rect,
+.mermaidNodeSelected polygon,
+.mermaidNodeSelected path,
+.mermaidNodeSelected circle,
+.mermaidNodeSelected ellipse {
+  stroke: #0f5bd8 !important;
+  stroke-width: 4px !important;
+}
+@media (max-width: 1200px) {
+  .controls, .layout { grid-template-columns: 1fr; }
+  #status { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="panel">
+    <h1>Behavior Tree Runtime Viewer</h1>
+    <div class="subtitle">Clickable node inspection using Mermaid topology + `tree_execution_trace.wip.csv` runtime payloads.</div>
+
+    <div class="controls">
+      <div>
+        <div class="blockTitle">Tree Topology (Mermaid `.mmd`)</div>
+        <textarea id="mmdInput" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <div class="blockTitle">Runtime Trace CSV (`tree_execution_trace.wip.csv`)</div>
+        <textarea id="traceInput" spellcheck="false" placeholder="Paste CSV trace content here, or load from file."></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="loadDefaultsBtn" class="secondary">Load Current Defaults</button>
+      <input id="mmdFile" type="file" accept=".mmd,.txt">
+      <input id="traceFile" type="file" accept=".csv,.txt">
+      <button id="rebuildBtn">Render + Map Trace</button>
+      <div id="status">Ready</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div id="treePane" class="panel">
+      <div id="treeHost"><div class="empty">Render tree to start.</div></div>
+      <div class="legend">
+        <span><span class="swatch ok"></span>node with successful trace rows</span>
+        <span><span class="swatch bad"></span>node with failed trace rows</span>
+        <span><span class="swatch none"></span>node without mapped rows</span>
+      </div>
+      <div class="nodeHint">Tip: click any rendered node to inspect ACT / ITM_ID / JIG_ID / payload / outputs for mapped runtime events.</div>
+    </div>
+
+    <div id="inspectorPane" class="panel">
+      <div id="inspectorHeader">
+        <h2 id="nodeTitle">No node selected</h2>
+        <div id="nodeStats"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>Node Summary</h3>
+          <div id="nodeSummary" class="empty">Select a node.</div>
+        </div>
+        <div class="card">
+          <h3>Command Breakdown</h3>
+          <div id="commandSummary" class="empty">Select a node.</div>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>time</th>
+              <th>command</th>
+              <th>result</th>
+              <th>ACT</th>
+              <th>ITM_ID</th>
+              <th>JIG_ID</th>
+              <th>OBJ_Nbr</th>
+              <th>OBJ_Type</th>
+              <th>output</th>
+            </tr>
+          </thead>
+          <tbody id="traceTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-top:10px;">
+        <h3>Selected Event Payload</h3>
+        <pre id="eventDetail" class="empty">Select a trace row to inspect the full payload.</pre>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+const DEFAULT_MMD = `flowchart TD
+    A["Sequence: RackAndProbeTransferFlow"]
+    A --> B["Retry(max=1): ValidateScaffoldPrerequisites"]
+
+    B --> S1["Retry(max=1): await_input_rack_present"]
+    S1 --> S2["Retry(max=1): nav_input"]
+    S2 --> S3["Retry(max=1): scan_input_landmark"]
+    S3 --> S4["Retry(max=1): transfer_input_rack"]
+    S4 --> S5["Retry(max=1): charge"]
+    S5 --> S6["Retry(max=1): camera_inspect_urg_for_new_samples"]
+    S6 --> S7["Retry(max=1): urg_sort_via_3fg_router"]
+    S7 --> S8["Retry(max=1): handoff_to_state_driven_planning"]
+
+    S8 --> L["State-driven loop"]
+    L --> U["UpdateWorldState_From_uLM"]
+    U --> P{"plan_next status"}
+    P -->|READY| X["Execute action: PROCESS_SAMPLE / STAGE_SAMPLE / PROVISION_RACK"]
+    X --> U
+    P -->|IDLE + return-candidate| R["Execute RETURN_RACK_HOME"]
+    R --> U
+    P -->|IDLE + no return-candidate| OK["SUCCESS"]
+    P -->|BLOCKED / action failure| FAIL["FAILURE"]`;
+
+const DEFAULT_MMD_PATH = "./bt_tree_mermaid_current.mmd";
+const DEFAULT_TRACE_PATHS = [
+  "../tracing/tree_execution_trace.wip.csv",
+  "../tracing/tree_execution_trace.csv",
+];
+
+const state = {
+  topology: { nodes: [], edges: [] },
+  traceRows: [],
+  selectedNodeId: "",
+  selectedRowIndex: -1,
+  nodeRows: {},
+};
+
+const el = {
+  mmdInput: document.getElementById("mmdInput"),
+  traceInput: document.getElementById("traceInput"),
+  mmdFile: document.getElementById("mmdFile"),
+  traceFile: document.getElementById("traceFile"),
+  loadDefaultsBtn: document.getElementById("loadDefaultsBtn"),
+  rebuildBtn: document.getElementById("rebuildBtn"),
+  status: document.getElementById("status"),
+  treeHost: document.getElementById("treeHost"),
+  nodeTitle: document.getElementById("nodeTitle"),
+  nodeStats: document.getElementById("nodeStats"),
+  nodeSummary: document.getElementById("nodeSummary"),
+  commandSummary: document.getElementById("commandSummary"),
+  traceTableBody: document.getElementById("traceTableBody"),
+  eventDetail: document.getElementById("eventDetail"),
+};
+
+mermaid.initialize({ startOnLoad: false, securityLevel: "loose", theme: "default" });
+
+function setStatus(msg) {
+  el.status.textContent = msg;
+}
+
+function normalizeText(value) {
+  return String(value == null ? "" : value).trim();
+}
+
+function normalizeCommand(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+function parseNumber(value) {
+  const txt = normalizeText(value);
+  if (!txt) return null;
+  const n = Number(txt);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseCsv(csvText) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < csvText.length; i += 1) {
+    const ch = csvText[i];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        if (csvText[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else if (ch === "\r") {
+      if (csvText[i + 1] !== "\n") {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = "";
+      }
+    } else {
+      field += ch;
+    }
+  }
+
+  row.push(field);
+  if (row.length > 1 || normalizeText(row[0])) {
+    rows.push(row);
+  }
+
+  if (rows.length && rows[0].length) {
+    rows[0][0] = rows[0][0].replace(/^\uFEFF/, "");
+  }
+
+  if (!rows.length) return [];
+
+  const header = rows[0].map((h) => normalizeText(h));
+  const dataRows = [];
+  for (let i = 1; i < rows.length; i += 1) {
+    const raw = rows[i];
+    if (raw.every((v) => !normalizeText(v))) continue;
+    const obj = {};
+    for (let c = 0; c < header.length; c += 1) {
+      obj[header[c] || `col_${c}`] = raw[c] == null ? "" : raw[c];
+    }
+    obj.__rowIndex = i;
+    obj.__cmd = normalizeCommand(obj.command_sent);
+    obj.__result = normalizeCommand(obj.result);
+    obj.__actNum = parseNumber(obj.ACT);
+    obj.__itmNum = parseNumber(obj.ITM_ID);
+    obj.__jigNum = parseNumber(obj.JIG_ID);
+    obj.__objTypeNum = parseNumber(obj.OBJ_Type);
+    obj.__actionNum = parseNumber(obj.ACTION);
+    dataRows.push(obj);
+  }
+
+  return dataRows;
+}
+
+function parseTopology(mmdText) {
+  const nodes = new Map();
+  const edges = [];
+
+  const lines = mmdText
+    .split(/\r?\n/)
+    .map((line) => line.replace(/%%.*$/, "").trim())
+    .filter(Boolean);
+
+  const rectPattern = /([A-Za-z0-9_]+)\s*\["([^"]+)"\]/g;
+  const diamondPattern = /([A-Za-z0-9_]+)\s*\{\s*"([^"]+)"\s*\}/g;
+  const edgePattern = /([A-Za-z0-9_]+)\s*-->\s*(?:\|([^|]+)\|\s*)?([A-Za-z0-9_]+)/;
+
+  for (const line of lines) {
+    let match;
+
+    rectPattern.lastIndex = 0;
+    while ((match = rectPattern.exec(line)) !== null) {
+      const id = match[1];
+      if (!nodes.has(id)) nodes.set(id, { id, label: match[2] });
+    }
+
+    diamondPattern.lastIndex = 0;
+    while ((match = diamondPattern.exec(line)) !== null) {
+      const id = match[1];
+      if (!nodes.has(id)) nodes.set(id, { id, label: match[2] });
+    }
+
+    const edgeMatch = line.match(edgePattern);
+    if (edgeMatch) {
+      const source = edgeMatch[1];
+      const edgeLabel = normalizeText(edgeMatch[2]);
+      const target = edgeMatch[3];
+      edges.push({ source, target, label: edgeLabel });
+      if (!nodes.has(source)) nodes.set(source, { id: source, label: source });
+      if (!nodes.has(target)) nodes.set(target, { id: target, label: target });
+    }
+  }
+
+  return { nodes: Array.from(nodes.values()), edges };
+}
+
+function extractStepId(label) {
+  const m = String(label || "").match(/^Retry\(max=\d+\):\s*(.+)$/i);
+  return m ? normalizeText(m[1]) : "";
+}
+
+function keyNodeByStep(topology) {
+  const out = {};
+  for (const node of topology.nodes) {
+    const stepId = extractStepId(node.label);
+    if (stepId && !out[stepId]) out[stepId] = node.id;
+  }
+  return out;
+}
+
+function firstIndex(rows, predicate) {
+  for (let i = 0; i < rows.length; i += 1) {
+    if (predicate(rows[i], i)) return i;
+  }
+  return -1;
+}
+
+function mapRowsToNodes(topology, traceRows) {
+  const nodeRows = {};
+  for (const n of topology.nodes) nodeRows[n.id] = [];
+
+  const stepNodes = keyNodeByStep(topology);
+
+  const rootNode = topology.nodes.find((n) => normalizeText(n.label).startsWith("Sequence:"));
+  if (rootNode) nodeRows[rootNode.id] = traceRows.slice();
+
+  const firstUpdateIdx = firstIndex(traceRows, (r) => r.__cmd === "updateworldstate_from_ulm");
+  const pre = firstUpdateIdx >= 0 ? traceRows.slice(0, firstUpdateIdx) : traceRows.slice();
+  const post = firstUpdateIdx >= 0 ? traceRows.slice(firstUpdateIdx) : [];
+
+  let firstCharge = -1;
+  let lastCharge = -1;
+  for (let i = 0; i < pre.length; i += 1) {
+    if (pre[i].__cmd === "charge") {
+      if (firstCharge < 0) firstCharge = i;
+      lastCharge = i;
+    }
+  }
+
+  const setupRows = firstCharge >= 0 ? pre.slice(0, firstCharge) : pre.slice();
+  const chargeRows = firstCharge >= 0 ? pre.slice(firstCharge, lastCharge + 1) : [];
+  const afterChargeRows = lastCharge >= 0 ? pre.slice(lastCharge + 1) : [];
+
+  const navRows = setupRows.filter((r) => r.__cmd === "navigate");
+  const scanRows = setupRows.filter((r) => r.__cmd === "singledeviceaction" && r.__actNum === 30);
+  const transferRows = setupRows.filter((r) => r.__cmd === "singletask");
+  const inspectRows = afterChargeRows.filter(
+    (r) => r.__cmd === "inspectrackatstation" || r.__cmd === "camerainspect"
+  );
+  const inspectSet = new Set(inspectRows.map((r) => r.__rowIndex));
+  const urgSortRows = afterChargeRows.filter((r) => !inspectSet.has(r.__rowIndex));
+
+  if (stepNodes.nav_input) nodeRows[stepNodes.nav_input] = navRows;
+  if (stepNodes.scan_input_landmark) nodeRows[stepNodes.scan_input_landmark] = scanRows;
+  if (stepNodes.transfer_input_rack) nodeRows[stepNodes.transfer_input_rack] = transferRows;
+  if (stepNodes.charge) nodeRows[stepNodes.charge] = chargeRows;
+  if (stepNodes.camera_inspect_urg_for_new_samples) nodeRows[stepNodes.camera_inspect_urg_for_new_samples] = inspectRows;
+  if (stepNodes.urg_sort_via_3fg_router) nodeRows[stepNodes.urg_sort_via_3fg_router] = urgSortRows;
+
+  const loopNode = topology.nodes.find((n) => normalizeText(n.label).toLowerCase() === "state-driven loop");
+  if (loopNode) nodeRows[loopNode.id] = post;
+
+  const updateNode = topology.nodes.find((n) => normalizeText(n.label).toLowerCase() === "updateworldstate_from_ulm");
+  const updateRows = post.filter((r) => r.__cmd === "updateworldstate_from_ulm");
+  if (updateNode) nodeRows[updateNode.id] = updateRows;
+
+  const planNode = topology.nodes.find((n) => normalizeText(n.label).toLowerCase() === "plan_next status");
+  if (planNode) nodeRows[planNode.id] = updateRows;
+
+  const executeNode = topology.nodes.find((n) => normalizeText(n.label).toLowerCase().startsWith("execute action:"));
+  const actionRows = post.filter((r) => r.__cmd !== "updateworldstate_from_ulm");
+  if (executeNode) nodeRows[executeNode.id] = actionRows;
+
+  const returnNode = topology.nodes.find((n) => normalizeText(n.label).toLowerCase() === "execute return_rack_home");
+  if (returnNode) {
+    const returnRows = actionRows.filter(
+      (r) => r.__cmd === "singletask" && r.__objTypeNum != null && r.__objTypeNum !== 810
+    );
+    nodeRows[returnNode.id] = returnRows;
+  }
+
+  return nodeRows;
+}
+
+function summarizeRows(rows) {
+  const out = {
+    total: rows.length,
+    succeeded: 0,
+    failed: 0,
+    other: 0,
+    commands: {},
+  };
+
+  for (const row of rows) {
+    const result = row.__result;
+    if (result === "succeeded" || result === "success") out.succeeded += 1;
+    else if (result === "failed" || result === "failure" || result === "error") out.failed += 1;
+    else out.other += 1;
+
+    const cmd = normalizeText(row.command_sent) || "(none)";
+    if (!out.commands[cmd]) {
+      out.commands[cmd] = { total: 0, succeeded: 0, failed: 0, other: 0 };
+    }
+    out.commands[cmd].total += 1;
+    if (result === "succeeded" || result === "success") out.commands[cmd].succeeded += 1;
+    else if (result === "failed" || result === "failure" || result === "error") out.commands[cmd].failed += 1;
+    else out.commands[cmd].other += 1;
+  }
+
+  return out;
+}
+
+function nodeStateClass(rows) {
+  if (!rows.length) return "mermaidNodeEmpty";
+  const hasFailure = rows.some((r) => ["failed", "failure", "error"].includes(r.__result));
+  return hasFailure ? "mermaidNodeFailure" : "mermaidNodeSuccess";
+}
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function nodeIdFromSvgId(svgId) {
+  const txt = normalizeText(svgId);
+  const m = txt.match(/^flowchart-(.+)-\d+$/);
+  return m ? m[1] : "";
+}
+
+function updateInspector(nodeId) {
+  state.selectedNodeId = nodeId;
+  state.selectedRowIndex = -1;
+
+  const node = state.topology.nodes.find((n) => n.id === nodeId);
+  const rows = state.nodeRows[nodeId] || [];
+  const summary = summarizeRows(rows);
+
+  if (!node) {
+    el.nodeTitle.textContent = "No node selected";
+    el.nodeStats.textContent = "";
+    el.nodeSummary.innerHTML = "<div class='empty'>Select a node.</div>";
+    el.commandSummary.innerHTML = "<div class='empty'>Select a node.</div>";
+    el.traceTableBody.innerHTML = "";
+    el.eventDetail.textContent = "Select a trace row to inspect the full payload.";
+    el.eventDetail.className = "empty";
+    return;
+  }
+
+  el.nodeTitle.textContent = `${node.id}: ${node.label}`;
+  el.nodeStats.textContent = `${summary.total} mapped events`;
+
+  const summaryLines = [
+    `<div class='summaryRow'><span>Mapped events</span><strong>${summary.total}</strong></div>`,
+    `<div class='summaryRow'><span>Succeeded</span><strong class='resultOk'>${summary.succeeded}</strong></div>`,
+    `<div class='summaryRow'><span>Failed</span><strong class='resultBad'>${summary.failed}</strong></div>`,
+    `<div class='summaryRow'><span>Other status</span><strong>${summary.other}</strong></div>`,
+  ];
+  el.nodeSummary.innerHTML = summaryLines.join("");
+
+  const commandKeys = Object.keys(summary.commands).sort();
+  if (!commandKeys.length) {
+    el.commandSummary.innerHTML = "<div class='empty'>No runtime events mapped to this node.</div>";
+  } else {
+    const cmdHtml = commandKeys.map((cmd) => {
+      const item = summary.commands[cmd];
+      return `<div class='summaryRow'><span>${escapeHtml(cmd)}</span><span>${item.total} (ok:${item.succeeded}, fail:${item.failed})</span></div>`;
+    }).join("");
+    el.commandSummary.innerHTML = cmdHtml;
+  }
+
+  if (!rows.length) {
+    el.traceTableBody.innerHTML = "<tr><td colspan='10' class='empty'>No mapped rows for this node.</td></tr>";
+    el.eventDetail.textContent = "Select a trace row to inspect the full payload.";
+    el.eventDetail.className = "empty";
+  } else {
+    const tableRows = rows.map((row, idx) => {
+      const resultClass = row.__result === "succeeded" ? "resultOk" : (["failed", "failure", "error"].includes(row.__result) ? "resultBad" : "");
+      return `
+        <tr data-local-index='${idx}'>
+          <td>${escapeHtml(row.__rowIndex)}</td>
+          <td>${escapeHtml(row.timestamp_sent)}</td>
+          <td><span class='cmdTag'>${escapeHtml(row.command_sent)}</span></td>
+          <td class='${resultClass}'>${escapeHtml(row.result)}</td>
+          <td>${escapeHtml(row.ACT)}</td>
+          <td>${escapeHtml(row.ITM_ID)}</td>
+          <td>${escapeHtml(row.JIG_ID)}</td>
+          <td>${escapeHtml(row.OBJ_Nbr)}</td>
+          <td>${escapeHtml(row.OBJ_Type)}</td>
+          <td>${escapeHtml(row.task_output_results)}</td>
+        </tr>
+      `;
+    }).join("");
+    el.traceTableBody.innerHTML = tableRows;
+
+    for (const tr of el.traceTableBody.querySelectorAll("tr[data-local-index]")) {
+      tr.addEventListener("click", () => {
+        for (const rowEl of el.traceTableBody.querySelectorAll("tr")) {
+          rowEl.classList.remove("active");
+        }
+        tr.classList.add("active");
+        const localIndex = Number(tr.getAttribute("data-local-index"));
+        const row = rows[localIndex];
+        state.selectedRowIndex = localIndex;
+        const pretty = JSON.stringify(row, null, 2);
+        el.eventDetail.textContent = pretty;
+        el.eventDetail.className = "";
+      });
+    }
+
+    el.eventDetail.textContent = "Select a trace row to inspect the full payload.";
+    el.eventDetail.className = "empty";
+  }
+
+  applyNodeSelection(nodeId);
+}
+
+function applyNodeSelection(nodeId) {
+  const svg = el.treeHost.querySelector("svg");
+  if (!svg) return;
+  const nodes = svg.querySelectorAll("g.node");
+  for (const n of nodes) {
+    n.classList.remove("mermaidNodeSelected");
+    if (n.getAttribute("data-node-id") === nodeId) {
+      n.classList.add("mermaidNodeSelected");
+    }
+  }
+}
+
+function bindSvgNodeClicks() {
+  const svg = el.treeHost.querySelector("svg");
+  if (!svg) return;
+  const gNodes = svg.querySelectorAll("g.node");
+  for (const g of gNodes) {
+    const nodeId = nodeIdFromSvgId(g.id);
+    if (!nodeId) continue;
+    g.setAttribute("data-node-id", nodeId);
+    g.style.cursor = "pointer";
+
+    const rows = state.nodeRows[nodeId] || [];
+    g.classList.add(nodeStateClass(rows));
+
+    g.addEventListener("click", () => {
+      updateInspector(nodeId);
+    });
+  }
+}
+
+async function renderTreeAndTrace() {
+  const mmdText = el.mmdInput.value;
+  const csvText = el.traceInput.value;
+
+  if (!normalizeText(mmdText)) {
+    setStatus("Tree Mermaid text is empty.");
+    return;
+  }
+
+  state.topology = parseTopology(mmdText);
+  state.traceRows = normalizeText(csvText) ? parseCsv(csvText) : [];
+  state.nodeRows = mapRowsToNodes(state.topology, state.traceRows);
+
+  const renderId = `tree_${Date.now()}`;
+  try {
+    const { svg } = await mermaid.render(renderId, mmdText);
+    el.treeHost.innerHTML = svg;
+    bindSvgNodeClicks();
+    updateInspector("");
+
+    const nodeCount = state.topology.nodes.length;
+    const traceCount = state.traceRows.length;
+    setStatus(`Rendered ${nodeCount} nodes. Parsed ${traceCount} trace rows.`);
+  } catch (err) {
+    console.error(err);
+    setStatus(`Render failed: ${err.message || err}`);
+    el.treeHost.innerHTML = "<div class='empty'>Mermaid render failed. Check the Mermaid mmd syntax.</div>";
+  }
+}
+
+async function readFileAsText(file) {
+  if (!file) return "";
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("File read failed"));
+    reader.readAsText(file, "utf-8");
+  });
+}
+
+async function tryFetchText(path) {
+  const res = await fetch(path, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
+  return res.text();
+}
+
+async function loadDefaults() {
+  el.mmdInput.value = DEFAULT_MMD;
+  let traceLoaded = false;
+
+  try {
+    const mmdFromFile = await tryFetchText(DEFAULT_MMD_PATH);
+    if (normalizeText(mmdFromFile)) {
+      el.mmdInput.value = mmdFromFile;
+    }
+  } catch (_err) {
+    // Keep embedded fallback.
+  }
+
+  for (const path of DEFAULT_TRACE_PATHS) {
+    try {
+      const traceText = await tryFetchText(path);
+      if (normalizeText(traceText)) {
+        el.traceInput.value = traceText;
+        traceLoaded = true;
+        break;
+      }
+    } catch (_err) {
+      // Try next path.
+    }
+  }
+
+  await renderTreeAndTrace();
+  if (!traceLoaded) {
+    setStatus("Loaded default Mermaid. Trace file fetch failed (use CSV paste/file input if running from file://).");
+  }
+}
+
+el.loadDefaultsBtn.addEventListener("click", async () => {
+  setStatus("Loading defaults...");
+  await loadDefaults();
+});
+
+el.rebuildBtn.addEventListener("click", async () => {
+  setStatus("Rendering...");
+  await renderTreeAndTrace();
+});
+
+el.mmdFile.addEventListener("change", async (ev) => {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  try {
+    const text = await readFileAsText(file);
+    el.mmdInput.value = text;
+    setStatus(`Loaded Mermaid file: ${file.name}`);
+  } catch (err) {
+    setStatus(`Failed to read Mermaid file: ${err.message || err}`);
+  }
+});
+
+el.traceFile.addEventListener("change", async (ev) => {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  try {
+    const text = await readFileAsText(file);
+    el.traceInput.value = text;
+    setStatus(`Loaded trace file: ${file.name}`);
+  } catch (err) {
+    setStatus(`Failed to read trace file: ${err.message || err}`);
+  }
+});
+
+(async () => {
+  setStatus("Initializing...");
+  await loadDefaults();
+})();
+</script>
+</body>
+</html>

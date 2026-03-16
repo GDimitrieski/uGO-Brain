@@ -68,7 +68,7 @@ PROCESS_HINTS: Dict[ProcessType, Dict[str, str]] = {
         "station_id": "uLMPlateStation",
         "device_id": "CENTRIFUGE_DEVICE_01",
     },
-    ProcessType.IMMUNOANALYSIS: {
+    ProcessType.IMMUNOHEMATOLOGY_ANALYSIS: {
         "station_id": "uLMPlateStation",
         "device_id": "BIORAD_IH500_DEVICE_01",
     },

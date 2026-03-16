@@ -616,10 +616,10 @@ devices:
     model: IH500
     device_class: BioradIh500Device
     capabilities:
-      - IMMUNOANALYSIS
+      - IMMUNOHEMATOLOGY_ANALYSIS
     device_capabilities:
       supported_processes:
-        - IMMUNOANALYSIS
+        - IMMUNOHEMATOLOGY_ANALYSIS
       continuous_loading: true
       auto_start: false
       nominal_sample_capacity: 50
@@ -641,10 +641,10 @@ devices:
     model: IH1000
     device_class: BioradIh1000Device
     capabilities:
-      - IMMUNOANALYSIS
+      - IMMUNOHEMATOLOGY_ANALYSIS
     device_capabilities:
       supported_processes:
-        - IMMUNOANALYSIS
+        - IMMUNOHEMATOLOGY_ANALYSIS
       continuous_loading: true
       auto_start: true
       nominal_sample_capacity: 180
@@ -712,21 +712,21 @@ robot_current_station_id: InputStation
 samples:
   - id: DUMMY_0001
     barcode: DUMMY_0001
-    obj_type: 101
+    obj_type: 810
     length_mm: 75.0
     diameter_mm: 13.0
     cap_state: CAPPED
     required_processes: []
   - id: DUMMY_0002
     barcode: DUMMY_0002
-    obj_type: 101
+    obj_type: 810
     length_mm: 75.0
     diameter_mm: 13.0
     cap_state: CAPPED
     required_processes: []
   - id: DUMMY_0003
     barcode: DUMMY_0003
-    obj_type: 101
+    obj_type: 810
     length_mm: 75.0
     diameter_mm: 13.0
     cap_state: CAPPED

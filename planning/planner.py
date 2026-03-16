@@ -724,7 +724,7 @@ class DynamicStatePlanner:
 
     def _effective_pending_processes(self, world: WorldModel, sample_id: str) -> Tuple[ProcessType, ...]:
         pending = list(world.pending_processes(sample_id))
-        if ProcessType.IMMUNOANALYSIS not in pending:
+        if ProcessType.IMMUNOHEMATOLOGY_ANALYSIS not in pending:
             return tuple(pending)
 
         state = world.sample_states.get(sample_id)
@@ -739,7 +739,7 @@ class DynamicStatePlanner:
         if decap_done or is_decapped:
             return tuple(pending)
 
-        immuno_idx = pending.index(ProcessType.IMMUNOANALYSIS)
+        immuno_idx = pending.index(ProcessType.IMMUNOHEMATOLOGY_ANALYSIS)
         if ProcessType.DECAP in pending:
             decap_idx = pending.index(ProcessType.DECAP)
             if decap_idx > immuno_idx:
@@ -760,7 +760,7 @@ class DynamicStatePlanner:
             ProcessType.SAMPLE_TYPE_DETECTION: 10,
             ProcessType.DECAP: 20,
             ProcessType.CENTRIFUGATION: 30,
-            ProcessType.IMMUNOANALYSIS: 40,
+            ProcessType.IMMUNOHEMATOLOGY_ANALYSIS: 40,
             ProcessType.HEMATOLOGY_ANALYSIS: 40,
             ProcessType.CLINICAL_CHEMISTRY_ANALYSIS: 40,
             ProcessType.COAGULATION_ANALYSIS: 40,

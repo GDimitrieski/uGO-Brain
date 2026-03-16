@@ -70,7 +70,7 @@ def _parse_steps_to_processes(steps: Sequence[str]) -> Tuple[ProcessType, ...]:
         if "identifikation" in s or "barcode" in s:
             add(ProcessType.SAMPLE_TYPE_DETECTION)
         if "immun" in s:
-            add(ProcessType.IMMUNOANALYSIS)
+            add(ProcessType.IMMUNOHEMATOLOGY_ANALYSIS)
         if "archiv" in s:
             add(ProcessType.ARCHIVATION)
     return tuple(out)

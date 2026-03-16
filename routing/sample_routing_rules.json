@@ -50,7 +50,7 @@
       "process_steps": [
         "CENTRIFUGATION",
         "DECAP",
-        "IMMUNOANALYSIS",
+        "IMMUNOHEMATOLOGY_ANALYSIS",
         "ARCHIVATION"
       ],
       "target_group": "CENTRIFUGE_ANY",

@@ -44,17 +44,17 @@
         "ITM_ID": "{ITM_ID}",
         "JIG_ID": "{JIG_ID}",
         "OBJ_Nbr": "{OBJ_Nbr}",
-        "ACTION": "{ACTION}",
+        "ACT": "{ACTION}",
         "OBJ_Type": "{OBJ_Type}"
       },
       "parameters": {
         "ITM_ID":  { "type": "integer", "default": 0 },
         "JIG_ID":  { "type": "integer", "default": 0 },
         "OBJ_Nbr": { "type": "integer", "default": 0 },
-        "ACTION":  { "type": "integer", "default": 1, "enum": [1, 2, 3, 4, 5, 6, 7] },
+        "ACT":  { "type": "integer", "default": 1, "enum": [1, 2, 3, 4, 5, 6, 7] },
         "OBJ_Type":{ "type": "integer", "default": 0 }
       },
-      "required": ["ITM_ID", "OBJ_Nbr", "ACTION", "OBJ_Type"],
+      "required": ["ITM_ID", "OBJ_Nbr", "ACT", "OBJ_Type"],
       "action_map": {
         "1": "Pick",
         "2": "Place",
@@ -97,14 +97,14 @@
         "taskName": "ProcessAt3FingerStation",
         "ITM_ID": "{ITM_ID}",
         "JIG_ID": "{JIG_ID}",
-        "ACTION": "{ACTION}"
+        "ACT": "{ACT}"
       },
       "parameters": {
         "ITM_ID": { "type": "integer", "default": 1 },
         "JIG_ID": { "type": "integer", "default": 10 },
-        "ACTION": { "type": "integer", "default": 3, "enum": [1, 2, 3] }
+        "ACT": { "type": "integer", "default": 3, "enum": [1, 2, 3] }
       },
-      "required": ["ITM_ID", "JIG_ID", "ACTION"],
+      "required": ["ITM_ID", "JIG_ID", "ACT"],
       "action_map": {
         "1": "Capping",
         "2": "Decapping",

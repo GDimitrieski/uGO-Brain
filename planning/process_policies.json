@@ -37,7 +37,7 @@
       "requires_device": true,
       "loading_strategy": "SEQUENTIAL"
     },
-    "IMMUNOANALYSIS": {
+    "IMMUNOHEMATOLOGY_ANALYSIS": {
       "target_station_id": "uLMPlateStation",
       "target_jig_ids": [12],
       "required_rack_types": ["BIORAD_IH500_RACK"],

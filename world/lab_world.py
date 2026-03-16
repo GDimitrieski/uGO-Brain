@@ -42,8 +42,17 @@ class ProcessType(str, Enum):
     HEMATOLOGY_ANALYSIS = "HEMATOLOGY_ANALYSIS"
     CLINICAL_CHEMISTRY_ANALYSIS = "CLINICAL_CHEMISTRY_ANALYSIS"
     COAGULATION_ANALYSIS = "COAGULATION_ANALYSIS"
-    IMMUNOANALYSIS = "IMMUNOANALYSIS"
+    IMMUNOHEMATOLOGY_ANALYSIS = "IMMUNOHEMATOLOGY_ANALYSIS"
+    # Backward-compatible alias for legacy configs/payloads.
+    IMMUNOANALYSIS = "IMMUNOHEMATOLOGY_ANALYSIS"
     ARCHIVATION = "ARCHIVATION"
+
+    @classmethod
+    def _missing_(cls, value: object) -> Optional["ProcessType"]:
+        raw = str(value).strip().upper()
+        if raw == "IMMUNOANALYSIS":
+            return cls.IMMUNOHEMATOLOGY_ANALYSIS
+        return None
 
 
 class CapState(str, Enum):
@@ -1362,32 +1371,32 @@ def default_world_config() -> Dict[str, Any]:
             {
                 "id": "RACK_ULM_BIORAD_IH500_01",
                 "rack_type": "BIORAD_IH500_RACK",
-                "capacity": 12,
-                "pattern": "BIORAD_IH500_1x12_PIN3",
-                "pin_obj_type": 9012,
+                "capacity": 13,
+                "pattern": "BIORAD_IH500_1x13_PIN3",
+                "pin_obj_type": 520,
                 "rows": 1,
-                "cols": 12,
-                "blocked_slots": [3, 6, 9],
+                "cols": 13,
+                "blocked_slots": [4, 7, 11],
             },
             {
                 "id": "RACK_ULM_BIORAD_IH500_02",
                 "rack_type": "BIORAD_IH500_RACK",
-                "capacity": 12,
-                "pattern": "BIORAD_IH500_1x12_PIN3",
-                "pin_obj_type": 9012,
+                "capacity": 13,
+                "pattern": "BIORAD_IH500_1x13_PIN3",
+                "pin_obj_type": 520,
                 "rows": 1,
-                "cols": 12,
-                "blocked_slots": [3, 6, 9],
+                "cols": 13,
+                "blocked_slots": [4, 7, 11],
             },
             {
                 "id": "RACK_ULM_BIORAD_IH500_03",
                 "rack_type": "BIORAD_IH500_RACK",
-                "capacity": 12,
-                "pattern": "BIORAD_IH500_1x12_PIN3",
-                "pin_obj_type": 9012,
+                "capacity": 13,
+                "pattern": "BIORAD_IH500_1x13_PIN3",
+                "pin_obj_type": 520,
                 "rows": 1,
-                "cols": 12,
-                "blocked_slots": [3, 6, 9],
+                "cols": 13,
+                "blocked_slots": [4, 7, 11],
             },
             {
                 "id": "RACK_ULM_BIORAD_IH1000_01",
@@ -1510,9 +1519,9 @@ def default_world_config() -> Dict[str, Any]:
                 "station_id": "BioRadIH500Station",
                 "model": "IH500",
                 "device_class": "BioradIh500Device",
-                "capabilities": ["IMMUNOANALYSIS"],
+                "capabilities": ["IMMUNOHEMATOLOGY_ANALYSIS"],
                 "device_capabilities": {
-                    "supported_processes": ["IMMUNOANALYSIS"],
+                    "supported_processes": ["IMMUNOHEMATOLOGY_ANALYSIS"],
                     "continuous_loading": True,
                     "auto_start": False,
                     "nominal_sample_capacity": 50,
@@ -1539,9 +1548,9 @@ def default_world_config() -> Dict[str, Any]:
                 "station_id": "BioRadIH1000Station",
                 "model": "IH1000",
                 "device_class": "BioradIh1000Device",
-                "capabilities": ["IMMUNOANALYSIS"],
+                "capabilities": ["IMMUNOHEMATOLOGY_ANALYSIS"],
                 "device_capabilities": {
-                    "supported_processes": ["IMMUNOANALYSIS"],
+                    "supported_processes": ["IMMUNOHEMATOLOGY_ANALYSIS"],
                     "continuous_loading": True,
                     "auto_start": True,
                     "nominal_sample_capacity": 180,
@@ -1585,7 +1594,7 @@ def default_world_config() -> Dict[str, Any]:
             {
                 "id": "DUMMY_0001",
                 "barcode": "DUMMY_0001",
-                "obj_type": 101,
+                "obj_type": 810,
                 "length_mm": 75.0,
                 "diameter_mm": 13.0,
                 "cap_state": "CAPPED",
@@ -1594,7 +1603,7 @@ def default_world_config() -> Dict[str, Any]:
             {
                 "id": "DUMMY_0002",
                 "barcode": "DUMMY_0002",
-                "obj_type": 101,
+                "obj_type": 810,
                 "length_mm": 75.0,
                 "diameter_mm": 13.0,
                 "cap_state": "CAPPED",
@@ -1603,7 +1612,7 @@ def default_world_config() -> Dict[str, Any]:
             {
                 "id": "DUMMY_0003",
                 "barcode": "DUMMY_0003",
-                "obj_type": 101,
+                "obj_type": 810,
                 "length_mm": 75.0,
                 "diameter_mm": 13.0,
                 "cap_state": "CAPPED",

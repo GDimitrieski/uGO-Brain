@@ -1,6 +1,6 @@
 import requests
 from typing import Dict, Any, Optional
-from Library.credentials import credentials
+from credentials import credentials
 
 
 def login(url: str, user: str, password: str, timeout_s: float = 10.0) -> Optional[str]:

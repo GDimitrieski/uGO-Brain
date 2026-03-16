@@ -1,7 +1,7 @@
 import requests
 from typing import Dict, Any, Optional
-from Library.login import login
-from Library.credentials import credentials
+from login import login
+from credentials import credentials
 
 def clear_planner_error(url: str, token: str, errorID: str):
     if token:
@@ -21,5 +21,5 @@ def clear_planner_error(url: str, token: str, errorID: str):
 
 if __name__ == "__main__":
     token = login(credentials["url"], credentials["user"], credentials["password"])
-    clear_planner_error(credentials["url"], token, 'c066fac5-04c0-41a7-8919-6294665d7645')
+    clear_planner_error(credentials["url"], token, '15763ee4-d5cf-40fb-b0fc-f68f8da02bfe')
     

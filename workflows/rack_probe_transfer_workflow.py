@@ -62,7 +62,7 @@ DEVICE_ACTION_START_CENTRIFUGE = 2
 DEVICE_ACTION_CLOSE_HATCH = 3
 DEVICE_ACTION_MOVE_ROTOR = 4
 DEVICE_ACTION_SCAN_LANDMARK = 30
-OBJ_TYPE_PROBE = 101
+OBJ_TYPE_PROBE = 810
 RACK_SLOT_INDEX = 1
 
 INPUT_STATION_ID = "InputStation"
@@ -143,6 +143,18 @@ try:
 except Exception:
     STATE_DRIVEN_WAIT_POLL_S = 1.0
 WAIT_READY_PACKML_STATES = {"COMPLETE", "IDLE", "STOPPED"}
+PLANNER_CONTEXT_ERROR_CODE = str(os.getenv("UGO_PLANNER_CONTEXT_ERROR_CODE", " "))
+if PLANNER_CONTEXT_ERROR_CODE == "":
+    PLANNER_CONTEXT_ERROR_CODE = " "
+PLANNER_CONTEXT_MESSAGE = (
+    str(os.getenv("UGO_PLANNER_CONTEXT_MESSAGE", "WORKFLOW_CONTEXT")).strip()
+    or "WORKFLOW_CONTEXT"
+)
+POST_CONTEXT_FOR_EACH_TASK = os.getenv("UGO_PLANNER_CONTEXT_EACH_TASK", "1").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
 _WORLD_FILE_BACKUPS_DONE: Set[Path] = set()
 STATE_CHANGE_FIELDNAMES = [
     "task_id",
@@ -181,6 +193,53 @@ def _try_parse_string_list(value: str) -> Optional[List[int]]:
         return None
 
 
+def _try_parse_presence_mask_positions(value: Any) -> Optional[List[int]]:
+    """Parse camera mask formats like "[P,F,P,...]" and return 1-based occupied positions.
+
+    Convention:
+    - F => sample present
+    - P => no sample
+    """
+    tokens: List[str] = []
+
+    if isinstance(value, list):
+        for item in value:
+            txt = str(item).strip().upper()
+            if txt:
+                tokens.append(txt)
+    elif isinstance(value, str):
+        txt = value.strip()
+        if not txt:
+            return []
+        parsed = None
+        if txt.startswith("[") and txt.endswith("]"):
+            try:
+                parsed = json.loads(txt)
+            except Exception:
+                parsed = None
+        if isinstance(parsed, list):
+            for item in parsed:
+                item_txt = str(item).strip().upper()
+                if item_txt:
+                    tokens.append(item_txt)
+        else:
+            core = txt[1:-1] if txt.startswith("[") and txt.endswith("]") else txt
+            parts = [part.strip().strip("'\"").upper() for part in core.split(",")]
+            tokens = [part for part in parts if part]
+    else:
+        return None
+
+    if not tokens:
+        return []
+
+    valid = {"F", "P"}
+    if any(token not in valid for token in tokens):
+        return None
+
+    # Camera mask is 1-based when mapped to rack slot positions.
+    return [idx for idx, token in enumerate(tokens, start=1) if token == "F"]
+
+
 def extract_positions(result: Dict[str, Any]) -> List[int]:
     raw = result.get("raw", {})
     data = raw.get("data", {}) if isinstance(raw, dict) else {}
@@ -202,6 +261,10 @@ def extract_positions(result: Dict[str, Any]) -> List[int]:
     ]
 
     for candidate in candidates:
+        mask_positions = _try_parse_presence_mask_positions(candidate)
+        if mask_positions is not None:
+            return mask_positions
+
         if isinstance(candidate, list):
             out: List[int] = []
             for item in candidate:
@@ -222,6 +285,9 @@ def extract_positions(result: Dict[str, Any]) -> List[int]:
 
     # Last resort: task may return list as plain message string
     msg = str(result.get("message", "")).strip()
+    parsed_mask_msg = _try_parse_presence_mask_positions(msg)
+    if parsed_mask_msg is not None:
+        return parsed_mask_msg
     parsed_msg = _try_parse_string_list(msg)
     if parsed_msg is not None:
         return parsed_msg
@@ -1310,6 +1376,7 @@ def build_tree(
         else list(scaffold_steps)
     )
     runtime_devices = build_device_registry_from_world(world)
+    active_context: Dict[str, Blackboard] = {}
     baseline_rack_home_by_id: Dict[str, Tuple[str, str]] = {}
     baseline_rack_home_error = ""
     try:
@@ -1403,6 +1470,53 @@ def build_tree(
                 return False
         return True
 
+    def _context_message_for_plan_step(step: PlanStep) -> str:
+        step_id = str(step.step_id).strip()
+        messages_by_step_id = {
+            "await_input_rack_present": "Waiting for Input Rack at Input Station",
+            "nav_input": "Navigation to the Input Station",
+            "scan_input_landmark": "Referencing robot coordinates at Input Station",
+            "transfer_input_rack": "Transferring Input Rack to uLM Plate",
+            "charge": "Charging at Charge Station",
+            "camera_inspect_urg_for_new_samples": "Identifying samples from the Input Rack",
+            "urg_sort_via_3fg_router": "Routing identified samples",
+            "handoff_to_state_driven_planning": "State-driven planning in progress",
+        }
+        default_message = str(step.label).strip() or f"Executing step {step_id}"
+        return str(messages_by_step_id.get(step_id, default_message)).strip()
+
+    def _context_message_for_task_execution(task_name: str) -> str:
+        name = str(task_name).strip()
+        if not name:
+            return ""
+        return f"Executing {name}"
+
+    def _post_workflow_context_message(bb: Blackboard, message: str) -> None:
+        msg = str(message).strip()
+        if not msg:
+            return
+        last_msg = str(bb.get("workflow_context_message", "")).strip()
+        if last_msg == msg:
+            return
+
+        posted_error_id = ""
+        try:
+            posted = sender.robot.post_error(
+                code=PLANNER_CONTEXT_ERROR_CODE,
+                message=PLANNER_CONTEXT_MESSAGE,
+                action=msg,
+            )
+            if posted is not None:
+                posted_error_id = str(posted).strip()
+        except Exception as exc:
+            print(f"Workflow context post warning: {exc}")
+            bb["workflow_context_error_id"] = ""
+            return
+
+        bb["workflow_context_error_id"] = posted_error_id
+        bb["workflow_context_message"] = msg
+        bb["workflow_context_ts"] = _local_now_iso()
+
     def _csv_value(value: Any) -> Any:
         if isinstance(value, (dict, list, tuple, set)):
             return json.dumps(value, ensure_ascii=True)
@@ -1481,6 +1595,15 @@ def build_tree(
 
     def _run_task(task_key: str, overrides: Dict[str, Any], task_name: str) -> Tuple[bool, Dict[str, Any]]:
         sent_ts = _local_now_iso()
+        if POST_CONTEXT_FOR_EACH_TASK:
+            bb_ctx = active_context.get("bb")
+            if bb_ctx is not None:
+                try:
+                    task_context = _context_message_for_task_execution(task_name)
+                    if task_context:
+                        _post_workflow_context_message(bb_ctx, task_context)
+                except Exception as exc:
+                    print(f"Workflow context task-post warning: {exc}")
         try:
             payload = sender.catalog.build_payload(task_key, overrides=overrides)
         except Exception as exc:
@@ -1517,6 +1640,41 @@ def build_tree(
         if not ok:
             print(f"{task_name} failed: {result.get('message', '')}")
         return ok, result
+
+    def _single_task_overrides(
+        *,
+        itm_id: int,
+        jig_id: int,
+        obj_nbr: int,
+        action: int,
+        obj_type: int,
+    ) -> Dict[str, int]:
+        return {
+            "ITM_ID": int(itm_id),
+            "JIG_ID": int(jig_id),
+            "OBJ_Nbr": int(obj_nbr),
+            "ACTION": int(action),
+            "OBJ_Type": int(obj_type),
+        }
+
+    def _run_single_task_action(
+        *,
+        itm_id: int,
+        jig_id: int,
+        obj_nbr: int,
+        action: int,
+        obj_type: int,
+        task_name: str,
+    ) -> bool:
+        overrides = _single_task_overrides(
+            itm_id=int(itm_id),
+            jig_id=int(jig_id),
+            obj_nbr=int(obj_nbr),
+            action=int(action),
+            obj_type=int(obj_type),
+        )
+        ok, _ = _run_task("SingleTask", overrides, task_name)
+        return bool(ok)
 
     def _extract_update_world_devices_payload(result: Dict[str, Any]) -> str:
         raw = result.get("raw", {})
@@ -1741,13 +1899,13 @@ def build_tree(
     def _default_target_jig_for_processes(processes: Sequence[ProcessType]) -> int:
         process_to_jig: Dict[ProcessType, int] = {
             ProcessType.CENTRIFUGATION: 2,
-            ProcessType.IMMUNOANALYSIS: 12,
+            ProcessType.IMMUNOHEMATOLOGY_ANALYSIS: 12,
             ProcessType.HEMATOLOGY_ANALYSIS: 11,
             ProcessType.ARCHIVATION: 13,
         }
 
         # Route by the first rack-bound process in the declared process sequence.
-        # This avoids skipping prerequisite handling (e.g. centrifugation before immunoanalysis).
+        # This avoids skipping prerequisite handling (e.g. centrifugation before immunohematology analysis).
         for proc in processes:
             jig = process_to_jig.get(proc)
             if jig is not None:
@@ -1821,26 +1979,36 @@ def build_tree(
 
         source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
         target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
-        pick_overrides = {
-            "ITM_ID": int(source_cfg.itm_id),
-            "JIG_ID": int(source_cfg.jig_id),
-            "OBJ_Nbr": int(world.obj_nbr_for_slot_index(source_station_id, source_station_slot_id, source_slot_index)),
-            "ACTION": ACTION_PICK,
-            "OBJ_Type": int(obj_type),
-        }
-        ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.PickSample")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(source_cfg.itm_id),
+            jig_id=int(source_cfg.jig_id),
+            obj_nbr=int(
+                world.obj_nbr_for_slot_index(
+                    source_station_id,
+                    source_station_slot_id,
+                    source_slot_index,
+                )
+            ),
+            action=ACTION_PICK,
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.PickSample",
+        ):
             return False, None
 
-        place_overrides = {
-            "ITM_ID": int(target_cfg.itm_id),
-            "JIG_ID": int(target_cfg.jig_id),
-            "OBJ_Nbr": int(world.obj_nbr_for_slot_index(target_station_id, target_station_slot_id, target_slot_index)),
-            "ACTION": ACTION_PLACE,
-            "OBJ_Type": int(obj_type),
-        }
-        ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.PlaceSample")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(target_cfg.itm_id),
+            jig_id=int(target_cfg.jig_id),
+            obj_nbr=int(
+                world.obj_nbr_for_slot_index(
+                    target_station_id,
+                    target_station_slot_id,
+                    target_slot_index,
+                )
+            ),
+            action=ACTION_PLACE,
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.PlaceSample",
+        ):
             return False, None
 
         try:
@@ -2032,29 +2200,27 @@ def build_tree(
         if not _ensure_station_reference(source_station_id, task_prefix):
             return False
 
-        pick_overrides = {
-            "ITM_ID": int(source_cfg.itm_id),
-            "JIG_ID": int(source_cfg.jig_id),
-            "OBJ_Nbr": int(source_cfg.rack_index),
-            "ACTION": ACTION_PICK,
-            "OBJ_Type": int(obj_type),
-        }
-        ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.Pick")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(source_cfg.itm_id),
+            jig_id=int(source_cfg.jig_id),
+            obj_nbr=int(source_cfg.rack_index),
+            action=ACTION_PICK,
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.Pick",
+        ):
             return False
 
         if not _ensure_station_reference(target_station_id, task_prefix):
             return False
 
-        place_overrides = {
-            "ITM_ID": int(target_cfg.itm_id),
-            "JIG_ID": int(target_cfg.jig_id),
-            "OBJ_Nbr": int(target_cfg.rack_index),
-            "ACTION": ACTION_PLACE,
-            "OBJ_Type": int(obj_type),
-        }
-        ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.Place")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(target_cfg.itm_id),
+            jig_id=int(target_cfg.jig_id),
+            obj_nbr=int(target_cfg.rack_index),
+            action=ACTION_PLACE,
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.Place",
+        ):
             return False
 
         try:
@@ -2189,28 +2355,26 @@ def build_tree(
 
             if not _ensure_station_reference(target_station_id, task_prefix):
                 return False
-            pick_overrides = {
-                "ITM_ID": int(target_cfg.itm_id),
-                "JIG_ID": int(target_cfg.jig_id),
-                "OBJ_Nbr": int(target_cfg.rack_index),
-                "ACTION": ACTION_PICK,
-                "OBJ_Type": int(rack.pin_obj_type),
-            }
-            ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.Pick")
-            if not ok:
+            if not _run_single_task_action(
+                itm_id=int(target_cfg.itm_id),
+                jig_id=int(target_cfg.jig_id),
+                obj_nbr=int(target_cfg.rack_index),
+                action=ACTION_PICK,
+                obj_type=int(rack.pin_obj_type),
+                task_name=f"{task_prefix}.Pick",
+            ):
                 return False
 
             if not _ensure_station_reference(source_station_id, task_prefix):
                 return False
-            place_overrides = {
-                "ITM_ID": int(source_cfg.itm_id),
-                "JIG_ID": int(source_cfg.jig_id),
-                "OBJ_Nbr": int(source_cfg.rack_index),
-                "ACTION": ACTION_PLACE,
-                "OBJ_Type": int(rack.pin_obj_type),
-            }
-            ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.Place")
-            if not ok:
+            if not _run_single_task_action(
+                itm_id=int(source_cfg.itm_id),
+                jig_id=int(source_cfg.jig_id),
+                obj_nbr=int(source_cfg.rack_index),
+                action=ACTION_PLACE,
+                obj_type=int(rack.pin_obj_type),
+                task_name=f"{task_prefix}.Place",
+            ):
                 return False
 
             try:
@@ -2356,28 +2520,26 @@ def build_tree(
         task_prefix = f"StateDriven.RackReturn.{rack_id}"
         if not _ensure_station_reference(source_station_id, task_prefix):
             return False
-        pick_overrides = {
-            "ITM_ID": int(source_cfg.itm_id),
-            "JIG_ID": int(source_cfg.jig_id),
-            "OBJ_Nbr": int(source_cfg.rack_index),
-            "ACTION": ACTION_PICK,
-            "OBJ_Type": int(rack.pin_obj_type),
-        }
-        ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.Pick")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(source_cfg.itm_id),
+            jig_id=int(source_cfg.jig_id),
+            obj_nbr=int(source_cfg.rack_index),
+            action=ACTION_PICK,
+            obj_type=int(rack.pin_obj_type),
+            task_name=f"{task_prefix}.Pick",
+        ):
             return False
 
         if not _ensure_station_reference(target_station_id, task_prefix):
             return False
-        place_overrides = {
-            "ITM_ID": int(target_cfg.itm_id),
-            "JIG_ID": int(target_cfg.jig_id),
-            "OBJ_Nbr": int(target_cfg.rack_index),
-            "ACTION": ACTION_PLACE,
-            "OBJ_Type": int(rack.pin_obj_type),
-        }
-        ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.Place")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(target_cfg.itm_id),
+            jig_id=int(target_cfg.jig_id),
+            obj_nbr=int(target_cfg.rack_index),
+            action=ACTION_PLACE,
+            obj_type=int(rack.pin_obj_type),
+            task_name=f"{task_prefix}.Place",
+        ):
             return False
 
         try:
@@ -2488,7 +2650,7 @@ def build_tree(
         return [(idx, source_by_idx[idx], target_by_idx[idx]) for idx in sorted(source_idx)]
 
     def _execute_ih500_immuno_cycle(sample_id: str, bb: Blackboard) -> bool:
-        task_prefix = f"StateDriven.{sample_id}.IMMUNOANALYSIS.Process"
+        task_prefix = f"StateDriven.{sample_id}.{ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value}.Process"
         sample_state = world.sample_states.get(str(sample_id))
         if sample_state is None:
             print(f"{task_prefix} prerequisite failed: unknown sample '{sample_id}'")
@@ -2582,19 +2744,25 @@ def build_tree(
                     print(f"{task_prefix} load failed: unknown rack '{source_rack_id}'")
                     return False
 
-                load_overrides = {
-                    "ITM_ID": int(target_cfg.itm_id),
-                    "JIG_ID": int(target_cfg.jig_id),
-                    "OBJ_Nbr": int(target_cfg.rack_index),
-                    "ACTION": ACTION_PUSH_RACK_IN,
-                    "OBJ_Type": int(rack.pin_obj_type),
-                }
-                ok, _ = _run_task(
-                    "SingleTask",
-                    load_overrides,
-                    f"{task_prefix}.LoadRack{int(idx)}.PushRackIn",
-                )
-                if not ok:
+                # Load transfer must explicitly pick from source jig before pushing into target jig.
+                if not _run_single_task_action(
+                    itm_id=int(source_cfg.itm_id),
+                    jig_id=int(source_cfg.jig_id),
+                    obj_nbr=int(source_cfg.rack_index),
+                    action=ACTION_PICK,
+                    obj_type=int(rack.pin_obj_type),
+                    task_name=f"{task_prefix}.LoadRack{int(idx)}.PickFromSource",
+                ):
+                    return False
+
+                if not _run_single_task_action(
+                    itm_id=int(target_cfg.itm_id),
+                    jig_id=int(target_cfg.jig_id),
+                    obj_nbr=int(target_cfg.rack_index),
+                    action=ACTION_PUSH_RACK_IN,
+                    obj_type=int(rack.pin_obj_type),
+                    task_name=f"{task_prefix}.LoadRack{int(idx)}.PushRackIn",
+                ):
                     return False
 
                 try:
@@ -2618,7 +2786,7 @@ def build_tree(
                     target={"station_id": IH500_STATION_ID, "station_slot_id": str(target_cfg.slot_id)},
                     details={
                         "phase": "StateDrivenPlanning",
-                        "process": ProcessType.IMMUNOANALYSIS.value,
+                        "process": ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value,
                         "mode": "LOAD",
                         "transfer_index": int(idx),
                         "action": "PushRackIn",
@@ -2638,19 +2806,24 @@ def build_tree(
                 print(f"{task_prefix} unload failed: unknown rack '{device_rack_id}'")
                 return False
 
-            unload_overrides = {
-                "ITM_ID": int(target_cfg.itm_id),
-                "JIG_ID": int(target_cfg.jig_id),
-                "OBJ_Nbr": int(target_cfg.rack_index),
-                "ACTION": ACTION_PULL_RACK_OUT,
-                "OBJ_Type": int(rack.pin_obj_type),
-            }
-            ok, _ = _run_task(
-                "SingleTask",
-                unload_overrides,
-                f"{task_prefix}.UnloadRack{int(idx)}.PullRackOut",
-            )
-            if not ok:
+            if not _run_single_task_action(
+                itm_id=int(target_cfg.itm_id),
+                jig_id=int(target_cfg.jig_id),
+                obj_nbr=int(target_cfg.rack_index),
+                action=ACTION_PULL_RACK_OUT,
+                obj_type=int(rack.pin_obj_type),
+                task_name=f"{task_prefix}.UnloadRack{int(idx)}.PullRackOut",
+            ):
+                return False
+
+            if not _run_single_task_action(
+                itm_id=int(source_cfg.itm_id),
+                jig_id=int(source_cfg.jig_id),
+                obj_nbr=int(source_cfg.rack_index),
+                action=ACTION_PLACE,
+                obj_type=int(rack.pin_obj_type),
+                task_name=f"{task_prefix}.UnloadRack{int(idx)}.PlaceOnPlate",
+            ):
                 return False
 
             try:
@@ -2674,7 +2847,7 @@ def build_tree(
                 target={"station_id": PLATE_STATION_ID, "station_slot_id": str(source_cfg.slot_id)},
                 details={
                     "phase": "StateDrivenPlanning",
-                    "process": ProcessType.IMMUNOANALYSIS.value,
+                    "process": ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value,
                     "mode": "UNLOAD",
                     "transfer_index": int(idx),
                     "action": "PullRackOut",
@@ -2684,12 +2857,12 @@ def build_tree(
         completed_sample_ids = _sample_ids_in_jig(PLATE_STATION_ID, IH500_SOURCE_JIG_ID)
         for sid in completed_sample_ids:
             try:
-                world.mark_process_completed(sid, ProcessType.IMMUNOANALYSIS)
+                world.mark_process_completed(sid, ProcessType.IMMUNOHEMATOLOGY_ANALYSIS)
             except Exception:
                 continue
             _append_process_completed_event(
                 sid,
-                ProcessType.IMMUNOANALYSIS,
+                ProcessType.IMMUNOHEMATOLOGY_ANALYSIS,
                 {"mode": mode, "source_jig_id": IH500_SOURCE_JIG_ID, "device_jig_id": IH500_DEVICE_JIG_ID},
             )
 
@@ -2740,34 +2913,40 @@ def build_tree(
         source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
         target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
 
-        pick_overrides = {
-            "ITM_ID": int(source_cfg.itm_id),
-            "JIG_ID": int(source_cfg.jig_id),
-            "OBJ_Nbr": int(
-                world.obj_nbr_for_slot_index(source_station_id, source_station_slot_id, source_slot_index)
+        if not _run_single_task_action(
+            itm_id=int(source_cfg.itm_id),
+            jig_id=int(source_cfg.jig_id),
+            obj_nbr=int(
+                world.obj_nbr_for_slot_index(
+                    source_station_id,
+                    source_station_slot_id,
+                    source_slot_index,
+                )
             ),
-            "ACTION": ACTION_PICK,
-            "OBJ_Type": int(obj_type),
-        }
-        ok, _ = _run_task("SingleTask", pick_overrides, f"{task_prefix}.PickSample")
-        if not ok:
+            action=ACTION_PICK,
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.PickSample",
+        ):
             return False
 
         if target_station_id != source_station_id:
             if not _ensure_station_reference(target_station_id, task_prefix):
                 return False
 
-        place_overrides = {
-            "ITM_ID": int(target_cfg.itm_id),
-            "JIG_ID": int(target_cfg.jig_id),
-            "OBJ_Nbr": int(
-                world.obj_nbr_for_slot_index(target_station_id, target_station_slot_id, target_slot_index)
+        if not _run_single_task_action(
+            itm_id=int(target_cfg.itm_id),
+            jig_id=int(target_cfg.jig_id),
+            obj_nbr=int(
+                world.obj_nbr_for_slot_index(
+                    target_station_id,
+                    target_station_slot_id,
+                    target_slot_index,
+                )
             ),
-            "ACTION": ACTION_PLACE,
-            "OBJ_Type": int(obj_type),
-        }
-        ok, _ = _run_task("SingleTask", place_overrides, f"{task_prefix}.PlaceSample")
-        if not ok:
+            action=ACTION_PLACE,
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.PlaceSample",
+        ):
             return False
 
         try:
@@ -2857,7 +3036,7 @@ def build_tree(
             overrides = {
                 "ITM_ID": int(slot_cfg.itm_id),
                 "JIG_ID": int(slot_cfg.jig_id),
-                "ACTION": int(action_code_by_process[process]),
+                "ACT": int(action_code_by_process[process]),
             }
             ok, _ = _run_task("ProcessAt3FingerStation", overrides, task_prefix)
             if not ok:
@@ -2919,7 +3098,7 @@ def build_tree(
             bb["state_driven_last_action"] = action.to_dict()
             return True
 
-        if process == ProcessType.IMMUNOANALYSIS:
+        if process == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS:
             ok = _execute_ih500_immuno_cycle(sample_id, bb)
             if not ok:
                 return False
@@ -3086,26 +3265,24 @@ def build_tree(
                 print(f"GettingNewSamples transfer failed: unknown source rack '{source_rack_id}'")
                 return False
             obj_type = int(rack.pin_obj_type)
-            pick_overrides = {
-                "ITM_ID": int(source_cfg.itm_id),
-                "JIG_ID": int(source_cfg.jig_id),
-                "OBJ_Nbr": int(source_cfg.rack_index),
-                "ACTION": ACTION_PICK,
-                "OBJ_Type": int(obj_type),
-            }
-            ok, _ = _run_task("SingleTask", pick_overrides, "GettingNewSamples.TransferInputRack.Pick")
-            if not ok:
+            if not _run_single_task_action(
+                itm_id=int(source_cfg.itm_id),
+                jig_id=int(source_cfg.jig_id),
+                obj_nbr=int(source_cfg.rack_index),
+                action=ACTION_PICK,
+                obj_type=int(obj_type),
+                task_name="GettingNewSamples.TransferInputRack.Pick",
+            ):
                 return False
 
-            place_overrides = {
-                "ITM_ID": int(target_cfg.itm_id),
-                "JIG_ID": int(target_cfg.jig_id),
-                "OBJ_Nbr": int(target_cfg.rack_index),
-                "ACTION": ACTION_PLACE,
-                "OBJ_Type": int(obj_type),
-            }
-            ok, _ = _run_task("SingleTask", place_overrides, "GettingNewSamples.TransferInputRack.Place")
-            if not ok:
+            if not _run_single_task_action(
+                itm_id=int(target_cfg.itm_id),
+                jig_id=int(target_cfg.jig_id),
+                obj_nbr=int(target_cfg.rack_index),
+                action=ACTION_PLACE,
+                obj_type=int(obj_type),
+                task_name="GettingNewSamples.TransferInputRack.Place",
+            ):
                 return False
 
             try:
@@ -3231,7 +3408,7 @@ def build_tree(
             process_overrides = {
                 "ITM_ID": int(three_fg_cfg.itm_id),
                 "JIG_ID": int(three_fg_cfg.jig_id),
-                "ACTION": 3,
+                "ACT": 3,
             }
             for sample_id in sample_ids:
                 state = world.sample_states.get(sample_id)
@@ -3425,26 +3602,24 @@ def build_tree(
         return True, diag, ""
 
     def _execute_sample_transfer(op: SampleTransferStep) -> bool:
-        pick_overrides = {
-            "ITM_ID": int(op.source_itm_id),
-            "JIG_ID": int(op.source_jig_id),
-            "OBJ_Nbr": int(op.source_obj_nbr),
-            "ACTION": ACTION_PICK,
-            "OBJ_Type": int(op.obj_type),
-        }
-        ok, _ = _run_task("SingleTask", pick_overrides, f"CentrifugeCycle.{op.name}.PickSample")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(op.source_itm_id),
+            jig_id=int(op.source_jig_id),
+            obj_nbr=int(op.source_obj_nbr),
+            action=ACTION_PICK,
+            obj_type=int(op.obj_type),
+            task_name=f"CentrifugeCycle.{op.name}.PickSample",
+        ):
             return False
 
-        place_overrides = {
-            "ITM_ID": int(op.target_itm_id),
-            "JIG_ID": int(op.target_jig_id),
-            "OBJ_Nbr": int(op.target_obj_nbr),
-            "ACTION": ACTION_PLACE,
-            "OBJ_Type": int(op.obj_type),
-        }
-        ok, _ = _run_task("SingleTask", place_overrides, f"CentrifugeCycle.{op.name}.PlaceSample")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(op.target_itm_id),
+            jig_id=int(op.target_jig_id),
+            obj_nbr=int(op.target_obj_nbr),
+            action=ACTION_PLACE,
+            obj_type=int(op.obj_type),
+            task_name=f"CentrifugeCycle.{op.name}.PlaceSample",
+        ):
             return False
 
         try:
@@ -3496,26 +3671,24 @@ def build_tree(
         op: RackTransferStep,
         runtime_device: Any,
     ) -> bool:
-        pick_overrides = {
-            "ITM_ID": int(op.source_itm_id),
-            "JIG_ID": int(op.source_jig_id),
-            "OBJ_Nbr": int(op.source_obj_nbr),
-            "ACTION": ACTION_PICK,
-            "OBJ_Type": int(op.obj_type),
-        }
-        ok, _ = _run_task("SingleTask", pick_overrides, f"CentrifugeCycle.{op.name}.Pick")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(op.source_itm_id),
+            jig_id=int(op.source_jig_id),
+            obj_nbr=int(op.source_obj_nbr),
+            action=ACTION_PICK,
+            obj_type=int(op.obj_type),
+            task_name=f"CentrifugeCycle.{op.name}.Pick",
+        ):
             return False
 
-        place_overrides = {
-            "ITM_ID": int(op.target_itm_id),
-            "JIG_ID": int(op.target_jig_id),
-            "OBJ_Nbr": int(op.target_obj_nbr),
-            "ACTION": ACTION_PLACE,
-            "OBJ_Type": int(op.obj_type),
-        }
-        ok, _ = _run_task("SingleTask", place_overrides, f"CentrifugeCycle.{op.name}.Place")
-        if not ok:
+        if not _run_single_task_action(
+            itm_id=int(op.target_itm_id),
+            jig_id=int(op.target_jig_id),
+            obj_nbr=int(op.target_obj_nbr),
+            action=ACTION_PLACE,
+            obj_type=int(op.obj_type),
+            task_name=f"CentrifugeCycle.{op.name}.Place",
+        ):
             return False
 
         try:
@@ -3591,6 +3764,13 @@ def build_tree(
             print(f"CentrifugeCycle failed to compile usage plan: {exc}")
             return False
         bb["centrifuge_mode_resolved"] = str(plan.mode)
+        plan_mode = str(plan.mode).strip().upper()
+        if plan_mode == "LOAD":
+            _post_workflow_context_message(bb, "Loading the Centrifuge")
+        elif plan_mode == "UNLOAD":
+            _post_workflow_context_message(bb, "Unloading the Centrifuge")
+        else:
+            _post_workflow_context_message(bb, "Running the Centrifuge")
         if plan.mode == "UNLOAD":
             for slot_id in plan.centrifuge_slot_ids:
                 rack_id = world.rack_placements.get((plan.centrifuge_station_id, slot_id))
@@ -3688,12 +3868,14 @@ def build_tree(
 
     def make_step(step_name: str):
         def _run(bb: Blackboard) -> bool:
+            active_context["bb"] = bb
             if workflow_mode == "GETTING_NEW_SAMPLES":
                 step = plan_step_by_id.get(step_name)
                 if step is None:
                     print(f"GettingNewSamples failed: planner step '{step_name}' not found")
                     return False
                 bb["last_plan_step"] = str(step.step_id)
+                _post_workflow_context_message(bb, _context_message_for_plan_step(step))
                 if str(step.step_type).strip().upper() == "TASK":
                     return _execute_getting_new_samples_task(step, bb)
                 if str(step.step_type).strip().upper() == "PHASE":
@@ -3703,6 +3885,7 @@ def build_tree(
 
             bb["last_blank_step"] = step_name
             if step_name == "CentrifugeCycle" and workflow_mode in centrifuge_modes:
+                _post_workflow_context_message(bb, "Preparing Centrifuge Cycle")
                 return _execute_centrifuge_cycle(bb)
             print(f"[BLANK_NODE] {step_name}: no behavior implemented yet")
             return True
@@ -3783,22 +3966,24 @@ def main() -> None:
             details={"reason": f"run_end_{str(st)}"},
         )
     finally:
+        # Persist physical world-state artifacts even when the workflow fails.
+        export_occupancy_trace(
+            occupancy_records,
+            OCCUPANCY_TRACE_FILE,
+            trace_records=trace_records,
+            append=world_resumed,
+        )
+        export_occupancy_events_jsonl(
+            occupancy_records,
+            OCCUPANCY_EVENTS_FILE,
+            trace_records=trace_records,
+            append=world_resumed,
+        )
+        _finalize_world_snapshot_file(world)
+
         if final_status == Status.SUCCESS:
             export_trace(trace_records, TRACE_FILE, append=world_resumed)
             export_state_changes(state_change_records, STATE_CHANGES_FILE, append=world_resumed)
-            export_occupancy_trace(
-                occupancy_records,
-                OCCUPANCY_TRACE_FILE,
-                trace_records=trace_records,
-                append=world_resumed,
-            )
-            export_occupancy_events_jsonl(
-                occupancy_records,
-                OCCUPANCY_EVENTS_FILE,
-                trace_records=trace_records,
-                append=world_resumed,
-            )
-            _finalize_world_snapshot_file(world)
             print(f"Trace written to {TRACE_FILE.resolve()}")
             print(f"State transitions written to {STATE_CHANGES_FILE.resolve()}")
             print(f"Occupancy trace written to {OCCUPANCY_TRACE_FILE.resolve()}")
@@ -3807,13 +3992,16 @@ def main() -> None:
         else:
             print(
                 "Workflow did not complete successfully; "
-                "canonical final files were not updated."
+                "execution trace/state transition canonical files were not updated."
             )
             print(f"WIP trace: {TRACE_WIP_FILE.resolve()}")
             print(f"WIP state transitions: {STATE_CHANGES_WIP_FILE.resolve()}")
-            print(f"WIP occupancy trace: {OCCUPANCY_TRACE_WIP_FILE.resolve()}")
-            print(f"WIP occupancy events: {OCCUPANCY_EVENTS_WIP_FILE.resolve()}")
-            print(f"WIP world snapshot: {WORLD_SNAPSHOT_WIP_FILE.resolve()}")
+            print(f"Occupancy trace written to {OCCUPANCY_TRACE_FILE.resolve()}")
+            print(f"Occupancy events written to {OCCUPANCY_EVENTS_FILE.resolve()}")
+            print(f"World snapshot written to {WORLD_SNAPSHOT_FILE.resolve()}")
+            print(f"WIP occupancy trace mirror: {OCCUPANCY_TRACE_WIP_FILE.resolve()}")
+            print(f"WIP occupancy events mirror: {OCCUPANCY_EVENTS_WIP_FILE.resolve()}")
+            print(f"WIP world snapshot mirror: {WORLD_SNAPSHOT_WIP_FILE.resolve()}")
 
 
 if __name__ == "__main__":

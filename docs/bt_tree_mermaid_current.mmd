@@ -1,0 +1,22 @@
+﻿flowchart TD
+    A["Sequence: RackAndProbeTransferFlow"]
+    A --> B["Retry(max=1): ValidateScaffoldPrerequisites"]
+
+    B --> S1["Retry(max=1): await_input_rack_present"]
+    S1 --> S2["Retry(max=1): nav_input"]
+    S2 --> S3["Retry(max=1): scan_input_landmark"]
+    S3 --> S4["Retry(max=1): transfer_input_rack"]
+    S4 --> S5["Retry(max=1): charge"]
+    S5 --> S6["Retry(max=1): camera_inspect_urg_for_new_samples"]
+    S6 --> S7["Retry(max=1): urg_sort_via_3fg_router"]
+    S7 --> S8["Retry(max=1): handoff_to_state_driven_planning"]
+
+    S8 --> L["State-driven loop"]
+    L --> U["UpdateWorldState_From_uLM"]
+    U --> P{"plan_next status"}
+    P -->|READY| X["Execute action: PROCESS_SAMPLE / STAGE_SAMPLE / PROVISION_RACK"]
+    X --> U
+    P -->|IDLE + return-candidate| R["Execute RETURN_RACK_HOME"]
+    R --> U
+    P -->|IDLE + no return-candidate| OK["SUCCESS"]
+    P -->|BLOCKED / action failure| FAIL["FAILURE"]

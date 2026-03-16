@@ -40,7 +40,12 @@ def wait_for_complete(
 if __name__ == "__main__":
 
     payload = {
-        "taskName": "UpdateWorldState_From_uLM",
+        "taskName": "SingleTask",
+        "ITM_ID": 1,
+        "JIG_ID": 2,
+        "OBJ_Nbr": 1,
+        "ACT": 1,
+        "OBJ_Type": 520,
     }
     print(payload)
 

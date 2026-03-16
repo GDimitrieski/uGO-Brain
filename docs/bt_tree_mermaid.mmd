@@ -1,0 +1,33 @@
+﻿flowchart TD
+    A[RackAndProbeTransferFlow<br/>Sequence] --> B[ValidateScaffoldPrerequisites<br/>Retry x1 / Condition]
+    B --> C[await_input_rack_present<br/>Phase]
+    C --> D[nav_input<br/>Task: Navigate]
+    D --> E[scan_input_landmark<br/>Task: SingleDeviceAction ACT=30]
+    E --> F[transfer_input_rack<br/>Phase]
+    F --> F1[SingleTask ACTION=PICK<br/>InputStation.URGRackSlot]
+    F1 --> F2[SingleTask ACTION=PLACE<br/>uLMPlateStation.URGRackSlot]
+    F2 --> G[charge<br/>Task: Charge]
+    G --> H[camera_inspect_urg_for_new_samples<br/>Phase]
+    H --> H1[InspectRackAtStation<br/>WRIST camera]
+    H1 --> I[urg_sort_via_3fg_router<br/>Phase per sample]
+    I --> I1[Move to 3FG<br/>SingleTask pick/place]
+    I1 --> I2[ProcessAt3FingerStation<br/>ACTION=3]
+    I2 --> I3[Router decision]
+    I3 --> I4[Move to destination<br/>SingleTask pick/place]
+    I4 --> J[handoff_to_state_driven_planning<br/>Phase]
+    J --> K[StateDrivenPlanningLoop]
+
+    K --> K1[UpdateWorldState_From_uLM]
+    K1 --> K2{plan_next status}
+    K2 -->|IDLE| K3[Success / End]
+    K2 -->|BLOCKED| K4[Failure / Stop]
+    K2 -->|READY| K5[Execute action]
+    K5 --> K6{action_type}
+    K6 -->|STAGE_SAMPLE| K7[Stage sample<br/>pick/place + reference scan]
+    K6 -->|PROCESS_SAMPLE| K8[Process handler]
+    K8 --> K9[3FG or Centrifuge or IH500 or Archive]
+    K7 --> K10{waiting external completion?}
+    K9 --> K10
+    K10 -->|Yes| K11[Poll + wait]
+    K11 --> K1
+    K10 -->|No| K1

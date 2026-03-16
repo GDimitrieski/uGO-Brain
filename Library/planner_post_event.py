@@ -1,8 +1,8 @@
 import requests
 from typing import Dict, Any, Optional, Union
-from Library.login import login
-from Library.credentials import credentials
-from Library.planner_control import PlannerEvent
+from login import login
+from credentials import credentials
+from planner_control import PlannerEvent
 
 
 def planner_post_event(url: str, token: str, event: Union[int, PlannerEvent]) -> Optional[Dict[str, Any]]:

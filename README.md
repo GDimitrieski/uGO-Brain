@@ -52,6 +52,18 @@ Run the workflow:
 python -m workflows.rack_probe_transfer_workflow
 ```
 
+Run the interactive BT runtime viewer (tree + trace):
+
+```powershell
+python -m http.server 8000
+```
+
+Then open:
+
+```text
+http://localhost:8000/docs/bt_tree_runtime_viewer.html
+```
+
 ## Configure Runtime Behavior
 
 Environment variables used by the main workflow:
@@ -145,3 +157,4 @@ python -m world.export_world_snapshot_jsonl --config world/world_config.json --o
 - `Available_Tasks.json`: task catalog and payload templates used by sender/planner validation
 - `1_SendSingleSkill.py`: utility script for sending a single task manually
 - `world_trace_viewer_barcodes_persistent_v2.html`: local HTML trace viewer
+- `docs/bt_tree_runtime_viewer.html`: interactive BT node inspector (Mermaid topology + execution trace CSV)
