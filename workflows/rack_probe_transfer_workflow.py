@@ -91,6 +91,17 @@ OCCUPANCY_TRACE_WIP_FILE = WORLD_DIR / "world_occupancy_trace.wip.csv"
 OCCUPANCY_EVENTS_WIP_FILE = WORLD_DIR / "world_occupancy_trace.wip.jsonl"
 WORLD_SNAPSHOT_WIP_FILE = WORLD_DIR / "world_snapshot.wip.jsonl"
 WORLD_BACKUP_DIR = WORLD_DIR / "versions"
+RUNTIME_DIR = PROJECT_ROOT / "runtime"
+PAUSE_REQUEST_FILE = Path(
+    os.getenv("UGO_PLANNER_PAUSE_REQUEST_FILE", str(RUNTIME_DIR / "planner_workflow_pause.request"))
+).resolve()
+PAUSE_ACK_FILE = Path(
+    os.getenv("UGO_PLANNER_PAUSE_ACK_FILE", str(RUNTIME_DIR / "planner_workflow_paused.ack"))
+).resolve()
+try:
+    PAUSE_POLL_S = max(0.1, float(os.getenv("UGO_PLANNER_PAUSE_POLL_S", "0.2").strip()))
+except Exception:
+    PAUSE_POLL_S = 0.2
 RESUME_FROM_LAST_WORLD_SNAPSHOT = os.getenv("UGO_RESUME_FROM_LAST_WORLD_SNAPSHOT", "1").strip().lower() in {
     "1",
     "true",
@@ -143,13 +154,6 @@ try:
 except Exception:
     STATE_DRIVEN_WAIT_POLL_S = 1.0
 WAIT_READY_PACKML_STATES = {"COMPLETE", "IDLE", "STOPPED"}
-PLANNER_CONTEXT_ERROR_CODE = str(os.getenv("UGO_PLANNER_CONTEXT_ERROR_CODE", " "))
-if PLANNER_CONTEXT_ERROR_CODE == "":
-    PLANNER_CONTEXT_ERROR_CODE = " "
-PLANNER_CONTEXT_MESSAGE = (
-    str(os.getenv("UGO_PLANNER_CONTEXT_MESSAGE", "WORKFLOW_CONTEXT")).strip()
-    or "WORKFLOW_CONTEXT"
-)
 POST_CONTEXT_FOR_EACH_TASK = os.getenv("UGO_PLANNER_CONTEXT_EACH_TASK", "1").strip().lower() in {
     "1",
     "true",
@@ -419,6 +423,45 @@ def build_sample_router() -> ChainedSampleRouter:
 
 def _local_now_iso() -> str:
     return datetime.now().astimezone().isoformat(timespec="milliseconds")
+
+
+def _pause_requested() -> bool:
+    return PAUSE_REQUEST_FILE.exists()
+
+
+def _set_pause_ack(paused: bool) -> None:
+    try:
+        PAUSE_ACK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        if paused:
+            with open(PAUSE_ACK_FILE, "w", encoding="utf-8") as f:
+                f.write(_local_now_iso() + "\n")
+        else:
+            PAUSE_ACK_FILE.unlink(missing_ok=True)
+    except Exception as exc:
+        print(f"Pause ack update warning: {exc}")
+
+
+def _wait_if_pause_requested(task_name: str) -> None:
+    if not _pause_requested():
+        _set_pause_ack(False)
+        return
+
+    _set_pause_ack(True)
+    printed_wait = False
+    try:
+        while _pause_requested():
+            if not printed_wait:
+                print(
+                    "Workflow pause requested; holding before next action dispatch "
+                    f"('{task_name}')."
+                )
+                printed_wait = True
+            time.sleep(PAUSE_POLL_S)
+    finally:
+        _set_pause_ack(False)
+
+    if printed_wait:
+        print(f"Workflow resume requested; continuing with '{task_name}'.")
 
 
 def _slot_map_from_raw(raw: Any) -> Dict[int, str]:
@@ -1499,21 +1542,7 @@ def build_tree(
         if last_msg == msg:
             return
 
-        posted_error_id = ""
-        try:
-            posted = sender.robot.post_error(
-                code=PLANNER_CONTEXT_ERROR_CODE,
-                message=PLANNER_CONTEXT_MESSAGE,
-                action=msg,
-            )
-            if posted is not None:
-                posted_error_id = str(posted).strip()
-        except Exception as exc:
-            print(f"Workflow context post warning: {exc}")
-            bb["workflow_context_error_id"] = ""
-            return
-
-        bb["workflow_context_error_id"] = posted_error_id
+        # Workflow status/step context is internal-only; no planner error posting.
         bb["workflow_context_message"] = msg
         bb["workflow_context_ts"] = _local_now_iso()
 
@@ -1594,6 +1623,7 @@ def build_tree(
             _append_live_state_change(sc_record)
 
     def _run_task(task_key: str, overrides: Dict[str, Any], task_name: str) -> Tuple[bool, Dict[str, Any]]:
+        _wait_if_pause_requested(task_name)
         sent_ts = _local_now_iso()
         if POST_CONTEXT_FOR_EACH_TASK:
             bb_ctx = active_context.get("bb")
@@ -3913,6 +3943,8 @@ def build_tree(
 def main() -> None:
     TRACE_DIR.mkdir(parents=True, exist_ok=True)
     WORLD_DIR.mkdir(parents=True, exist_ok=True)
+    PAUSE_ACK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _set_pause_ack(False)
 
     sender = build_sender()
     trace_fieldnames = _trace_fieldnames_from_catalog(sender)
@@ -3966,6 +3998,7 @@ def main() -> None:
             details={"reason": f"run_end_{str(st)}"},
         )
     finally:
+        _set_pause_ack(False)
         # Persist physical world-state artifacts even when the workflow fails.
         export_occupancy_trace(
             occupancy_records,

@@ -1,7 +1,7 @@
 import requests
 from typing import Dict, Any, Optional
-from Library.login import login
-from Library.credentials import credentials
+from login import login
+from credentials import credentials
 
 def planner_get_event(url: str, token: str) -> Optional[Dict[str, Any]]:
     if token:

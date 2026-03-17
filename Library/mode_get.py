@@ -1,6 +1,6 @@
 import requests
 from typing import Dict, Any, Optional
-from Library.credentials import credentials
+from credentials import credentials
 
 def get_mode(url: str) -> Optional[Dict[str, Any]]:
     try:

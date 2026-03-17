@@ -16,9 +16,11 @@ class PlannerEvent(IntEnum):
 
 class SystemState(IntEnum):
     STOPPED = 0
+    READY = 0
     EXECUTE = 1
     STOPPING = 2
     RESETTING = 3
+    STARTING = 4
 
 
 @dataclass
