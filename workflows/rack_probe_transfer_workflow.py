@@ -154,6 +154,15 @@ try:
 except Exception:
     STATE_DRIVEN_WAIT_POLL_S = 1.0
 WAIT_READY_PACKML_STATES = {"COMPLETE", "IDLE", "STOPPED"}
+SAMPLE_HOLD_STATUS_RUNNING = "RUNNING"
+SAMPLE_HOLD_STATUS_READY_TO_UNLOAD = "READY_TO_UNLOAD"
+try:
+    CENTRIFUGE_ASYNC_MAX_RUNTIME_S = max(
+        60.0,
+        float(os.getenv("UGO_CENTRIFUGE_ASYNC_MAX_RUNTIME_S", "1200").strip() or "1200"),
+    )
+except Exception:
+    CENTRIFUGE_ASYNC_MAX_RUNTIME_S = 1200.0
 POST_CONTEXT_FOR_EACH_TASK = os.getenv("UGO_PLANNER_CONTEXT_EACH_TASK", "1").strip().lower() in {
     "1",
     "true",
@@ -1733,14 +1742,19 @@ def build_tree(
             return txt
         return ""
 
-    def _set_world_device_packml_state(device_id: str, packml_state: str) -> None:
+    def _set_world_device_packml_state(
+        device_id: str,
+        packml_state: str,
+        *,
+        source: str = "UpdateWorldState_From_uLM",
+    ) -> None:
         dev = world.devices.get(str(device_id))
         if dev is None:
             raise KeyError(f"Unknown world device '{device_id}'")
         metadata = dict(dev.metadata) if isinstance(dev.metadata, dict) else {}
         metadata["packml_state"] = str(packml_state).strip().upper()
         metadata["packml_state_ts"] = _local_now_iso()
-        metadata["packml_state_source"] = "UpdateWorldState_From_uLM"
+        metadata["packml_state_source"] = str(source or "UpdateWorldState_From_uLM")
         world.devices[str(device_id)] = Device(
             id=str(dev.id),
             name=str(dev.name),
@@ -1763,6 +1777,11 @@ def build_tree(
         try:
             runtime_centrifuge = runtime_devices.get_centrifuge(str(device_id))
         except Exception:
+            return
+
+        # Controller-backed centrifuges must not be force-transitioned by mirrored
+        # world snapshots; the remote device state is authoritative.
+        if getattr(runtime_centrifuge, "controller", None) is not None:
             return
 
         try:
@@ -2465,12 +2484,22 @@ def build_tree(
                 return True
         return False
 
+    def _is_centrifuge_rack(rack_id: str) -> bool:
+        rack = world.racks.get(str(rack_id))
+        if rack is None:
+            return False
+        rack_type = str(getattr(getattr(rack, "rack_type", ""), "value", getattr(rack, "rack_type", "")))
+        return rack_type.strip().upper() == RackType.CENTRIFUGE_RACK.value
+
     def _next_idle_rack_return_candidate(bb: Blackboard) -> Optional[Dict[str, Any]]:
         if not baseline_rack_home_by_id:
             return None
 
         for (station_id, station_slot_id), rack_id in sorted(world.rack_placements.items()):
             rack_id_txt = str(rack_id)
+            # Centrifuge racks are planner-controlled and must not be auto-returned on IDLE.
+            if _is_centrifuge_rack(rack_id_txt):
+                continue
             if _is_rack_locked(bb, rack_id_txt):
                 continue
             home = _baseline_home_for_rack(rack_id_txt)
@@ -2544,6 +2573,13 @@ def build_tree(
         if rack is None:
             print(f"StateDriven rack-return prerequisite failed: unknown rack '{rack_id}'")
             return False
+        rack_type = str(getattr(getattr(rack, "rack_type", ""), "value", getattr(rack, "rack_type", "")))
+        if rack_type.strip().upper() == RackType.CENTRIFUGE_RACK.value:
+            print(
+                "StateDriven rack-return skipped: centrifuge racks are planner-controlled "
+                f"(rack_id='{rack_id}')"
+            )
+            return True
         source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
         target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
 
@@ -2640,6 +2676,313 @@ def build_tree(
             for sample_id in rack.occupied_slots.values():
                 ids.add(str(sample_id))
         return sorted(ids)
+
+    def _get_sample_process_holds(bb: Blackboard) -> Dict[str, Dict[str, Any]]:
+        raw = bb.get("state_driven_sample_process_holds", {})
+        out: Dict[str, Dict[str, Any]] = {}
+        if isinstance(raw, dict):
+            for sample_id, payload in raw.items():
+                sid = str(sample_id).strip()
+                if not sid or not isinstance(payload, dict):
+                    continue
+                out[sid] = dict(payload)
+        bb["state_driven_sample_process_holds"] = out
+        return out
+
+    def _set_sample_process_holds(bb: Blackboard, holds: Dict[str, Dict[str, Any]]) -> None:
+        cleaned: Dict[str, Dict[str, Any]] = {}
+        for sample_id, payload in holds.items():
+            sid = str(sample_id).strip()
+            if not sid or not isinstance(payload, dict):
+                continue
+            cleaned[sid] = dict(payload)
+        bb["state_driven_sample_process_holds"] = cleaned
+
+    def _get_active_device_jobs(bb: Blackboard) -> Dict[str, Dict[str, Any]]:
+        raw = bb.get("state_driven_active_device_jobs", {})
+        out: Dict[str, Dict[str, Any]] = {}
+        if isinstance(raw, dict):
+            for device_id, payload in raw.items():
+                did = str(device_id).strip()
+                if not did or not isinstance(payload, dict):
+                    continue
+                out[did] = dict(payload)
+        bb["state_driven_active_device_jobs"] = out
+        return out
+
+    def _set_active_device_jobs(bb: Blackboard, jobs: Dict[str, Dict[str, Any]]) -> None:
+        cleaned: Dict[str, Dict[str, Any]] = {}
+        for device_id, payload in jobs.items():
+            did = str(device_id).strip()
+            if not did or not isinstance(payload, dict):
+                continue
+            cleaned[did] = dict(payload)
+        bb["state_driven_active_device_jobs"] = cleaned
+
+    def _pending_sample_ids_for_process_at_jig(
+        station_id: str,
+        jig_id: int,
+        process: ProcessType,
+    ) -> List[str]:
+        sample_ids: Set[str] = set()
+        for sample_id in _sample_ids_in_jig(station_id, int(jig_id)):
+            try:
+                pending = world.pending_processes(str(sample_id))
+            except Exception:
+                continue
+            if process in pending:
+                sample_ids.add(str(sample_id))
+        return sorted(sample_ids)
+
+    def _register_centrifuge_running_job(
+        bb: Blackboard,
+        *,
+        device_id: str,
+        sample_ids: Sequence[str],
+        reason: str,
+    ) -> None:
+        did = str(device_id).strip()
+        if not did:
+            return
+        unique_samples = sorted({str(x).strip() for x in sample_ids if str(x).strip()})
+        if not unique_samples:
+            return
+
+        now_ts = _local_now_iso()
+        jobs = _get_active_device_jobs(bb)
+        existing = dict(jobs.get(did, {}))
+        merged_samples = sorted(
+            set(unique_samples)
+            | {str(x).strip() for x in existing.get("sample_ids", []) if str(x).strip()}
+        )
+        started_ts = str(existing.get("started_ts", "")).strip() or now_ts
+        jobs[did] = {
+            "process": ProcessType.CENTRIFUGATION.value,
+            "status": SAMPLE_HOLD_STATUS_RUNNING,
+            "started_ts": started_ts,
+            "updated_ts": now_ts,
+            "sample_ids": merged_samples,
+            "reason": str(reason),
+        }
+        _set_active_device_jobs(bb, jobs)
+
+        holds = _get_sample_process_holds(bb)
+        for sample_id in merged_samples:
+            hold = dict(holds.get(sample_id, {}))
+            hold["process"] = ProcessType.CENTRIFUGATION.value
+            hold["device_id"] = did
+            hold["status"] = SAMPLE_HOLD_STATUS_RUNNING
+            hold["reason"] = str(reason)
+            hold["updated_ts"] = now_ts
+            hold["created_ts"] = str(hold.get("created_ts", "")).strip() or started_ts
+            holds[sample_id] = hold
+        _set_sample_process_holds(bb, holds)
+
+    def _mark_centrifuge_job_ready_to_unload(bb: Blackboard, *, device_id: str, reason: str) -> None:
+        did = str(device_id).strip()
+        if not did:
+            return
+        jobs = _get_active_device_jobs(bb)
+        job = dict(jobs.get(did, {}))
+        if not job:
+            return
+        if str(job.get("status", "")).strip().upper() == SAMPLE_HOLD_STATUS_READY_TO_UNLOAD:
+            return
+
+        now_ts = _local_now_iso()
+        job["status"] = SAMPLE_HOLD_STATUS_READY_TO_UNLOAD
+        job["ready_ts"] = now_ts
+        job["updated_ts"] = now_ts
+        job["reason"] = str(reason)
+        jobs[did] = job
+        _set_active_device_jobs(bb, jobs)
+
+        holds = _get_sample_process_holds(bb)
+        for sample_id in [str(x).strip() for x in job.get("sample_ids", []) if str(x).strip()]:
+            hold = dict(holds.get(sample_id, {}))
+            hold["process"] = ProcessType.CENTRIFUGATION.value
+            hold["device_id"] = did
+            hold["status"] = SAMPLE_HOLD_STATUS_READY_TO_UNLOAD
+            hold["reason"] = str(reason)
+            hold["updated_ts"] = now_ts
+            hold["created_ts"] = str(hold.get("created_ts", "")).strip() or now_ts
+            holds[sample_id] = hold
+        _set_sample_process_holds(bb, holds)
+
+    def _clear_centrifuge_job_and_holds(
+        bb: Blackboard,
+        *,
+        device_id: str,
+        sample_ids: Optional[Sequence[str]] = None,
+    ) -> None:
+        did = str(device_id).strip()
+        jobs = _get_active_device_jobs(bb)
+        job = dict(jobs.get(did, {})) if did else {}
+
+        release_ids: Set[str] = set()
+        if sample_ids is not None:
+            release_ids |= {str(x).strip() for x in sample_ids if str(x).strip()}
+        if job:
+            release_ids |= {str(x).strip() for x in job.get("sample_ids", []) if str(x).strip()}
+
+        holds = _get_sample_process_holds(bb)
+        for sample_id in release_ids:
+            holds.pop(sample_id, None)
+        _set_sample_process_holds(bb, holds)
+
+        jobs_changed = False
+        if did and did in jobs:
+            jobs.pop(did, None)
+            jobs_changed = True
+        elif release_ids:
+            for candidate_id, payload in list(jobs.items()):
+                process = str(payload.get("process", "")).strip().upper()
+                if process != ProcessType.CENTRIFUGATION.value:
+                    continue
+                job_sample_ids = {
+                    str(x).strip()
+                    for x in payload.get("sample_ids", [])
+                    if str(x).strip()
+                }
+                if job_sample_ids & release_ids:
+                    jobs.pop(candidate_id, None)
+                    jobs_changed = True
+        if jobs_changed:
+            _set_active_device_jobs(bb, jobs)
+
+    def _running_hold_sample_ids(bb: Blackboard) -> Set[str]:
+        holds = _get_sample_process_holds(bb)
+        out: Set[str] = set()
+        for sample_id, payload in holds.items():
+            process = str(payload.get("process", "")).strip().upper()
+            status = str(payload.get("status", "")).strip().upper()
+            if process == ProcessType.CENTRIFUGATION.value and status == SAMPLE_HOLD_STATUS_RUNNING:
+                out.add(str(sample_id))
+        return out
+
+    def _has_running_centrifuge_jobs(bb: Blackboard) -> bool:
+        jobs = _get_active_device_jobs(bb)
+        for payload in jobs.values():
+            process = str(payload.get("process", "")).strip().upper()
+            status = str(payload.get("status", "")).strip().upper()
+            if process == ProcessType.CENTRIFUGATION.value and status == SAMPLE_HOLD_STATUS_RUNNING:
+                return True
+        return False
+
+    def _active_centrifuge_job_sample_ids(bb: Blackboard, device_id: str) -> List[str]:
+        did = str(device_id).strip()
+        if not did:
+            return []
+        jobs = _get_active_device_jobs(bb)
+        job = jobs.get(did)
+        if not isinstance(job, dict):
+            return []
+        return sorted({str(x).strip() for x in job.get("sample_ids", []) if str(x).strip()})
+
+    def _sync_active_centrifuge_jobs(bb: Blackboard, loop_index: int) -> bool:
+        try:
+            runtime_centrifuges = runtime_devices.get_centrifuges_at_station(CENTRIFUGE_STATION_ID)
+        except Exception:
+            return True
+
+        for runtime_centrifuge in runtime_centrifuges:
+            device_id = str(runtime_centrifuge.identity.device_id)
+            try:
+                diag = dict(runtime_centrifuge.diagnose())
+            except Exception as exc:
+                print(
+                    "StateDriven centrifuge background sync warning: diagnose failed "
+                    f"(device='{device_id}', loop={int(loop_index)}, error={exc})"
+                )
+                continue
+
+            runtime_packml = str(diag.get("packml_state", "")).strip().upper()
+            runtime_fault = str(diag.get("fault_code", "")).strip()
+            runtime_spinning = bool(diag.get("rotor_spinning", False))
+            if runtime_packml:
+                _set_world_device_packml_state(
+                    device_id,
+                    runtime_packml,
+                    source="RuntimeDeviceDiagnose",
+                )
+
+            pending_sample_ids = _pending_sample_ids_for_process_at_jig(
+                CENTRIFUGE_STATION_ID,
+                2,
+                ProcessType.CENTRIFUGATION,
+            )
+
+            if (runtime_spinning or runtime_packml == "EXECUTE") and pending_sample_ids:
+                _register_centrifuge_running_job(
+                    bb,
+                    device_id=device_id,
+                    sample_ids=pending_sample_ids,
+                    reason="Centrifuge cycle running.",
+                )
+
+            if runtime_fault and runtime_fault != "00000000":
+                active_samples = _active_centrifuge_job_sample_ids(bb, device_id)
+                if active_samples:
+                    print(
+                        "StateDriven centrifuge background sync failed: active centrifuge job is faulted "
+                        f"(device='{device_id}', fault='{runtime_fault}', samples={active_samples})"
+                    )
+                    return False
+
+            jobs = _get_active_device_jobs(bb)
+            job = jobs.get(device_id)
+            if not isinstance(job, dict):
+                continue
+
+            job_status = str(job.get("status", "")).strip().upper()
+            started_ts = str(job.get("started_ts", "")).strip()
+            if job_status == SAMPLE_HOLD_STATUS_RUNNING and started_ts:
+                try:
+                    started_dt = datetime.fromisoformat(started_ts)
+                    elapsed_s = max(
+                        0.0,
+                        (datetime.now().astimezone() - started_dt).total_seconds(),
+                    )
+                    if elapsed_s > float(CENTRIFUGE_ASYNC_MAX_RUNTIME_S):
+                        print(
+                            "StateDriven centrifuge background sync failed: max runtime exceeded "
+                            f"(device='{device_id}', elapsed_s={elapsed_s:.1f}, "
+                            f"limit_s={float(CENTRIFUGE_ASYNC_MAX_RUNTIME_S):.1f})"
+                        )
+                        return False
+                except Exception:
+                    pass
+
+            if (
+                job_status == SAMPLE_HOLD_STATUS_RUNNING
+                and not runtime_spinning
+                and runtime_packml in WAIT_READY_PACKML_STATES
+            ):
+                _mark_centrifuge_job_ready_to_unload(
+                    bb,
+                    device_id=device_id,
+                    reason=(
+                        "Centrifuge cycle finished; unload can continue "
+                        f"(packml_state={runtime_packml})"
+                    ),
+                )
+                append_world_event(
+                    occupancy_records,
+                    world,
+                    event_type="STATE_DRIVEN_WAIT_SATISFIED",
+                    entity_type="WORKFLOW",
+                    entity_id="STATE_DRIVEN_PLANNING",
+                    details={
+                        "phase": "StateDrivenPlanning",
+                        "loop_index": int(loop_index),
+                        "process": ProcessType.CENTRIFUGATION.value,
+                        "device_id": device_id,
+                        "packml_state": runtime_packml,
+                        "ready_states": sorted(WAIT_READY_PACKML_STATES),
+                        "source": "RuntimeDeviceDiagnose",
+                    },
+                )
+        return True
 
     def _slot_cfg_by_rack_index_for_jig(station_id: str, jig_id: int) -> Dict[int, Any]:
         out: Dict[int, Any] = {}
@@ -3081,14 +3424,30 @@ def build_tree(
             return True
 
         if process == ProcessType.CENTRIFUGATION:
+            hold_payload = _get_sample_process_holds(bb).get(sample_id, {})
+            hold_status = str(hold_payload.get("status", "")).strip().upper()
+            if hold_status == SAMPLE_HOLD_STATUS_RUNNING:
+                print(
+                    "StateDriven centrifugation deferred: sample is still in active centrifuge cycle "
+                    f"(sample='{sample_id}', hold_status={hold_status})"
+                )
+                bb["state_driven_last_action"] = action.to_dict()
+                return True
+
             ok = _execute_centrifuge_cycle(bb)
             if not ok:
                 return False
             resolved_mode = str(bb.get("centrifuge_mode_resolved", "")).strip().upper()
+            wait_device_id = str(
+                action.selected_device_id or bb.get("active_runtime_centrifuge_id", "")
+            ).strip()
             if resolved_mode == "UNLOAD":
-                completed_sample_ids = _sample_ids_in_jig(PLATE_STATION_ID, 2)
-                for sid in completed_sample_ids:
+                completed_sample_ids: Set[str] = set(_active_centrifuge_job_sample_ids(bb, wait_device_id))
+                completed_sample_ids.update(_sample_ids_in_jig(PLATE_STATION_ID, 2))
+                for sid in sorted(completed_sample_ids):
                     try:
+                        if ProcessType.CENTRIFUGATION not in world.pending_processes(sid):
+                            continue
                         world.mark_process_completed(sid, ProcessType.CENTRIFUGATION)
                     except Exception:
                         continue
@@ -3097,26 +3456,39 @@ def build_tree(
                         ProcessType.CENTRIFUGATION,
                         {"mode": "UNLOAD"},
                     )
-                bb["state_driven_waiting_external_completion"] = False
-                bb["state_driven_waiting_reason"] = ""
-                bb.pop("state_driven_wait_process", None)
-                bb.pop("state_driven_wait_device_id", None)
-                bb.pop("state_driven_wait_ready_states", None)
-                bb.pop("state_driven_wait_last_packml_state", None)
-            elif resolved_mode == "LOAD":
-                wait_device_id = str(
-                    action.selected_device_id or bb.get("active_runtime_centrifuge_id", "")
-                ).strip()
-                bb["state_driven_waiting_external_completion"] = True
-                bb["state_driven_waiting_reason"] = (
-                    "Centrifuge started in LOAD mode. Unload cycle is required before "
-                    "CENTRIFUGATION completion can be marked."
+                _clear_centrifuge_job_and_holds(
+                    bb,
+                    device_id=wait_device_id,
+                    sample_ids=sorted(completed_sample_ids),
                 )
-                bb["state_driven_wait_process"] = ProcessType.CENTRIFUGATION.value
-                bb["state_driven_wait_device_id"] = str(wait_device_id)
-                bb["state_driven_wait_ready_states"] = sorted(WAIT_READY_PACKML_STATES)
-                if wait_device_id:
-                    bb["state_driven_wait_last_packml_state"] = _get_world_device_packml_state(wait_device_id)
+            elif resolved_mode == "LOAD":
+                running_sample_ids = _pending_sample_ids_for_process_at_jig(
+                    CENTRIFUGE_STATION_ID,
+                    2,
+                    ProcessType.CENTRIFUGATION,
+                )
+                if sample_id and sample_id not in running_sample_ids:
+                    try:
+                        if ProcessType.CENTRIFUGATION in world.pending_processes(sample_id):
+                            running_sample_ids.append(sample_id)
+                    except Exception:
+                        pass
+                if wait_device_id and running_sample_ids:
+                    _register_centrifuge_running_job(
+                        bb,
+                        device_id=wait_device_id,
+                        sample_ids=running_sample_ids,
+                        reason=(
+                            "Centrifuge started in LOAD mode. Samples are held until "
+                            "runtime reports cycle completion."
+                        ),
+                    )
+            bb["state_driven_waiting_external_completion"] = False
+            bb["state_driven_waiting_reason"] = ""
+            bb.pop("state_driven_wait_process", None)
+            bb.pop("state_driven_wait_device_id", None)
+            bb.pop("state_driven_wait_ready_states", None)
+            bb.pop("state_driven_wait_last_packml_state", None)
             bb["state_driven_last_action"] = action.to_dict()
             return True
 
@@ -3172,17 +3544,27 @@ def build_tree(
         executed_actions: List[Dict[str, Any]] = []
         bb["state_driven_waiting_external_completion"] = False
         bb["state_driven_waiting_reason"] = ""
+        loop_index = 0
+        executed_action_count = 0
 
-        for loop_index in range(1, max_actions + 1):
+        while executed_action_count < max_actions:
+            loop_index += 1
             if not _refresh_world_device_states_from_ulm(bb, loop_index):
+                return False
+            if not _sync_active_centrifuge_jobs(bb, loop_index):
                 return False
             if bool(bb.get("state_driven_waiting_external_completion", False)):
                 if not _is_external_wait_satisfied(bb, loop_index):
                     if STATE_DRIVEN_WAIT_POLL_S > 0:
                         time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
                     continue
+            excluded_sample_ids = _running_hold_sample_ids(bb)
+            bb["state_driven_excluded_sample_ids"] = sorted(excluded_sample_ids)
             try:
-                dynamic_result = dynamic_state_planner.plan_next(world)
+                dynamic_result = dynamic_state_planner.plan_next(
+                    world,
+                    excluded_sample_ids=excluded_sample_ids,
+                )
             except Exception as exc:
                 print(f"StateDriven planning failed: planner error ({exc})")
                 return False
@@ -3218,12 +3600,21 @@ def build_tree(
                     if not _execute_return_rack_home(return_candidate, bb):
                         return False
                     executed_actions.append(_return_rack_action_payload(return_candidate))
+                    executed_action_count += 1
                     bb["state_driven_actions_executed"] = list(executed_actions)
+                    continue
+                if _has_running_centrifuge_jobs(bb):
+                    if STATE_DRIVEN_WAIT_POLL_S > 0:
+                        time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
                     continue
                 bb["state_driven_actions_executed"] = list(executed_actions)
                 return True
 
             if status == "BLOCKED":
+                if _has_running_centrifuge_jobs(bb):
+                    if STATE_DRIVEN_WAIT_POLL_S > 0:
+                        time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
+                    continue
                 blocked_reason = ""
                 if dynamic_result.blocked:
                     blocked_reason = str(dynamic_result.blocked[0].get("reason", ""))
@@ -3242,6 +3633,7 @@ def build_tree(
             if not _execute_state_driven_action(action, bb):
                 return False
             executed_actions.append(action.to_dict())
+            executed_action_count += 1
 
             if bool(bb.get("state_driven_waiting_external_completion", False)):
                 bb["state_driven_actions_executed"] = list(executed_actions)
@@ -3780,13 +4172,6 @@ def build_tree(
         ok, _ = _run_task("SingleDeviceAction", scan_overrides, "CentrifugeCycle.ScanLandmark")
         if not ok:
             return False
-        try:
-            if not runtime_device.apply_single_device_action(DEVICE_ACTION_SCAN_LANDMARK):
-                print("CentrifugeCycle sync failed: runtime device rejected ScanLandmark")
-                return False
-        except Exception as exc:
-            print(f"CentrifugeCycle runtime device sync failed (ScanLandmark): {exc}")
-            return False
 
         try:
             plan = compile_centrifuge_usage_plan(world=world, device=runtime_device, mode=mode)
@@ -3848,12 +4233,18 @@ def build_tree(
                 continue
 
             if isinstance(op, DeviceActionStep):
-                ok, _ = _run_task(op.task_key, dict(op.overrides), f"CentrifugeCycle.{op.name}")
-                if not ok:
-                    return False
-                act = int(op.overrides.get("ACT", 0))
+                action_overrides = dict(op.overrides or {})
+                act = int(action_overrides.get("ACT", 0))
+                rotor_slot_index = int(
+                    getattr(op, "rotor_slot_index", 0)
+                    or action_overrides.get("OBJ_Nbr", 0)
+                    or 0
+                )
                 try:
-                    if not runtime_device.apply_single_device_action(act):
+                    if not runtime_device.apply_single_device_action(
+                        act,
+                        rotor_slot_index=rotor_slot_index,
+                    ):
                         print(f"CentrifugeCycle runtime device sync rejected ({op.name})")
                         return False
                 except Exception as exc:

@@ -110,9 +110,9 @@ class PlannerWebInterfaceBridge:
         self._state_manual_ready = int(os.getenv("UGO_PLANNER_STATE_MANUAL_READY", "0"))
         self._state_stopped = int(os.getenv("UGO_PLANNER_STATE_STOPPED", "0"))
         try:
-            self._transient_min_hold_s = max(0.0, float(os.getenv("UGO_PLANNER_TRANSIENT_MIN_HOLD_S", "3.0")))
+            self._transient_min_hold_s = max(0.0, float(os.getenv("UGO_PLANNER_TRANSIENT_MIN_HOLD_S", "1.5")))
         except Exception:
-            self._transient_min_hold_s = 3.0
+            self._transient_min_hold_s = 1.5
         try:
             self._transient_republish_s = max(0.1, float(os.getenv("UGO_PLANNER_TRANSIENT_REPUBLISH_S", "1.0")))
         except Exception:

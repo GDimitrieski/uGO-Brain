@@ -60,6 +60,13 @@ class DeviceCentrifugeRuntimeTests(unittest.TestCase):
         self.assertTrue(device.load_rack("RACK_02", "CENTRIFUGE_RACK"))
         self.assertFalse(device.load_rack("RACK_03", "CENTRIFUGE_RACK"))
 
+    def test_move_rotor_requires_explicit_slot_index(self) -> None:
+        device = self._build_centrifuge(max_racks=2)
+        self.assertFalse(device.apply_single_device_action(DEVICE_ACTION_MOVE_ROTOR))
+        self.assertTrue(device.apply_single_device_action(DEVICE_ACTION_MOVE_ROTOR, rotor_slot_index=2))
+        diag = device.diagnose()
+        self.assertEqual(diag["rotor_step_index"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

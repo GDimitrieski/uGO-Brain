@@ -70,18 +70,16 @@
       "payload_template": {
         "taskName": "SingleDeviceAction",
         "ITM_ID": "{ITM_ID}",
+        "OBJ_Nbr": "{OBJ_Nbr}",
         "ACT": "{ACT}"
       },
       "parameters": {
         "ITM_ID": { "type": "integer", "default": 5 },
-        "ACT": { "type": "integer", "default": 1, "enum": [1, 2, 3, 4, 30] }
+        "OBJ_Nbr": { "type": "integer", "default": 0 },
+        "ACT": { "type": "integer", "default": 30, "enum": [30] }
       },
       "required": ["ITM_ID", "ACT"],
       "action_map": {
-        "1": "OpenHatch",
-        "2": "StartCentrifuge",
-        "3": "CloseHatch",
-        "4": "MoveRotor",
         "30": "ScanLandMark"
       },
       "output": {

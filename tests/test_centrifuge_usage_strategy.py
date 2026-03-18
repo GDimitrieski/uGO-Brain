@@ -118,6 +118,8 @@ class CentrifugeUsageStrategyTests(unittest.TestCase):
             prev_op = plan.operations[idx - 1]
             self.assertIsInstance(prev_op, DeviceActionStep)
             self.assertEqual(prev_op.name, f"MoveRotorToPos{int(op.transfer_index)}")
+            self.assertEqual(int(prev_op.rotor_slot_index), int(op.transfer_index))
+            self.assertEqual(int(prev_op.overrides.get("OBJ_Nbr", 0)), int(op.transfer_index))
 
 
 if __name__ == "__main__":

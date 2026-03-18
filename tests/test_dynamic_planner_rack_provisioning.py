@@ -15,6 +15,16 @@ FRIDGE_SLOT_1 = "URGFridgeRackSlot1"
 FRIDGE_SLOT_2 = "URGFridgeRackSlot2"
 
 
+def _centrifugation_policy() -> ProcessPolicy:
+    return ProcessPolicy(
+        process=ProcessType.CENTRIFUGATION,
+        target_station_id=PLATE_STATION_ID,
+        target_jig_ids=(2,),
+        required_rack_types=(RackType.CENTRIFUGE_RACK,),
+        loading_strategy="ROUND_ROBIN",
+    )
+
+
 def _archivation_policy() -> ProcessPolicy:
     return ProcessPolicy(
         process=ProcessType.ARCHIVATION,
@@ -177,6 +187,155 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
         self.assertEqual(result.action.sample_id, sample_b)
         self.assertEqual(result.action.process, ProcessType.DECAP)
         self.assertEqual(result.action.action_type, "STAGE_SAMPLE")
+
+    def test_plan_next_skips_excluded_samples(self) -> None:
+        world = build_default_world()
+        if world.rack_placements.get((PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID)) is None:
+            world.move_rack(
+                source_station_id=ARCHIVE_STATION_ID,
+                source_station_slot_id=ARCHIVE_SLOT_ID,
+                target_station_id=PLATE_STATION_ID,
+                target_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+            )
+        target_rack = world.get_rack_at(PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID)
+        free_slots = [
+            idx for idx in target_rack.available_slots()
+            if int(idx) not in set(int(x) for x in target_rack.occupied_slots.keys())
+        ]
+        self.assertGreaterEqual(len(free_slots), 2)
+        slot_a = int(free_slots[0])
+        slot_b = int(free_slots[1])
+
+        sample_a = world.ensure_placeholder_sample(
+            station_id=INPUT_STATION_ID,
+            station_slot_id=INPUT_URG_SLOT_ID,
+            slot_index=1,
+            obj_type=101,
+        )
+        world.classify_sample(
+            sample_a,
+            recognized=True,
+            classification_source="unit-test",
+            required_processes=(ProcessType.ARCHIVATION,),
+        )
+        world.move_sample(
+            source_station_id=INPUT_STATION_ID,
+            source_station_slot_id=INPUT_URG_SLOT_ID,
+            source_slot_index=1,
+            target_station_id=PLATE_STATION_ID,
+            target_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+            target_slot_index=slot_a,
+        )
+
+        sample_b = world.ensure_placeholder_sample(
+            station_id=INPUT_STATION_ID,
+            station_slot_id=INPUT_URG_SLOT_ID,
+            slot_index=2,
+            obj_type=101,
+        )
+        world.classify_sample(
+            sample_b,
+            recognized=True,
+            classification_source="unit-test",
+            required_processes=(ProcessType.ARCHIVATION,),
+        )
+        world.move_sample(
+            source_station_id=INPUT_STATION_ID,
+            source_station_slot_id=INPUT_URG_SLOT_ID,
+            source_slot_index=2,
+            target_station_id=PLATE_STATION_ID,
+            target_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+            target_slot_index=slot_b,
+        )
+
+        planner = DynamicStatePlanner({ProcessType.ARCHIVATION: _archivation_policy()})
+        result = planner.plan_next(world, excluded_sample_ids={sample_a})
+
+        self.assertEqual(result.status, "READY")
+        self.assertIsNotNone(result.action)
+        assert result.action is not None
+        self.assertEqual(result.action.sample_id, sample_b)
+        self.assertEqual(result.action.action_type, "PROCESS_SAMPLE")
+
+    def test_centrifuge_process_starts_when_all_available_samples_are_staged(self) -> None:
+        world = build_default_world()
+        sample_id = world.ensure_placeholder_sample(
+            station_id=INPUT_STATION_ID,
+            station_slot_id=INPUT_URG_SLOT_ID,
+            slot_index=1,
+            obj_type=101,
+        )
+        world.classify_sample(
+            sample_id,
+            recognized=True,
+            classification_source="unit-test",
+            required_processes=(ProcessType.CENTRIFUGATION,),
+        )
+        world.move_sample(
+            source_station_id=INPUT_STATION_ID,
+            source_station_slot_id=INPUT_URG_SLOT_ID,
+            source_slot_index=1,
+            target_station_id=PLATE_STATION_ID,
+            target_station_slot_id="CentrifugeRacksSlot1",
+            target_slot_index=1,
+        )
+
+        planner = DynamicStatePlanner({ProcessType.CENTRIFUGATION: _centrifugation_policy()})
+        result = planner.plan_next(world)
+
+        self.assertEqual(result.status, "READY")
+        self.assertIsNotNone(result.action)
+        assert result.action is not None
+        self.assertEqual(result.action.sample_id, sample_id)
+        self.assertEqual(result.action.process, ProcessType.CENTRIFUGATION)
+        self.assertEqual(result.action.action_type, "PROCESS_SAMPLE")
+
+    def test_centrifuge_process_starts_when_target_racks_are_full(self) -> None:
+        world = build_default_world()
+        for slot_id in [
+            "CentrifugeRacksSlot1",
+            "CentrifugeRacksSlot2",
+            "CentrifugeRacksSlot3",
+            "CentrifugeRacksSlot4",
+        ]:
+            rack = world.get_rack_at(PLATE_STATION_ID, slot_id)
+            occupied = set(int(x) for x in rack.occupied_slots.keys())
+            for position in [int(x) for x in rack.available_slots() if int(x) not in occupied]:
+                staged_id = world.ensure_placeholder_sample(
+                    station_id=PLATE_STATION_ID,
+                    station_slot_id=slot_id,
+                    slot_index=position,
+                    obj_type=101,
+                )
+                world.classify_sample(
+                    staged_id,
+                    recognized=True,
+                    classification_source="unit-test",
+                    required_processes=(ProcessType.CENTRIFUGATION,),
+                )
+
+        extra_sample_id = world.ensure_placeholder_sample(
+            station_id=INPUT_STATION_ID,
+            station_slot_id=INPUT_URG_SLOT_ID,
+            slot_index=2,
+            obj_type=101,
+        )
+        world.classify_sample(
+            extra_sample_id,
+            recognized=True,
+            classification_source="unit-test",
+            required_processes=(ProcessType.CENTRIFUGATION,),
+        )
+
+        planner = DynamicStatePlanner({ProcessType.CENTRIFUGATION: _centrifugation_policy()})
+        result = planner.plan_next(world)
+
+        self.assertEqual(result.status, "READY")
+        self.assertIsNotNone(result.action)
+        assert result.action is not None
+        self.assertEqual(result.action.process, ProcessType.CENTRIFUGATION)
+        self.assertEqual(result.action.action_type, "PROCESS_SAMPLE")
+        self.assertNotEqual(result.action.sample_id, extra_sample_id)
 
 
 if __name__ == "__main__":

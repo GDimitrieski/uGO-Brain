@@ -780,14 +780,24 @@ class DynamicStatePlanner:
             str(action.sample_id),
         )
 
-    def plan_next(self, world: WorldModel) -> DynamicPlanResult:
+    def plan_next(
+        self,
+        world: WorldModel,
+        *,
+        excluded_sample_ids: Optional[Set[str] | Sequence[str]] = None,
+    ) -> DynamicPlanResult:
         ready_process: List[DynamicPlanAction] = []
         ready_stage: List[DynamicPlanAction] = []
         blocked: List[Dict[str, Any]] = []
         active_samples = 0
+        excluded: Set[str] = set()
+        if excluded_sample_ids:
+            excluded = {str(x).strip() for x in excluded_sample_ids if str(x).strip()}
 
         sample_ids = sorted(set(world.samples.keys()) & set(world.sample_states.keys()))
         for sample_id in sample_ids:
+            if str(sample_id) in excluded:
+                continue
             pending = self._effective_pending_processes(world, sample_id)
             if not pending:
                 continue

@@ -5,6 +5,11 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from .analyzer_device import AnalyzerDeviceCapabilities, AnalyzerDeviceIdentity
 from .centrifuge_device import CentrifugeAnalyzerDevice
+from .centrifuge_xmlrpc_adapter import (
+    DEFAULT_CENTRIFUGE_RPC_URL,
+    DEFAULT_CENTRIFUGE_RPC_TIMEOUT_S,
+    CentrifugeXmlRpcAdapter,
+)
 
 
 def _to_upper_values(values: Iterable[Any]) -> List[str]:
@@ -23,6 +28,45 @@ def _infer_supported_rack_types(metadata: Dict[str, Any]) -> Sequence[str]:
         if values:
             return tuple(values)
     return ("CENTRIFUGE_RACK",)
+
+
+def _infer_centrifuge_rpc_url(metadata: Dict[str, Any]) -> str:
+    candidates = [
+        metadata.get("centrifuge_rpc_url"),
+        metadata.get("xmlrpc_url"),
+        metadata.get("rpc_url"),
+    ]
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        txt = str(candidate).strip()
+        if txt:
+            return txt
+    return DEFAULT_CENTRIFUGE_RPC_URL
+
+
+def _infer_float(metadata: Dict[str, Any], keys: Sequence[str], default: float) -> float:
+    for key in keys:
+        value = metadata.get(key)
+        if value in {None, ""}:
+            continue
+        try:
+            return float(value)
+        except Exception:
+            continue
+    return float(default)
+
+
+def _infer_int(metadata: Dict[str, Any], keys: Sequence[str], default: int) -> int:
+    for key in keys:
+        value = metadata.get(key)
+        if value in {None, ""}:
+            continue
+        try:
+            return int(value)
+        except Exception:
+            continue
+    return int(default)
 
 
 def _infer_max_racks(world: Any, station_id: str, metadata: Dict[str, Any]) -> int:
@@ -107,6 +151,20 @@ def build_device_registry_from_world(world: Any) -> DeviceRegistry:
                 identity=identity,
                 capabilities=capabilities,
                 usage_profile=metadata.get("usage_profile", metadata.get("usage_strategy")),
+                controller=CentrifugeXmlRpcAdapter(
+                    rpc_url=_infer_centrifuge_rpc_url(metadata),
+                    rpc_timeout_s=_infer_float(
+                        metadata,
+                        ("rpc_timeout_s", "xmlrpc_timeout_s"),
+                        DEFAULT_CENTRIFUGE_RPC_TIMEOUT_S,
+                    ),
+                    state_wait_timeout_s=_infer_float(metadata, ("state_wait_timeout_s",), 60.0),
+                    start_wait_timeout_s=_infer_float(metadata, ("start_wait_timeout_s",), 60.0),
+                    inspect_attempts=_infer_int(metadata, ("inspect_attempts",), 5),
+                    inspect_poll_s=_infer_float(metadata, ("inspect_poll_s",), 1.0),
+                    state_poll_s=_infer_float(metadata, ("state_poll_s",), 0.5),
+                    rotor_settle_s=_infer_float(metadata, ("rotor_settle_s",), 1.5),
+                ),
             )
         )
     return registry

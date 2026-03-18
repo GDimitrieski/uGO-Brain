@@ -27,6 +27,7 @@ class DeviceActionStep:
     name: str
     task_key: str
     overrides: Dict[str, Any]
+    rotor_slot_index: int = 0
 
 
 @dataclass(frozen=True)
@@ -418,7 +419,12 @@ def _compile_rotina380_plan(
                 DeviceActionStep(
                     name=f"MoveRotorToPos{idx}",
                     task_key="SingleDeviceAction",
-                    overrides={"ITM_ID": centrifuge_itm_id, "ACT": DEVICE_ACTION_MOVE_ROTOR},
+                    overrides={
+                        "ITM_ID": centrifuge_itm_id,
+                        "ACT": DEVICE_ACTION_MOVE_ROTOR,
+                        "OBJ_Nbr": int(idx),
+                    },
+                    rotor_slot_index=int(idx),
                 )
             )
             rack_id = _rack_id_at(world, profile.source_station_id, source_slot_id)
@@ -453,7 +459,12 @@ def _compile_rotina380_plan(
             DeviceActionStep(
                 name=f"MoveRotorToPos{idx}",
                 task_key="SingleDeviceAction",
-                overrides={"ITM_ID": centrifuge_itm_id, "ACT": DEVICE_ACTION_MOVE_ROTOR},
+                overrides={
+                    "ITM_ID": centrifuge_itm_id,
+                    "ACT": DEVICE_ACTION_MOVE_ROTOR,
+                    "OBJ_Nbr": int(idx),
+                },
+                rotor_slot_index=int(idx),
             )
         )
         rack_id = _rack_id_at(world, profile.centrifuge_station_id, centrifuge_slot_id)

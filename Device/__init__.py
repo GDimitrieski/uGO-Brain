@@ -8,9 +8,12 @@ from .centrifuge_device import (
     DEVICE_ACTION_CLOSE_HATCH,
     DEVICE_ACTION_MOVE_ROTOR,
     DEVICE_ACTION_OPEN_HATCH,
-    DEVICE_ACTION_SCAN_LANDMARK,
     DEVICE_ACTION_START_CENTRIFUGE,
     CentrifugeAnalyzerDevice,
+)
+from .centrifuge_xmlrpc_adapter import (
+    DEFAULT_CENTRIFUGE_RPC_URL,
+    CentrifugeXmlRpcAdapter,
 )
 from .centrifuge_usage_strategy import (
     CentrifugeUsagePlan,
@@ -33,11 +36,12 @@ __all__ = [
     "AnalyzerDeviceStatus",
     "AnalyzerDeviceRuntime",
     "CentrifugeAnalyzerDevice",
+    "CentrifugeXmlRpcAdapter",
+    "DEFAULT_CENTRIFUGE_RPC_URL",
     "DEVICE_ACTION_OPEN_HATCH",
     "DEVICE_ACTION_START_CENTRIFUGE",
     "DEVICE_ACTION_CLOSE_HATCH",
     "DEVICE_ACTION_MOVE_ROTOR",
-    "DEVICE_ACTION_SCAN_LANDMARK",
     "PackMLMode",
     "PackMLState",
     "PackMLCommand",
