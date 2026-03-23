@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .analyzer_device import AnalyzerDeviceCapabilities, AnalyzerDeviceIdentity
 from .centrifuge_device import CentrifugeAnalyzerDevice
@@ -9,6 +9,13 @@ from .centrifuge_xmlrpc_adapter import (
     DEFAULT_CENTRIFUGE_RPC_URL,
     DEFAULT_CENTRIFUGE_RPC_TIMEOUT_S,
     CentrifugeXmlRpcAdapter,
+)
+from .wise_adapter import (
+    DEFAULT_WISE_DI_ENDPOINT_TEMPLATE,
+    DEFAULT_WISE_POLL_INTERVAL_S,
+    DEFAULT_WISE_STALE_AFTER_S,
+    DEFAULT_WISE_TIMEOUT_S,
+    WiseModuleAdapter,
 )
 
 
@@ -94,12 +101,86 @@ def _infer_max_racks(world: Any, station_id: str, metadata: Dict[str, Any]) -> i
     return 1
 
 
+def _to_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return bool(default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(int(value))
+    txt = str(value).strip().lower()
+    if not txt:
+        return bool(default)
+    if txt in {"1", "true", "yes", "y", "on"}:
+        return True
+    if txt in {"0", "false", "no", "n", "off"}:
+        return False
+    return bool(default)
+
+
+def _as_dict(value: Any) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        return {str(k): v for k, v in value.items()}
+    return {}
+
+
+def _as_str(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def _build_wise_adapter_from_metadata(device_id: str, metadata: Dict[str, Any]) -> Optional[WiseModuleAdapter]:
+    raw_cfg = _as_dict(metadata.get("wise"))
+    if not raw_cfg:
+        return None
+
+    enabled = _to_bool(raw_cfg.get("enabled"), False)
+    if not enabled:
+        return None
+
+    host = _as_str(raw_cfg.get("host")) or _as_str(raw_cfg.get("ip")) or _as_str(raw_cfg.get("hostname"))
+    if not host:
+        raise ValueError("wise.enabled=true but 'wise.host'/'wise.ip' is missing")
+
+    auth_cfg = _as_dict(raw_cfg.get("auth"))
+    username = _as_str(raw_cfg.get("username")) or _as_str(auth_cfg.get("username"))
+    password = _as_str(raw_cfg.get("password")) or _as_str(auth_cfg.get("password"))
+    endpoint_template = (
+        _as_str(raw_cfg.get("di_endpoint_template"))
+        or _as_str(raw_cfg.get("di_endpoint"))
+        or DEFAULT_WISE_DI_ENDPOINT_TEMPLATE
+    )
+    try:
+        return WiseModuleAdapter(
+            host=host,
+            port=int(raw_cfg.get("port", 80)),
+            scheme=_as_str(raw_cfg.get("scheme")) or "http",
+            username=username,
+            password=password,
+            di_slot=int(raw_cfg.get("di_slot", raw_cfg.get("slot", 0))),
+            di_endpoint_template=endpoint_template,
+            timeout_s=float(raw_cfg.get("timeout_s", DEFAULT_WISE_TIMEOUT_S)),
+            verify_tls=_to_bool(raw_cfg.get("verify_tls"), True),
+            poll_interval_s=float(raw_cfg.get("poll_interval_s", DEFAULT_WISE_POLL_INTERVAL_S)),
+            stale_after_s=float(raw_cfg.get("stale_after_s", DEFAULT_WISE_STALE_AFTER_S)),
+        )
+    except Exception as exc:
+        raise ValueError(f"invalid Wise settings: {exc}") from exc
+
+
 @dataclass
 class DeviceRegistry:
     centrifuges: Dict[str, CentrifugeAnalyzerDevice] = field(default_factory=dict)
+    wise_modules: Dict[str, WiseModuleAdapter] = field(default_factory=dict)
+    device_station_ids: Dict[str, str] = field(default_factory=dict)
 
     def register_centrifuge(self, device: CentrifugeAnalyzerDevice) -> None:
         self.centrifuges[device.identity.device_id] = device
+
+    def register_wise_module(self, device_id: str, module: WiseModuleAdapter) -> None:
+        self.wise_modules[str(device_id).strip()] = module
+
+    def register_device_station(self, device_id: str, station_id: str) -> None:
+        self.device_station_ids[str(device_id).strip()] = str(station_id).strip()
 
     def get_centrifuge(self, device_id: str) -> CentrifugeAnalyzerDevice:
         key = str(device_id).strip()
@@ -122,10 +203,36 @@ class DeviceRegistry:
             return None
         return devices[0]
 
+    def get_wise_module(self, device_id: str) -> WiseModuleAdapter:
+        key = str(device_id).strip()
+        if key not in self.wise_modules:
+            raise KeyError(f"Unknown Wise module for device '{device_id}'")
+        return self.wise_modules[key]
+
+    def get_wise_modules(self) -> Dict[str, WiseModuleAdapter]:
+        return dict(self.wise_modules)
+
+    def get_wise_modules_at_station(self, station_id: str) -> List[Tuple[str, WiseModuleAdapter]]:
+        sid = str(station_id).strip()
+        out: List[Tuple[str, WiseModuleAdapter]] = []
+        for device_id in sorted(self.wise_modules.keys()):
+            if self.device_station_ids.get(device_id) == sid:
+                out.append((device_id, self.wise_modules[device_id]))
+        return out
+
 
 def build_device_registry_from_world(world: Any) -> DeviceRegistry:
     registry = DeviceRegistry()
     for world_device in world.devices.values():
+        device_id = str(world_device.id)
+        station_id = str(world_device.station_id)
+        registry.register_device_station(device_id, station_id)
+
+        metadata = dict(world_device.metadata) if isinstance(world_device.metadata, dict) else {}
+        wise_adapter = _build_wise_adapter_from_metadata(device_id, metadata)
+        if wise_adapter is not None:
+            registry.register_wise_module(device_id, wise_adapter)
+
         process_names = [
             str(getattr(process, "value", process)).strip().upper()
             for process in world_device.capabilities
@@ -133,11 +240,10 @@ def build_device_registry_from_world(world: Any) -> DeviceRegistry:
         if "CENTRIFUGATION" not in process_names:
             continue
 
-        metadata = dict(world_device.metadata) if isinstance(world_device.metadata, dict) else {}
         identity = AnalyzerDeviceIdentity(
-            device_id=str(world_device.id),
+            device_id=device_id,
             name=str(world_device.name),
-            station_id=str(world_device.station_id),
+            station_id=station_id,
             model=str(metadata.get("model", "")),
         )
         capabilities = AnalyzerDeviceCapabilities(

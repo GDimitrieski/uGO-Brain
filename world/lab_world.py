@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -35,6 +36,7 @@ class RackType(str, Enum):
 
 
 class ProcessType(str, Enum):
+    FRIDGE_RACK_PROVISIONING = "FRIDGE_RACK_PROVISIONING"
     CENTRIFUGATION = "CENTRIFUGATION"
     DECAP = "DECAP"
     CAP = "CAP"
@@ -43,21 +45,17 @@ class ProcessType(str, Enum):
     CLINICAL_CHEMISTRY_ANALYSIS = "CLINICAL_CHEMISTRY_ANALYSIS"
     COAGULATION_ANALYSIS = "COAGULATION_ANALYSIS"
     IMMUNOHEMATOLOGY_ANALYSIS = "IMMUNOHEMATOLOGY_ANALYSIS"
-    # Backward-compatible alias for legacy configs/payloads.
-    IMMUNOANALYSIS = "IMMUNOHEMATOLOGY_ANALYSIS"
     ARCHIVATION = "ARCHIVATION"
-
-    @classmethod
-    def _missing_(cls, value: object) -> Optional["ProcessType"]:
-        raw = str(value).strip().upper()
-        if raw == "IMMUNOANALYSIS":
-            return cls.IMMUNOHEMATOLOGY_ANALYSIS
-        return None
 
 
 class CapState(str, Enum):
     CAPPED = "CAPPED"
     DECAPPED = "DECAPPED"
+
+
+class CapLocationType(str, Enum):
+    STORED = "STORED"
+    ON_SAMPLE = "ON_SAMPLE"
 
 
 class SampleClassificationStatus(str, Enum):
@@ -147,6 +145,35 @@ class Sample:
 
 
 @dataclass(frozen=True)
+class Cap:
+    id: str
+    obj_type: int = 9014
+    assigned_sample_id: str = ""
+
+
+@dataclass(frozen=True)
+class StoredCapLocation:
+    station_id: str
+    station_slot_id: str
+    rack_id: str
+    slot_index: int
+
+
+@dataclass(frozen=True)
+class CapOnSampleLocation:
+    sample_id: str
+
+
+CapLocation = Union[StoredCapLocation, CapOnSampleLocation]
+
+
+@dataclass
+class CapStateRecord:
+    cap_id: str
+    location: CapLocation
+
+
+@dataclass(frozen=True)
 class RackLocation:
     station_id: str
     station_slot_id: str
@@ -192,6 +219,8 @@ class WorldModel:
     devices: Dict[str, Device]
     samples: Dict[str, Sample] = field(default_factory=dict)
     sample_states: Dict[str, SampleState] = field(default_factory=dict)
+    caps: Dict[str, Cap] = field(default_factory=dict)
+    cap_states: Dict[str, CapStateRecord] = field(default_factory=dict)
     rack_placements: Dict[Tuple[str, str], str] = field(default_factory=dict)
     rack_in_gripper_id: Optional[str] = None
     robot_current_station_id: Optional[str] = None
@@ -324,6 +353,277 @@ class WorldModel:
             f"JIG_ID={int(jig_id)}"
         )
 
+    def set_sample_cap_state(self, sample_id: str, cap_state: CapState) -> None:
+        sample = self.samples.get(sample_id)
+        if sample is None:
+            raise KeyError(f"Unknown sample '{sample_id}'")
+        self.samples[sample_id] = Sample(
+            id=sample.id,
+            barcode=sample.barcode,
+            obj_type=sample.obj_type,
+            length_mm=sample.length_mm,
+            diameter_mm=sample.diameter_mm,
+            cap_state=cap_state,
+            required_processes=sample.required_processes,
+        )
+        if cap_state == CapState.CAPPED:
+            self.ensure_cap_for_sample(sample_id)
+
+    def _resolve_cap_id_collision(self, preferred_cap_id: str) -> str:
+        base = str(preferred_cap_id or "").strip()
+        if not base:
+            base = "CAP"
+        if base not in self.caps:
+            return base
+        suffix = 2
+        while True:
+            candidate = f"{base}#{suffix}"
+            if candidate not in self.caps:
+                return candidate
+            suffix += 1
+
+    def _default_cap_id_for_sample(self, sample_id: str) -> str:
+        sample_id_txt = str(sample_id).strip()
+        barcode = ""
+        sample = self.samples.get(sample_id_txt)
+        if sample is not None:
+            barcode = str(sample.barcode or "").strip()
+
+        # Keep cap IDs stable and filesystem-safe when barcode has separators/symbols.
+        label_source = barcode if barcode else sample_id_txt
+        label = re.sub(r"[^A-Za-z0-9._-]+", "_", label_source).strip("._-")
+        if not label:
+            label = sample_id_txt or "UNKNOWN"
+        return f"CAP_{label}"
+
+    def cap_id_on_sample(self, sample_id: str) -> Optional[str]:
+        sample_id_txt = str(sample_id)
+        for cap_id in sorted(self.cap_states.keys()):
+            state = self.cap_states[cap_id]
+            if isinstance(state.location, CapOnSampleLocation) and str(state.location.sample_id) == sample_id_txt:
+                return cap_id
+        return None
+
+    def _remove_cap_from_current_location(self, cap_id: str) -> None:
+        state = self.cap_states.get(cap_id)
+        if state is None:
+            return
+        loc = state.location
+        if isinstance(loc, StoredCapLocation):
+            rack = self.racks.get(str(loc.rack_id))
+            if rack is not None and rack.occupied_slots.get(int(loc.slot_index)) == cap_id:
+                rack.occupied_slots.pop(int(loc.slot_index), None)
+
+    def _ensure_cap_from_stored_location(
+        self,
+        cap_id: str,
+        location: StoredCapLocation,
+    ) -> str:
+        cap_id_txt = str(cap_id).strip()
+        if not cap_id_txt:
+            raise ValueError("Cap ID must not be empty")
+        if cap_id_txt not in self.caps:
+            inferred_sample_id = ""
+            if cap_id_txt.upper().startswith("CAP_") and len(cap_id_txt) > 4:
+                inferred_sample_id = cap_id_txt[4:]
+            self.caps[cap_id_txt] = Cap(
+                id=cap_id_txt,
+                obj_type=9014,
+                assigned_sample_id=inferred_sample_id,
+            )
+        self.cap_states[cap_id_txt] = CapStateRecord(cap_id=cap_id_txt, location=location)
+        return cap_id_txt
+
+    def ensure_cap_for_sample(self, sample_id: str) -> str:
+        sample_id_txt = str(sample_id)
+        if sample_id_txt not in self.samples:
+            raise KeyError(f"Unknown sample '{sample_id_txt}'")
+
+        assigned_cap_ids = sorted(
+            cap_id
+            for cap_id, cap in self.caps.items()
+            if str(cap.assigned_sample_id) == sample_id_txt
+        )
+        if assigned_cap_ids:
+            cap_id = assigned_cap_ids[0]
+        else:
+            preferred = self._default_cap_id_for_sample(sample_id_txt)
+            cap_id = self._resolve_cap_id_collision(preferred)
+            self.caps[cap_id] = Cap(id=cap_id, obj_type=9014, assigned_sample_id=sample_id_txt)
+
+        sample = self.samples[sample_id_txt]
+        if sample.cap_state == CapState.CAPPED and self.cap_id_on_sample(sample_id_txt) is None:
+            self._remove_cap_from_current_location(cap_id)
+            self.cap_states[cap_id] = CapStateRecord(
+                cap_id=cap_id,
+                location=CapOnSampleLocation(sample_id=sample_id_txt),
+            )
+        return cap_id
+
+    def ensure_cap_tracking_for_capped_samples(self) -> None:
+        for sample_id, sample in sorted(self.samples.items()):
+            if sample.cap_state != CapState.CAPPED:
+                continue
+            self.ensure_cap_for_sample(sample_id)
+
+    def store_cap_from_sample_in_jig(
+        self,
+        sample_id: str,
+        *,
+        station_id: str,
+        jig_id: int,
+        target_slot_id: Optional[str] = None,
+        target_slot_index: Optional[int] = None,
+    ) -> Tuple[str, str, int]:
+        sample_id_txt = str(sample_id)
+        cap_id = self.cap_id_on_sample(sample_id_txt)
+        if cap_id is None:
+            self.ensure_cap_for_sample(sample_id_txt)
+            cap_id = self.cap_id_on_sample(sample_id_txt)
+        if cap_id is None:
+            raise ValueError(
+                f"No cap is currently tracked on sample '{sample_id_txt}' for decap storage"
+            )
+
+        if target_slot_id is None and target_slot_index is None:
+            target_slot_id, target_slot_index = self.select_next_target_slot_for_jig(
+                station_id=str(station_id),
+                jig_id=int(jig_id),
+            )
+        elif target_slot_id is None or target_slot_index is None:
+            raise ValueError("Both target_slot_id and target_slot_index must be provided together")
+        else:
+            cfg = self.get_slot_config(str(station_id), str(target_slot_id))
+            if int(cfg.jig_id) != int(jig_id):
+                raise ValueError(
+                    f"Target slot '{station_id}.{target_slot_id}' does not belong to JIG_ID={int(jig_id)}"
+                )
+
+        rack = self.get_rack_at(str(station_id), str(target_slot_id))
+        rack.validate_slot(int(target_slot_index))
+        existing = rack.occupied_slots.get(int(target_slot_index))
+        if existing is not None and existing != cap_id:
+            raise ValueError(
+                f"Cannot store cap in '{station_id}.{target_slot_id}' slot {int(target_slot_index)}: "
+                f"occupied by '{existing}'"
+            )
+
+        self._remove_cap_from_current_location(cap_id)
+        rack.occupied_slots[int(target_slot_index)] = cap_id
+        self.cap_states[cap_id] = CapStateRecord(
+            cap_id=cap_id,
+            location=StoredCapLocation(
+                station_id=str(station_id),
+                station_slot_id=str(target_slot_id),
+                rack_id=str(rack.id),
+                slot_index=int(target_slot_index),
+            ),
+        )
+        return cap_id, str(target_slot_id), int(target_slot_index)
+
+    def attach_cap_to_sample_from_jig(
+        self,
+        sample_id: str,
+        *,
+        station_id: str,
+        jig_id: int,
+    ) -> Tuple[str, str, int, bool]:
+        sample_id_txt = str(sample_id)
+        if sample_id_txt not in self.samples:
+            raise KeyError(f"Unknown sample '{sample_id_txt}'")
+
+        cap_id, source_slot_id, source_slot_index, assigned_match = self.select_cap_for_sample_from_jig(
+            sample_id_txt,
+            station_id=str(station_id),
+            jig_id=int(jig_id),
+        )
+        if not source_slot_id:
+            return cap_id, source_slot_id, source_slot_index, assigned_match
+
+        source_rack = self.get_rack_at(str(station_id), source_slot_id)
+        if source_rack.occupied_slots.get(source_slot_index) != cap_id:
+            raise ValueError(
+                f"Stored cap '{cap_id}' was not found at expected source slot "
+                f"'{station_id}.{source_slot_id}' index {int(source_slot_index)}"
+            )
+        source_rack.occupied_slots.pop(source_slot_index, None)
+
+        self.cap_states[cap_id] = CapStateRecord(
+            cap_id=cap_id,
+            location=CapOnSampleLocation(sample_id=sample_id_txt),
+        )
+        cap = self.caps.get(cap_id)
+        if cap is None:
+            self.caps[cap_id] = Cap(id=cap_id, obj_type=9014, assigned_sample_id=sample_id_txt)
+        elif str(cap.assigned_sample_id) != sample_id_txt:
+            self.caps[cap_id] = Cap(
+                id=cap.id,
+                obj_type=int(cap.obj_type),
+                assigned_sample_id=sample_id_txt,
+            )
+        return cap_id, source_slot_id, source_slot_index, assigned_match
+
+    def select_cap_for_sample_from_jig(
+        self,
+        sample_id: str,
+        *,
+        station_id: str,
+        jig_id: int,
+    ) -> Tuple[str, str, int, bool]:
+        sample_id_txt = str(sample_id)
+        if sample_id_txt not in self.samples:
+            raise KeyError(f"Unknown sample '{sample_id_txt}'")
+
+        existing_cap_id = self.cap_id_on_sample(sample_id_txt)
+        if existing_cap_id is not None:
+            state = self.cap_states.get(existing_cap_id)
+            if isinstance(state.location, CapOnSampleLocation):
+                return existing_cap_id, "", 0, True
+
+        candidates: List[Tuple[int, int, int, str, str, int]] = []
+        for cfg in self.slots_for_jig(str(station_id), int(jig_id)):
+            rack_id = self.rack_placements.get((str(station_id), str(cfg.slot_id)))
+            if not rack_id:
+                continue
+            rack = self.racks.get(str(rack_id))
+            if rack is None:
+                continue
+            for slot_index, occupant_id_raw in sorted(rack.occupied_slots.items()):
+                occupant_id = str(occupant_id_raw)
+                location = StoredCapLocation(
+                    station_id=str(station_id),
+                    station_slot_id=str(cfg.slot_id),
+                    rack_id=str(rack.id),
+                    slot_index=int(slot_index),
+                )
+                cap_id = self._ensure_cap_from_stored_location(occupant_id, location)
+                cap = self.caps.get(cap_id)
+                assigned = str(cap.assigned_sample_id) if cap is not None else ""
+                is_assigned = 0 if assigned == sample_id_txt else 1
+                candidates.append(
+                    (
+                        int(is_assigned),
+                        int(cfg.rack_index),
+                        int(slot_index),
+                        cap_id,
+                        str(cfg.slot_id),
+                        int(slot_index),
+                    )
+                )
+
+        if not candidates:
+            raise ValueError(
+                f"No stored caps available for station '{station_id}' JIG_ID={int(jig_id)}"
+            )
+
+        candidates.sort()
+        chosen = candidates[0]
+        cap_id = str(chosen[3])
+        source_slot_id = str(chosen[4])
+        source_slot_index = int(chosen[5])
+        assigned_match = bool(chosen[0] == 0)
+        return cap_id, source_slot_id, source_slot_index, assigned_match
+
     def set_robot_station(self, station_id: str) -> None:
         self.get_station(station_id)
         self.robot_current_station_id = station_id
@@ -426,16 +726,29 @@ class WorldModel:
         # Keep sample locations in sync when a mounted rack changes station/slot.
         moved_rack = self.racks.get(placed_rack_id)
         if moved_rack is not None:
-            for slot_index, sample_id in moved_rack.occupied_slots.items():
-                state = self.sample_states.get(sample_id)
-                if state is None:
+            for slot_index, occupant_id in moved_rack.occupied_slots.items():
+                sample_state = self.sample_states.get(occupant_id)
+                if sample_state is not None:
+                    sample_state.location = RackLocation(
+                        station_id=target_station_id,
+                        station_slot_id=target_station_slot_id,
+                        rack_id=placed_rack_id,
+                        slot_index=int(slot_index),
+                    )
                     continue
-                state.location = RackLocation(
-                    station_id=target_station_id,
-                    station_slot_id=target_station_slot_id,
-                    rack_id=placed_rack_id,
-                    slot_index=int(slot_index),
-                )
+                cap_state = self.cap_states.get(str(occupant_id))
+                if cap_state is None:
+                    continue
+                if isinstance(cap_state.location, StoredCapLocation):
+                    self.cap_states[str(occupant_id)] = CapStateRecord(
+                        cap_id=str(occupant_id),
+                        location=StoredCapLocation(
+                            station_id=str(target_station_id),
+                            station_slot_id=str(target_station_slot_id),
+                            rack_id=str(placed_rack_id),
+                            slot_index=int(slot_index),
+                        ),
+                    )
         return placed_rack_id
 
     def get_rack_at(self, station_id: str, station_slot_id: str) -> Rack:
@@ -466,6 +779,8 @@ class WorldModel:
     def register_sample(self, sample: Sample, location: SampleLocation) -> None:
         self.samples[sample.id] = sample
         self.sample_states[sample.id] = SampleState(sample_id=sample.id, location=location)
+        if sample.cap_state == CapState.CAPPED:
+            self.ensure_cap_for_sample(sample.id)
 
     def _resolve_sample_id_collision(self, preferred_sample_id: str, current_sample_id: str) -> str:
         candidate = str(preferred_sample_id).strip()
@@ -522,6 +837,14 @@ class WorldModel:
                 cap_state=sample.cap_state,
                 required_processes=sample.required_processes,
             )
+            for cap_id, cap in list(self.caps.items()):
+                if str(cap.assigned_sample_id) != str(sample_id):
+                    continue
+                self.caps[cap_id] = Cap(
+                    id=cap.id,
+                    obj_type=int(cap.obj_type),
+                    assigned_sample_id=str(sample_id),
+                )
             return sample_id
 
         self.samples.pop(sample_id, None)
@@ -537,6 +860,21 @@ class WorldModel:
         )
         state.sample_id = resolved_sample_id
         self.sample_states[resolved_sample_id] = state
+        for cap_id, cap in list(self.caps.items()):
+            if str(cap.assigned_sample_id) == str(sample_id):
+                self.caps[cap_id] = Cap(
+                    id=cap.id,
+                    obj_type=int(cap.obj_type),
+                    assigned_sample_id=str(resolved_sample_id),
+                )
+            cap_state = self.cap_states.get(cap_id)
+            if cap_state is None:
+                continue
+            if isinstance(cap_state.location, CapOnSampleLocation) and str(cap_state.location.sample_id) == str(sample_id):
+                self.cap_states[cap_id] = CapStateRecord(
+                    cap_id=cap_id,
+                    location=CapOnSampleLocation(sample_id=str(resolved_sample_id)),
+                )
         return resolved_sample_id
 
     def _next_sample_id(self, prefix: str = "SMP") -> str:
@@ -605,11 +943,14 @@ class WorldModel:
         if sample_ids_in_gripper and sample_id not in sample_ids_in_gripper:
             raise ValueError(f"Gripper already holds sample '{sample_ids_in_gripper[0]}'")
 
-        source_rack.occupied_slots.pop(source_slot_index, None)
-
         state = self.sample_states.get(sample_id)
         if state is None:
-            raise KeyError(f"Sample state missing for '{sample_id}'")
+            raise KeyError(
+                f"Sample state missing for '{sample_id}'. "
+                "The occupied object might not be a sample."
+            )
+
+        source_rack.occupied_slots.pop(source_slot_index, None)
         state.location = GripperLocation(gripper_id=gripper_id)
         return sample_id
 
@@ -854,6 +1195,33 @@ def _location_from_config(raw: Dict[str, Any]) -> SampleLocation:
     )
 
 
+def _cap_location_to_config(location: CapLocation) -> Dict[str, Any]:
+    if isinstance(location, CapOnSampleLocation):
+        return {
+            "type": CapLocationType.ON_SAMPLE.value,
+            "sample_id": str(location.sample_id),
+        }
+    return {
+        "type": CapLocationType.STORED.value,
+        "station_id": str(location.station_id),
+        "station_slot_id": str(location.station_slot_id),
+        "rack_id": str(location.rack_id),
+        "slot_index": int(location.slot_index),
+    }
+
+
+def _cap_location_from_config(raw: Dict[str, Any]) -> CapLocation:
+    location_type = str(raw.get("type", CapLocationType.ON_SAMPLE.value)).strip().upper()
+    if location_type == CapLocationType.STORED.value:
+        return StoredCapLocation(
+            station_id=str(raw.get("station_id", "")).strip(),
+            station_slot_id=str(raw.get("station_slot_id", "")).strip(),
+            rack_id=str(raw.get("rack_id", "")).strip(),
+            slot_index=int(raw.get("slot_index")),
+        )
+    return CapOnSampleLocation(sample_id=str(raw.get("sample_id", "")).strip())
+
+
 def default_world_config() -> Dict[str, Any]:
     return {
         "stations": [
@@ -987,10 +1355,10 @@ def default_world_config() -> Dict[str, Any]:
                         "kind": "FRIDGE_URG_RACK_SLOT",
                         "jig_id": 13,
                         "itm_id": 8,
-                        "rack_capacity": 2,
-                        "rack_pattern": "1x2",
+                        "rack_capacity": 1,
+                        "rack_pattern": "1x1",
                         "rack_rows": 1,
-                        "rack_cols": 2,
+                        "rack_cols": 1,
                         "rack_index": 1,
                         "obj_nbr_offset": 0,
                         "accepted_rack_types": ["FRIDGE_URG_RACK"],
@@ -1000,12 +1368,25 @@ def default_world_config() -> Dict[str, Any]:
                         "kind": "FRIDGE_URG_RACK_SLOT",
                         "jig_id": 13,
                         "itm_id": 8,
-                        "rack_capacity": 2,
-                        "rack_pattern": "1x2",
+                        "rack_capacity": 1,
+                        "rack_pattern": "1x1",
                         "rack_rows": 1,
-                        "rack_cols": 2,
+                        "rack_cols": 1,
                         "rack_index": 2,
                         "obj_nbr_offset": 42,
+                        "accepted_rack_types": ["FRIDGE_URG_RACK"],
+                    },
+                    {
+                        "slot_id": "URGFridgeRackSlot3",
+                        "kind": "FRIDGE_URG_RACK_SLOT",
+                        "jig_id": 13,
+                        "itm_id": 8,
+                        "rack_capacity": 1,
+                        "rack_pattern": "1x1",
+                        "rack_rows": 1,
+                        "rack_cols": 1,
+                        "rack_index": 3,
+                        "obj_nbr_offset": 84,
                         "accepted_rack_types": ["FRIDGE_URG_RACK"],
                     },
                 ],
@@ -1280,6 +1661,32 @@ def default_world_config() -> Dict[str, Any]:
                         "rack_index": 1,
                         "obj_nbr_offset": 0,
                         "accepted_rack_types": ["THREE_FINGER_GRIPPER_SAMPLE_HOLDER"],
+                    },
+                    {
+                        "slot_id": "RecapCapsSlot",
+                        "kind": "THREE_FINGER_GRIPPER_SAMPLE_SLOT",
+                        "jig_id": 14,
+                        "itm_id": 1,
+                        "rack_capacity": 9,
+                        "rack_pattern": "3x3",
+                        "rack_rows": 3,
+                        "rack_cols": 3,
+                        "rack_index": 1,
+                        "obj_nbr_offset": 0,
+                        "accepted_rack_types": ["THREE_FINGER_GRIPPER_SAMPLE_HOLDER"],
+                    },
+                    {
+                        "slot_id": "KreuzprobeRecapCapsSlot",
+                        "kind": "THREE_FINGER_GRIPPER_SAMPLE_SLOT",
+                        "jig_id": 15,
+                        "itm_id": 1,
+                        "rack_capacity": 9,
+                        "rack_pattern": "3x3",
+                        "rack_rows": 3,
+                        "rack_cols": 3,
+                        "rack_index": 1,
+                        "obj_nbr_offset": 0,
+                        "accepted_rack_types": ["THREE_FINGER_GRIPPER_SAMPLE_HOLDER"],
                     }
                 ],
             },
@@ -1448,6 +1855,26 @@ def default_world_config() -> Dict[str, Any]:
                 "cols": 1,
                 "blocked_slots": [],
             },
+            {
+                "id": "RACK_3FG_RECAP_CAPS_01",
+                "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
+                "capacity": 9,
+                "pattern": "THREE_FINGER_GRIPPER_CAP_HOLDER_3x3",
+                "pin_obj_type": 9014,
+                "rows": 3,
+                "cols": 3,
+                "blocked_slots": [],
+            },
+            {
+                "id": "RACK_3FG_KREUZ_CAPS_01",
+                "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
+                "capacity": 9,
+                "pattern": "THREE_FINGER_GRIPPER_CAP_HOLDER_3x3",
+                "pin_obj_type": 9014,
+                "rows": 3,
+                "cols": 3,
+                "blocked_slots": [],
+            },
         ],
         "devices": [
             {
@@ -1541,6 +1968,30 @@ def default_world_config() -> Dict[str, Any]:
                     "source": "status_light",
                     "state_map": {},
                 },
+                "wise": {
+                    "enabled": False,
+                    "host": "",
+                    "port": 80,
+                    "scheme": "http",
+                    "auth": {
+                        "username": "",
+                        "password": "",
+                    },
+                    "di_slot": 0,
+                    "di_endpoint_template": "/iocard/{slot}/di",
+                    "timeout_s": 1.5,
+                    "poll_interval_s": 1.0,
+                    "stale_after_s": 5.0,
+                    "verify_tls": True,
+                    "enforce_ready_for_unload": False,
+                    "required_for_selection": False,
+                    "required_for_processes": ["IMMUNOHEMATOLOGY_ANALYSIS"],
+                    "rack_ready_channels": {
+                        "1": 0,
+                        "2": 1,
+                        "3": 2,
+                    },
+                },
             },
             {
                 "id": "BIORAD_IH1000_DEVICE_01",
@@ -1588,6 +2039,8 @@ def default_world_config() -> Dict[str, Any]:
             {"station_id": "uLMPlateStation", "station_slot_id": "BioRadIH1000Slot2", "rack_id": "RACK_ULM_BIORAD_IH1000_02"},
             {"station_id": "uLMPlateStation", "station_slot_id": "BioRadIH1000Slot3", "rack_id": "RACK_ULM_BIORAD_IH1000_03"},
             {"station_id": "3-FingerGripperStation", "station_slot_id": "SampleSlot1", "rack_id": "RACK_3FG_SAMPLE_HOLDER_01"},
+            {"station_id": "3-FingerGripperStation", "station_slot_id": "RecapCapsSlot", "rack_id": "RACK_3FG_RECAP_CAPS_01"},
+            {"station_id": "3-FingerGripperStation", "station_slot_id": "KreuzprobeRecapCapsSlot", "rack_id": "RACK_3FG_KREUZ_CAPS_01"},
         ],
         "robot_current_station_id": "InputStation",
         "samples": [
@@ -1654,6 +2107,8 @@ def default_world_config() -> Dict[str, Any]:
                 "completed_processes": [],
             },
         ],
+        "caps": [],
+        "cap_states": [],
     }
 
 
@@ -1823,6 +2278,38 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
             classification_details=classification_details,
         )
 
+    caps: Dict[str, Cap] = {}
+    for raw_cap in _to_list(config.get("caps")):
+        cap_id = str(raw_cap.get("id", "")).strip()
+        if not cap_id:
+            continue
+        try:
+            cap_obj_type = int(raw_cap.get("obj_type", 9014))
+        except Exception:
+            cap_obj_type = 9014
+        caps[cap_id] = Cap(
+            id=cap_id,
+            obj_type=cap_obj_type,
+            assigned_sample_id=str(raw_cap.get("assigned_sample_id", "")).strip(),
+        )
+
+    cap_states: Dict[str, CapStateRecord] = {}
+    for raw_state in _to_list(config.get("cap_states")):
+        cap_id = str(raw_state.get("cap_id", raw_state.get("id", ""))).strip()
+        if not cap_id:
+            continue
+        raw_location = raw_state.get("location", {})
+        if not isinstance(raw_location, dict):
+            continue
+        try:
+            cap_location = _cap_location_from_config(dict(raw_location))
+        except Exception:
+            continue
+        cap_states[cap_id] = CapStateRecord(
+            cap_id=cap_id,
+            location=cap_location,
+        )
+
     world = WorldModel(
         stations=stations,
         landmarks=landmarks,
@@ -1830,6 +2317,8 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
         devices=devices,
         samples=samples,
         sample_states=sample_states,
+        caps=caps,
+        cap_states=cap_states,
     )
 
     for placement in _to_list(config.get("rack_placements")):
@@ -1850,6 +2339,47 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
             if placed_rack_id == rack_in_gripper_id:
                 world.rack_placements.pop(key, None)
 
+    for cap_id, cap_state in list(world.cap_states.items()):
+        cap = world.caps.get(cap_id)
+        if cap is None:
+            inferred_sample_id = ""
+            if cap_id.upper().startswith("CAP_") and len(cap_id) > 4:
+                inferred_sample_id = cap_id[4:]
+            world.caps[cap_id] = Cap(
+                id=cap_id,
+                obj_type=9014,
+                assigned_sample_id=inferred_sample_id,
+            )
+        if isinstance(cap_state.location, StoredCapLocation):
+            loc = cap_state.location
+            rack = world.racks.get(str(loc.rack_id))
+            if rack is not None:
+                existing = rack.occupied_slots.get(int(loc.slot_index))
+                if existing is None:
+                    rack.occupied_slots[int(loc.slot_index)] = cap_id
+
+    for (station_id, station_slot_id), rack_id in sorted(world.rack_placements.items()):
+        rack = world.racks.get(rack_id)
+        if rack is None:
+            continue
+        for slot_index, occupant_id in sorted(rack.occupied_slots.items()):
+            if occupant_id in world.samples:
+                continue
+            if occupant_id in world.cap_states:
+                continue
+            if occupant_id in world.caps or str(occupant_id).upper().startswith("CAP_"):
+                cap_id = str(occupant_id)
+                world._ensure_cap_from_stored_location(
+                    cap_id,
+                    StoredCapLocation(
+                        station_id=str(station_id),
+                        station_slot_id=str(station_slot_id),
+                        rack_id=str(rack_id),
+                        slot_index=int(slot_index),
+                    ),
+                )
+
+    world.ensure_cap_tracking_for_capped_samples()
     world._sample_counter = len(world.samples)
     return world
 
@@ -1957,6 +2487,27 @@ def world_to_config(world: WorldModel) -> Dict[str, Any]:
             }
         )
 
+    caps_out = []
+    for cap_id in sorted(world.caps.keys()):
+        cap = world.caps[cap_id]
+        caps_out.append(
+            {
+                "id": cap.id,
+                "obj_type": int(cap.obj_type),
+                "assigned_sample_id": str(cap.assigned_sample_id),
+            }
+        )
+
+    cap_states_out = []
+    for cap_id in sorted(world.cap_states.keys()):
+        cap_state = world.cap_states[cap_id]
+        cap_states_out.append(
+            {
+                "cap_id": cap_state.cap_id,
+                "location": _cap_location_to_config(cap_state.location),
+            }
+        )
+
     placements_out = []
     for (station_id, slot_id), rack_id in sorted(world.rack_placements.items()):
         placements_out.append(
@@ -1973,6 +2524,8 @@ def world_to_config(world: WorldModel) -> Dict[str, Any]:
         "robot_current_station_id": world.robot_current_station_id,
         "samples": samples_out,
         "sample_states": sample_states_out,
+        "caps": caps_out,
+        "cap_states": cap_states_out,
     }
 
 
@@ -2072,6 +2625,8 @@ class WorldConfigManager:
         self.data.setdefault("rack_placements", [])
         self.data.setdefault("samples", [])
         self.data.setdefault("sample_states", [])
+        self.data.setdefault("caps", [])
+        self.data.setdefault("cap_states", [])
 
     def reload(self) -> None:
         self.data = load_world_config_file(self.path)
@@ -2092,6 +2647,8 @@ class WorldConfigManager:
             "rack_placements": len(_to_list(self.data.get("rack_placements"))),
             "samples": len(_to_list(self.data.get("samples"))),
             "sample_states": len(_to_list(self.data.get("sample_states"))),
+            "caps": len(_to_list(self.data.get("caps"))),
+            "cap_states": len(_to_list(self.data.get("cap_states"))),
         }
 
     def _find_station(self, station_id: str) -> Optional[Dict[str, Any]]:

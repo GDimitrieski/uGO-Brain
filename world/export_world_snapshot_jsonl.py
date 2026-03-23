@@ -6,7 +6,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from world.lab_world import GripperLocation, WorldModel, load_world_from_file
+from world.lab_world import (
+    CapOnSampleLocation,
+    GripperLocation,
+    StoredCapLocation,
+    WorldModel,
+    load_world_from_file,
+)
 
 WORLD_DIR = Path(__file__).resolve().parent
 DEFAULT_CONFIG_PATH = WORLD_DIR / "world_config.json"
@@ -21,6 +27,16 @@ def _index_to_row_col(slot_index: int, cols: Optional[int]) -> Dict[str, Optiona
     if cols is None or cols <= 0:
         return {"row": None, "col": None}
     return {"row": ((slot_index - 1) // cols) + 1, "col": ((slot_index - 1) % cols) + 1}
+
+
+def _occupant_kind(world: WorldModel, occupant_id: Optional[str]) -> str:
+    if occupant_id is None:
+        return "NONE"
+    if occupant_id in world.samples:
+        return "SAMPLE"
+    if occupant_id in world.caps or occupant_id in world.cap_states or str(occupant_id).strip().upper().startswith("CAP_"):
+        return "CAP"
+    return "UNKNOWN"
 
 
 def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[str, Any]]:
@@ -42,6 +58,8 @@ def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[st
                 "rack_placements": len(world.rack_placements),
                 "rack_in_gripper": 1 if world.rack_in_gripper_id else 0,
                 "samples": len(world.samples),
+                "caps": len(world.caps),
+                "cap_states": len(world.cap_states),
             },
         }
     )
@@ -116,9 +134,15 @@ def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[st
                 if pos in rack.blocked_slots:
                     pos_state = "PIN"
                     sample_id = None
+                    cap_id = None
+                    occupant_id = None
+                    occupant_kind = "NONE"
                 else:
-                    sample_id = rack.occupied_slots.get(pos)
-                    pos_state = "OCCUPIED" if sample_id else "FREE"
+                    occupant_id = rack.occupied_slots.get(pos)
+                    pos_state = "OCCUPIED" if occupant_id else "FREE"
+                    occupant_kind = _occupant_kind(world, occupant_id)
+                    sample_id = occupant_id if occupant_kind == "SAMPLE" else None
+                    cap_id = occupant_id if occupant_kind == "CAP" else None
 
                 records.append(
                     {
@@ -133,7 +157,10 @@ def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[st
                         "row": row_col["row"],
                         "col": row_col["col"],
                         "position_state": pos_state,
+                        "occupied_object_id": occupant_id if pos_state == "OCCUPIED" else None,
+                        "occupied_object_kind": occupant_kind if pos_state == "OCCUPIED" else "NONE",
                         "sample_id": sample_id,
+                        "cap_id": cap_id,
                     }
                 )
 
@@ -221,9 +248,15 @@ def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[st
                 if pos in rack.blocked_slots:
                     pos_state = "PIN"
                     sample_id = None
+                    cap_id = None
+                    occupant_id = None
+                    occupant_kind = "NONE"
                 else:
-                    sample_id = rack.occupied_slots.get(pos)
-                    pos_state = "OCCUPIED" if sample_id else "FREE"
+                    occupant_id = rack.occupied_slots.get(pos)
+                    pos_state = "OCCUPIED" if occupant_id else "FREE"
+                    occupant_kind = _occupant_kind(world, occupant_id)
+                    sample_id = occupant_id if occupant_kind == "SAMPLE" else None
+                    cap_id = occupant_id if occupant_kind == "CAP" else None
                 records.append(
                     {
                         "timestamp": ts,
@@ -237,9 +270,45 @@ def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[st
                         "row": row_col["row"],
                         "col": row_col["col"],
                         "position_state": pos_state,
+                        "occupied_object_id": occupant_id if pos_state == "OCCUPIED" else None,
+                        "occupied_object_kind": occupant_kind if pos_state == "OCCUPIED" else "NONE",
                         "sample_id": sample_id,
+                        "cap_id": cap_id,
                     }
                 )
+
+    for cap_id in sorted(world.caps.keys()):
+        cap = world.caps[cap_id]
+        cap_state = world.cap_states.get(cap_id)
+        payload: Dict[str, Any] = {
+            "timestamp": ts,
+            "snapshot_id": snapshot_id,
+            "record_type": "CAP",
+            "cap_id": cap_id,
+            "obj_type": int(cap.obj_type),
+            "assigned_sample_id": str(cap.assigned_sample_id),
+            "location_type": "UNKNOWN",
+        }
+        if cap_state is not None:
+            loc = cap_state.location
+            if isinstance(loc, CapOnSampleLocation):
+                payload.update(
+                    {
+                        "location_type": "ON_SAMPLE",
+                        "sample_id": str(loc.sample_id),
+                    }
+                )
+            elif isinstance(loc, StoredCapLocation):
+                payload.update(
+                    {
+                        "location_type": "STORED",
+                        "station_id": str(loc.station_id),
+                        "station_slot_id": str(loc.station_slot_id),
+                        "rack_id": str(loc.rack_id),
+                        "slot_index": int(loc.slot_index),
+                    }
+                )
+        records.append(payload)
 
     return records
 

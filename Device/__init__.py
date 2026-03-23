@@ -29,6 +29,7 @@ from .centrifuge_usage_strategy import (
 )
 from .packml import PackMLCommand, PackMLMode, PackMLState
 from .registry import DeviceRegistry, build_device_registry_from_world
+from .wise_adapter import WiseModuleAdapter, WisePollSnapshot, wise_snapshot_to_metadata
 
 __all__ = [
     "AnalyzerDeviceIdentity",
@@ -57,4 +58,7 @@ __all__ = [
     "usage_profile_from_config",
     "DeviceRegistry",
     "build_device_registry_from_world",
+    "WiseModuleAdapter",
+    "WisePollSnapshot",
+    "wise_snapshot_to_metadata",
 ]

@@ -6,13 +6,17 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Set, Tuple
 
 from world.lab_world import (
+    Cap,
+    CapOnSampleLocation,
     CapState,
+    CapStateRecord,
     GripperLocation,
     ProcessType,
     RackLocation,
     RackType,
     Sample,
     SampleState,
+    StoredCapLocation,
     WorldModel,
     ensure_world_config_file,
 )
@@ -49,6 +53,10 @@ def _slot_map_from_raw(raw: Any) -> Dict[int, str]:
             continue
         out[slot_index] = str(value)
     return out
+
+
+def _looks_like_cap_id(entity_id: str) -> bool:
+    return str(entity_id).strip().upper().startswith("CAP_")
 
 
 def _ensure_sample_exists(world: WorldModel, sample_id: str) -> None:
@@ -107,6 +115,8 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
 
     world.samples.clear()
     world.sample_states.clear()
+    world.caps.clear()
+    world.cap_states.clear()
 
     robot_station = state.get("robot_current_station_id")
     if isinstance(robot_station, str) and robot_station in world.stations:
@@ -114,7 +124,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
     else:
         world.robot_current_station_id = None
 
-    sample_ids: Set[str] = set()
+    occupant_ids: Set[str] = set()
     for raw_rack in state.get("racks", []) if isinstance(state.get("racks", []), list) else []:
         if not isinstance(raw_rack, dict):
             continue
@@ -134,8 +144,22 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
         rack = world.racks[rack_id]
         rack.occupied_slots = _slot_map_from_raw(raw_rack.get("occupied_slots", {}))
         rack.reserved_slots = _slot_map_from_raw(raw_rack.get("reserved_slots", {}))
-        sample_ids.update(rack.occupied_slots.values())
-        sample_ids.update(rack.reserved_slots.values())
+        occupant_ids.update(rack.occupied_slots.values())
+        occupant_ids.update(rack.reserved_slots.values())
+
+    explicit_cap_ids: Set[str] = set()
+    raw_cap_locations = state.get("cap_locations", [])
+    if isinstance(raw_cap_locations, list):
+        for raw_cap_loc in raw_cap_locations:
+            if not isinstance(raw_cap_loc, dict):
+                continue
+            cap_id = str(raw_cap_loc.get("cap_id", "")).strip()
+            if cap_id:
+                explicit_cap_ids.add(cap_id)
+
+    cap_like_ids: Set[str] = {sid for sid in occupant_ids if _looks_like_cap_id(sid)}
+    cap_like_ids.update(explicit_cap_ids)
+    sample_ids: Set[str] = {sid for sid in occupant_ids if sid not in cap_like_ids}
 
     for sample_id in sorted(sample_ids):
         _ensure_sample_exists(world, sample_id)
@@ -155,6 +179,8 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                 continue
             sample_id = str(raw_loc.get("sample_id", "")).strip()
             if not sample_id:
+                continue
+            if sample_id in cap_like_ids:
                 continue
             _ensure_sample_exists(world, sample_id)
 
@@ -184,6 +210,8 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
     for (station_id, station_slot_id), rack_id in sorted(world.rack_placements.items()):
         rack = world.racks[rack_id]
         for slot_index, sample_id in sorted(rack.occupied_slots.items()):
+            if sample_id in cap_like_ids:
+                continue
             _ensure_sample_exists(world, sample_id)
             if sample_id not in world.sample_states:
                 world.sample_states[sample_id] = SampleState(
@@ -196,6 +224,103 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                     ),
                 )
 
+    if isinstance(raw_cap_locations, list) and raw_cap_locations:
+        for raw_cap_loc in raw_cap_locations:
+            if not isinstance(raw_cap_loc, dict):
+                continue
+            cap_id = str(raw_cap_loc.get("cap_id", "")).strip()
+            if not cap_id:
+                continue
+            assigned_sample_id = str(raw_cap_loc.get("assigned_sample_id", "")).strip()
+            if assigned_sample_id and assigned_sample_id not in world.samples:
+                _ensure_sample_exists(world, assigned_sample_id)
+            try:
+                cap_obj_type = int(raw_cap_loc.get("obj_type", 9014))
+            except Exception:
+                cap_obj_type = 9014
+            world.caps[cap_id] = Cap(
+                id=cap_id,
+                obj_type=cap_obj_type,
+                assigned_sample_id=assigned_sample_id,
+            )
+            location_type = str(raw_cap_loc.get("location_type", "ON_SAMPLE")).strip().upper()
+            if location_type == "STORED":
+                station_id = str(raw_cap_loc.get("station_id", "")).strip()
+                station_slot_id = str(raw_cap_loc.get("station_slot_id", "")).strip()
+                rack_id = str(raw_cap_loc.get("rack_id", "")).strip()
+                try:
+                    slot_index = int(raw_cap_loc.get("slot_index"))
+                except Exception:
+                    continue
+                world.cap_states[cap_id] = CapStateRecord(
+                    cap_id=cap_id,
+                    location=StoredCapLocation(
+                        station_id=station_id,
+                        station_slot_id=station_slot_id,
+                        rack_id=rack_id,
+                        slot_index=slot_index,
+                    ),
+                )
+                rack = world.racks.get(rack_id)
+                if rack is not None and rack.occupied_slots.get(slot_index) is None:
+                    rack.occupied_slots[slot_index] = cap_id
+            else:
+                sample_id = str(raw_cap_loc.get("sample_id", "")).strip()
+                if not sample_id and assigned_sample_id:
+                    sample_id = assigned_sample_id
+                if sample_id and sample_id not in world.samples:
+                    _ensure_sample_exists(world, sample_id)
+                world.cap_states[cap_id] = CapStateRecord(
+                    cap_id=cap_id,
+                    location=CapOnSampleLocation(sample_id=sample_id),
+                )
+    else:
+        for (station_id, station_slot_id), rack_id in sorted(world.rack_placements.items()):
+            rack = world.racks[rack_id]
+            for slot_index, occupant_id in sorted(rack.occupied_slots.items()):
+                if not _looks_like_cap_id(occupant_id):
+                    continue
+                cap_id = str(occupant_id)
+                inferred_sample_id = cap_id[4:] if cap_id.upper().startswith("CAP_") and len(cap_id) > 4 else ""
+                world.caps[cap_id] = Cap(
+                    id=cap_id,
+                    obj_type=9014,
+                    assigned_sample_id=inferred_sample_id,
+                )
+                world.cap_states[cap_id] = CapStateRecord(
+                    cap_id=cap_id,
+                    location=StoredCapLocation(
+                        station_id=station_id,
+                        station_slot_id=station_slot_id,
+                        rack_id=rack_id,
+                        slot_index=slot_index,
+                    ),
+                )
+
+    samples_with_cap_on_sample: Set[str] = set()
+    samples_with_stored_cap: Set[str] = set()
+    for cap_id, cap_state in sorted(world.cap_states.items()):
+        loc = cap_state.location
+        if isinstance(loc, CapOnSampleLocation):
+            sample_id = str(loc.sample_id).strip()
+            if sample_id:
+                samples_with_cap_on_sample.add(sample_id)
+            continue
+        cap = world.caps.get(cap_id)
+        assigned_sample_id = str(cap.assigned_sample_id).strip() if cap is not None else ""
+        if assigned_sample_id:
+            samples_with_stored_cap.add(assigned_sample_id)
+
+    for sample_id in sorted(samples_with_stored_cap):
+        if sample_id in samples_with_cap_on_sample:
+            continue
+        if sample_id in world.samples:
+            world.set_sample_cap_state(sample_id, CapState.DECAPPED)
+    for sample_id in sorted(samples_with_cap_on_sample):
+        if sample_id in world.samples:
+            world.set_sample_cap_state(sample_id, CapState.CAPPED)
+
+    world.ensure_cap_tracking_for_capped_samples()
     world._sample_counter = _sample_counter_from_ids(set(world.samples.keys()))
 
 

@@ -13,6 +13,7 @@ ARCHIVE_SLOT_ID = "URGFridgeRackSlot"
 FRIDGE_STATION_ID = "FridgeStation"
 FRIDGE_SLOT_1 = "URGFridgeRackSlot1"
 FRIDGE_SLOT_2 = "URGFridgeRackSlot2"
+IH500_PLATE_SLOT_1 = "BioRadIH500Slot1"
 
 
 def _centrifugation_policy() -> ProcessPolicy:
@@ -256,6 +257,122 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
         assert result.action is not None
         self.assertEqual(result.action.sample_id, sample_b)
         self.assertEqual(result.action.action_type, "PROCESS_SAMPLE")
+
+    def _prepare_world_for_kreuzprobe_terminal_return(self):
+        world = build_default_world()
+        mounted_plate_rack = world.rack_placements.get((PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID))
+        if mounted_plate_rack is not None:
+            if world.rack_placements.get((FRIDGE_STATION_ID, FRIDGE_SLOT_1)) is not None:
+                self.fail("Cannot prepare Kreuzprobe terminal-return test: fridge source slot already occupied.")
+            world.move_rack(
+                source_station_id=PLATE_STATION_ID,
+                source_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+                target_station_id=FRIDGE_STATION_ID,
+                target_station_slot_id=FRIDGE_SLOT_1,
+            )
+        self.assertIsNone(world.rack_placements.get((PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID)))
+
+        source_rack_id = world.rack_placements.get((FRIDGE_STATION_ID, FRIDGE_SLOT_1))
+        self.assertIsNotNone(source_rack_id)
+        source_rack = world.get_rack_at(FRIDGE_STATION_ID, FRIDGE_SLOT_1)
+        source_occupied = sorted(
+            ((int(slot_idx), str(sample_id)) for slot_idx, sample_id in source_rack.occupied_slots.items()),
+            key=lambda item: int(item[0]),
+        )
+        if not source_occupied:
+            occupied_slots = {int(x) for x in source_rack.occupied_slots.keys()}
+            candidate_slots = [idx for idx in source_rack.available_slots() if int(idx) not in occupied_slots]
+            self.assertTrue(candidate_slots)
+            seed_slot = int(candidate_slots[0])
+            seeded_sample = world.ensure_placeholder_sample(
+                station_id=FRIDGE_STATION_ID,
+                station_slot_id=FRIDGE_SLOT_1,
+                slot_index=seed_slot,
+                obj_type=101,
+            )
+            source_occupied = [(int(seed_slot), str(seeded_sample))]
+        source_slot_index, sample_id = source_occupied[0]
+
+        ih500_rack = world.get_rack_at(PLATE_STATION_ID, IH500_PLATE_SLOT_1)
+        occupied = {int(x) for x in ih500_rack.occupied_slots.keys()}
+        target_slots = [idx for idx in ih500_rack.available_slots() if int(idx) not in occupied]
+        self.assertTrue(target_slots)
+        target_slot_index = int(target_slots[0])
+        world.move_sample(
+            source_station_id=FRIDGE_STATION_ID,
+            source_station_slot_id=FRIDGE_SLOT_1,
+            source_slot_index=int(source_slot_index),
+            target_station_id=PLATE_STATION_ID,
+            target_station_slot_id=IH500_PLATE_SLOT_1,
+            target_slot_index=int(target_slot_index),
+        )
+
+        world.classify_sample(
+            sample_id,
+            recognized=True,
+            classification_source="unit-test",
+            required_processes=(ProcessType.ARCHIVATION,),
+            classification_details={
+                "pairing": {"role": "KREUZPROBE", "paired_sample_id": "IMMUNO_TEST_01"},
+                "terminal_return_policy": {
+                    "process": ProcessType.ARCHIVATION.value,
+                    "mode": "RETURN_TO_SOURCE_FRIDGE_SLOT",
+                    "source_station_id": FRIDGE_STATION_ID,
+                    "source_station_slot_id": FRIDGE_SLOT_1,
+                    "required_rack_id": str(source_rack_id),
+                    "target_station_id": PLATE_STATION_ID,
+                    "target_station_slot_id": PLATE_ARCHIVE_SLOT_ID,
+                    "target_slot_index": int(source_slot_index),
+                },
+            },
+        )
+        return world, sample_id, int(source_slot_index), str(source_rack_id)
+
+    def test_kreuzprobe_archivation_provisions_original_fridge_rack(self) -> None:
+        world, sample_id, _, source_rack_id = self._prepare_world_for_kreuzprobe_terminal_return()
+        planner = DynamicStatePlanner({ProcessType.ARCHIVATION: _archivation_policy()})
+
+        result = planner.plan_next(world)
+
+        self.assertEqual(result.status, "READY")
+        self.assertIsNotNone(result.action)
+        assert result.action is not None
+        self.assertEqual(result.action.sample_id, sample_id)
+        self.assertEqual(result.action.process, ProcessType.ARCHIVATION)
+        self.assertEqual(result.action.action_type, "PROVISION_RACK")
+        self.assertEqual(result.action.source_station_id, FRIDGE_STATION_ID)
+        self.assertEqual(result.action.source_station_slot_id, FRIDGE_SLOT_1)
+        self.assertEqual(result.action.target_station_id, PLATE_STATION_ID)
+        self.assertEqual(result.action.target_station_slot_id, PLATE_ARCHIVE_SLOT_ID)
+        self.assertEqual(world.rack_placements.get((FRIDGE_STATION_ID, FRIDGE_SLOT_1)), source_rack_id)
+
+    def test_kreuzprobe_archivation_stages_back_to_original_fridge_slot(self) -> None:
+        world, sample_id, source_slot_index, _ = self._prepare_world_for_kreuzprobe_terminal_return()
+        planner = DynamicStatePlanner({ProcessType.ARCHIVATION: _archivation_policy()})
+
+        first = planner.plan_next(world)
+        self.assertEqual(first.status, "READY")
+        self.assertIsNotNone(first.action)
+        assert first.action is not None
+        self.assertEqual(first.action.action_type, "PROVISION_RACK")
+        world.move_rack(
+            source_station_id=first.action.source_station_id,
+            source_station_slot_id=first.action.source_station_slot_id,
+            target_station_id=first.action.target_station_id,
+            target_station_slot_id=first.action.target_station_slot_id,
+        )
+
+        result = planner.plan_next(world)
+
+        self.assertEqual(result.status, "READY")
+        self.assertIsNotNone(result.action)
+        assert result.action is not None
+        self.assertEqual(result.action.sample_id, sample_id)
+        self.assertEqual(result.action.process, ProcessType.ARCHIVATION)
+        self.assertEqual(result.action.action_type, "STAGE_SAMPLE")
+        self.assertEqual(result.action.target_station_id, PLATE_STATION_ID)
+        self.assertEqual(result.action.target_station_slot_id, PLATE_ARCHIVE_SLOT_ID)
+        self.assertEqual(int(result.action.target_slot_index), int(source_slot_index))
 
     def test_centrifuge_process_starts_when_all_available_samples_are_staged(self) -> None:
         world = build_default_world()

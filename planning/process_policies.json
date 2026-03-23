@@ -1,6 +1,16 @@
 {
   "default_target_station_id": "uLMPlateStation",
   "process_policies": {
+    "FRIDGE_RACK_PROVISIONING": {
+      "target_station_id": "uLMPlateStation",
+      "target_jig_ids": [13],
+      "required_rack_types": ["FRIDGE_URG_RACK"],
+      "allowed_target_rack_id_prefixes": ["RACK_FRIDGE_"],
+      "rack_source_station_ids": ["FridgeStation"],
+      "requires_device": false,
+      "return_provisioned_rack_after_process": true,
+      "loading_strategy": "SEQUENTIAL"
+    },
     "CENTRIFUGATION": {
       "target_station_id": "uLMPlateStation",
       "target_jig_ids": [2],
@@ -74,8 +84,9 @@
       "target_station_id": "uLMPlateStation",
       "target_jig_ids": [13],
       "required_rack_types": ["FRIDGE_URG_RACK"],
-      "candidate_device_station_ids": ["ArchiveStation", "FridgeStation"],
-      "rack_source_station_ids": ["ArchiveStation", "FridgeStation"],
+      "allowed_target_rack_id_prefixes": ["RACK_ARCHIVE_"],
+      "candidate_device_station_ids": ["ArchiveStation"],
+      "rack_source_station_ids": ["ArchiveStation"],
       "requires_device": false,
       "return_provisioned_rack_after_process": true,
       "loading_strategy": "SEQUENTIAL"

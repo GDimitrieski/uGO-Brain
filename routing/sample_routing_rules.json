@@ -51,6 +51,7 @@
         "CENTRIFUGATION",
         "DECAP",
         "IMMUNOHEMATOLOGY_ANALYSIS",
+        "CAP",
         "ARCHIVATION"
       ],
       "target_group": "CENTRIFUGE_ANY",
@@ -61,6 +62,7 @@
         "If capped, decap sample at 3-Finger station",
         "Load sample into BioRad IH-1000/IH-500 rack",
         "Route full/timeout racks to BioRad analyzer",
+        "Cap sample at 3-Finger station",
         "After analysis return rack to uLM plate",
         "Archive sample"
       ]

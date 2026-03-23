@@ -69,6 +69,7 @@ class ProcessPolicy:
     target_station_id: str
     target_jig_ids: Tuple[int, ...]
     required_rack_types: Tuple[RackType, ...] = ()
+    allowed_target_rack_id_prefixes: Tuple[str, ...] = ()
     preferred_device_ids: Tuple[str, ...] = ()
     candidate_device_station_ids: Tuple[str, ...] = ()
     rack_source_station_ids: Tuple[str, ...] = ()
@@ -82,6 +83,7 @@ class ProcessPolicy:
             "target_station_id": self.target_station_id,
             "target_jig_ids": [int(x) for x in self.target_jig_ids],
             "required_rack_types": [x.value for x in self.required_rack_types],
+            "allowed_target_rack_id_prefixes": list(self.allowed_target_rack_id_prefixes),
             "preferred_device_ids": list(self.preferred_device_ids),
             "candidate_device_station_ids": list(self.candidate_device_station_ids),
             "rack_source_station_ids": list(self.rack_source_station_ids),
@@ -285,15 +287,19 @@ class DynamicStatePlanner:
         *,
         default_target_station_id: str = PLATE_STATION_ID,
         policy_path: Optional[Path] = None,
+        use_wise_readiness: bool = False,
     ) -> None:
         self.policies = dict(policies)
         self.default_target_station_id = str(default_target_station_id or PLATE_STATION_ID)
         self.policy_path = policy_path
+        self.use_wise_readiness = bool(use_wise_readiness)
 
     @classmethod
     def from_file(
         cls,
         path: Path | str = DEFAULT_PROCESS_POLICIES_PATH,
+        *,
+        use_wise_readiness: bool = False,
     ) -> "DynamicStatePlanner":
         resolved = Path(path).resolve()
         if not resolved.exists():
@@ -323,7 +329,50 @@ class DynamicStatePlanner:
             parsed,
             default_target_station_id=default_target_station_id,
             policy_path=resolved,
+            use_wise_readiness=use_wise_readiness,
         )
+
+    @staticmethod
+    def _to_bool(value: Any, default: bool = False) -> bool:
+        if value is None:
+            return bool(default)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(int(value))
+        txt = str(value).strip().lower()
+        if not txt:
+            return bool(default)
+        if txt in {"1", "true", "yes", "y", "on"}:
+            return True
+        if txt in {"0", "false", "no", "n", "off"}:
+            return False
+        return bool(default)
+
+    @classmethod
+    def _wise_allows_device_selection(cls, metadata: Dict[str, Any], process: ProcessType) -> bool:
+        wise_cfg = metadata.get("wise")
+        if not isinstance(wise_cfg, dict):
+            return True
+        if not cls._to_bool(wise_cfg.get("enabled"), False):
+            return True
+        if not cls._to_bool(wise_cfg.get("required_for_selection"), False):
+            return True
+
+        required_processes_raw = wise_cfg.get("required_for_processes", ())
+        if isinstance(required_processes_raw, (list, tuple, set)):
+            required_processes = {
+                str(x).strip().upper() for x in required_processes_raw if str(x).strip()
+            }
+            if required_processes and process.value not in required_processes:
+                return True
+
+        wise_state = metadata.get("wise_state")
+        if not isinstance(wise_state, dict):
+            return False
+        online = cls._to_bool(wise_state.get("online"), False)
+        stale = cls._to_bool(wise_state.get("stale"), True)
+        return bool(online and (not stale))
 
     @staticmethod
     def _normalize_loading_strategy(value: Any) -> str:
@@ -339,6 +388,15 @@ class DynamicStatePlanner:
         if not isinstance(raw_value, (list, tuple, set)):
             raise ValueError(f"Policy for process '{process.value}' has invalid {field_name}")
         values = [str(x).strip() for x in raw_value if str(x).strip()]
+        return tuple(values)
+
+    @staticmethod
+    def _parse_prefixes_tuple(raw_value: Any, field_name: str, process: ProcessType) -> Tuple[str, ...]:
+        if raw_value is None:
+            return ()
+        if not isinstance(raw_value, (list, tuple, set)):
+            raise ValueError(f"Policy for process '{process.value}' has invalid {field_name}")
+        values = [str(x).strip().upper() for x in raw_value if str(x).strip()]
         return tuple(values)
 
     @classmethod
@@ -372,6 +430,12 @@ class DynamicStatePlanner:
         if not isinstance(raw_rack_types, (list, tuple, set)):
             raise ValueError(f"Policy for process '{process.value}' has invalid required_rack_types")
         required_rack_types = tuple(RackType(str(x).strip().upper()) for x in raw_rack_types)
+
+        allowed_target_rack_id_prefixes = cls._parse_prefixes_tuple(
+            payload.get("allowed_target_rack_id_prefixes", None),
+            "allowed_target_rack_id_prefixes",
+            process,
+        )
 
         raw_preferred_devices = payload.get("preferred_device_ids", [])
         if raw_preferred_devices is None:
@@ -407,6 +471,7 @@ class DynamicStatePlanner:
             target_station_id=station_id,
             target_jig_ids=target_jig_ids,
             required_rack_types=required_rack_types,
+            allowed_target_rack_id_prefixes=allowed_target_rack_id_prefixes,
             preferred_device_ids=preferred_device_ids,
             candidate_device_station_ids=candidate_station_ids,
             rack_source_station_ids=rack_source_station_ids,
@@ -437,6 +502,8 @@ class DynamicStatePlanner:
             packml_state = str(metadata.get("packml_state", "")).strip().upper()
             if packml_state and packml_state not in READY_PACKML_STATES:
                 return False
+            if self.use_wise_readiness and not self._wise_allows_device_selection(metadata, process):
+                return False
             return True
 
         for dev_id in policy.preferred_device_ids:
@@ -464,6 +531,10 @@ class DynamicStatePlanner:
         if policy.required_rack_types:
             rack = world.get_rack_at(location.station_id, location.station_slot_id)
             if rack.rack_type not in set(policy.required_rack_types):
+                return False, jig_id
+        if policy.allowed_target_rack_id_prefixes:
+            rack_id_txt = str(location.rack_id).strip().upper()
+            if not any(rack_id_txt.startswith(prefix) for prefix in policy.allowed_target_rack_id_prefixes):
                 return False, jig_id
         return True, jig_id
 
@@ -497,6 +568,18 @@ class DynamicStatePlanner:
                         f"not in [{allowed}]"
                     )
                     continue
+                if policy.allowed_target_rack_id_prefixes:
+                    rack_id_txt = str(rack.id).strip().upper()
+                    if not any(
+                        rack_id_txt.startswith(prefix)
+                        for prefix in policy.allowed_target_rack_id_prefixes
+                    ):
+                        allowed_prefixes = ", ".join(policy.allowed_target_rack_id_prefixes)
+                        errors.append(
+                            f"JIG_ID={int(jig_id)} slot='{slot_id}': rack id '{rack.id}' "
+                            f"does not match allowed prefixes [{allowed_prefixes}]"
+                        )
+                        continue
             return str(slot_id), int(slot_index), int(jig_id)
 
         detail = "; ".join(errors) if errors else "no candidate target JIG available"
@@ -625,6 +708,171 @@ class DynamicStatePlanner:
             ),
         )
 
+    @staticmethod
+    def _kreuzprobe_terminal_return_policy(
+        world: WorldModel,
+        sample_id: str,
+        process: ProcessType,
+    ) -> Optional[Dict[str, Any]]:
+        if process != ProcessType.ARCHIVATION:
+            return None
+        state = world.sample_states.get(sample_id)
+        if state is None:
+            return None
+        details = state.classification_details if isinstance(state.classification_details, dict) else {}
+        pairing = details.get("pairing")
+        if not isinstance(pairing, dict):
+            return None
+        role = str(pairing.get("role", "")).strip().upper()
+        if role != "KREUZPROBE":
+            return None
+
+        raw_policy = details.get("terminal_return_policy")
+        if not isinstance(raw_policy, dict):
+            return None
+
+        policy_process = str(raw_policy.get("process", ProcessType.ARCHIVATION.value)).strip().upper()
+        if policy_process and policy_process != ProcessType.ARCHIVATION.value:
+            return None
+
+        target_station_id = str(raw_policy.get("target_station_id", "")).strip()
+        target_station_slot_id = str(raw_policy.get("target_station_slot_id", "")).strip()
+        source_station_id = str(raw_policy.get("source_station_id", "")).strip()
+        source_station_slot_id = str(raw_policy.get("source_station_slot_id", "")).strip()
+        required_rack_id = str(raw_policy.get("required_rack_id", "")).strip()
+        if not target_station_id or not target_station_slot_id:
+            return None
+        if not source_station_id or not source_station_slot_id:
+            return None
+        if not required_rack_id:
+            return None
+
+        try:
+            target_slot_index = int(raw_policy.get("target_slot_index"))
+        except Exception:
+            return None
+        if target_slot_index <= 0:
+            return None
+
+        return {
+            "target_station_id": target_station_id,
+            "target_station_slot_id": target_station_slot_id,
+            "target_slot_index": int(target_slot_index),
+            "source_station_id": source_station_id,
+            "source_station_slot_id": source_station_slot_id,
+            "required_rack_id": required_rack_id,
+            "mode": str(raw_policy.get("mode", "")).strip() or "RETURN_TO_SOURCE_FRIDGE_SLOT",
+        }
+
+    def _build_kreuzprobe_terminal_return_action(
+        self,
+        world: WorldModel,
+        sample_id: str,
+        process: ProcessType,
+        location: RackLocation,
+        *,
+        target_station_id: str,
+        target_station_slot_id: str,
+        target_slot_index: int,
+        source_station_id: str,
+        source_station_slot_id: str,
+        required_rack_id: str,
+        mode: str,
+    ) -> DynamicPlanAction:
+        source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
+        target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
+        target_jig_id = int(target_cfg.jig_id)
+
+        mounted_target_rack_id = world.rack_placements.get((target_station_id, target_station_slot_id))
+        if mounted_target_rack_id is None:
+            mounted_source_rack_id = world.rack_placements.get((source_station_id, source_station_slot_id))
+            if mounted_source_rack_id is None:
+                raise ValueError(
+                    "Kreuzprobe return failed: source rack for terminal return is not mounted "
+                    f"({source_station_id}.{source_station_slot_id})"
+                )
+            if str(mounted_source_rack_id) != str(required_rack_id):
+                raise ValueError(
+                    "Kreuzprobe return failed: source rack mismatch for terminal return "
+                    f"(expected='{required_rack_id}', actual='{mounted_source_rack_id}')"
+                )
+            return DynamicPlanAction(
+                action_type="PROVISION_RACK",
+                sample_id=sample_id,
+                process=process,
+                source_station_id=source_station_id,
+                source_station_slot_id=source_station_slot_id,
+                source_slot_index=int(getattr(source_cfg, "rack_index", 1)),
+                target_station_id=target_station_id,
+                target_station_slot_id=target_station_slot_id,
+                target_slot_index=int(getattr(target_cfg, "rack_index", 1)),
+                target_jig_id=target_jig_id,
+                selected_device_id=None,
+                notes=(
+                    "Kreuzprobe terminal return: provision source fridge rack to plate "
+                    f"(mode={mode})"
+                ),
+            )
+
+        if str(mounted_target_rack_id) != str(required_rack_id):
+            raise ValueError(
+                "Kreuzprobe return failed: target plate slot contains unexpected rack "
+                f"(expected='{required_rack_id}', actual='{mounted_target_rack_id}')"
+            )
+
+        target_rack = world.get_rack_at(target_station_id, target_station_slot_id)
+        slot_occupant = target_rack.occupied_slots.get(int(target_slot_index))
+        if slot_occupant is not None and str(slot_occupant) != str(sample_id):
+            raise ValueError(
+                "Kreuzprobe return failed: target source slot is occupied by another sample "
+                f"(station='{target_station_id}', slot='{target_station_slot_id}', "
+                f"slot_index={int(target_slot_index)}, occupant='{slot_occupant}')"
+            )
+
+        source_station_id_now = str(location.station_id)
+        source_station_slot_id_now = str(location.station_slot_id)
+        source_slot_index_now = int(location.slot_index)
+        if (
+            source_station_id_now == target_station_id
+            and source_station_slot_id_now == target_station_slot_id
+            and source_slot_index_now == int(target_slot_index)
+        ):
+            return DynamicPlanAction(
+                action_type="PROCESS_SAMPLE",
+                sample_id=sample_id,
+                process=process,
+                source_station_id=source_station_id_now,
+                source_station_slot_id=source_station_slot_id_now,
+                source_slot_index=source_slot_index_now,
+                target_station_id=source_station_id_now,
+                target_station_slot_id=source_station_slot_id_now,
+                target_slot_index=source_slot_index_now,
+                target_jig_id=target_jig_id,
+                selected_device_id=None,
+                notes=(
+                    "Kreuzprobe terminal return already staged in source fridge slot on plate "
+                    f"(mode={mode})"
+                ),
+            )
+
+        return DynamicPlanAction(
+            action_type="STAGE_SAMPLE",
+            sample_id=sample_id,
+            process=process,
+            source_station_id=source_station_id_now,
+            source_station_slot_id=source_station_slot_id_now,
+            source_slot_index=source_slot_index_now,
+            target_station_id=target_station_id,
+            target_station_slot_id=target_station_slot_id,
+            target_slot_index=int(target_slot_index),
+            target_jig_id=target_jig_id,
+            selected_device_id=None,
+            notes=(
+                "Kreuzprobe terminal return to original fridge rack slot "
+                f"(mode={mode})"
+            ),
+        )
+
     def _build_action_for_sample(
         self,
         world: WorldModel,
@@ -652,6 +900,22 @@ class DynamicStatePlanner:
         source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
         source_jig_id = int(source_cfg.jig_id)
 
+        kreuz_return_policy = self._kreuzprobe_terminal_return_policy(world, sample_id, process)
+        if kreuz_return_policy is not None:
+            return self._build_kreuzprobe_terminal_return_action(
+                world,
+                sample_id,
+                process,
+                location,
+                target_station_id=str(kreuz_return_policy["target_station_id"]),
+                target_station_slot_id=str(kreuz_return_policy["target_station_slot_id"]),
+                target_slot_index=int(kreuz_return_policy["target_slot_index"]),
+                source_station_id=str(kreuz_return_policy["source_station_id"]),
+                source_station_slot_id=str(kreuz_return_policy["source_station_slot_id"]),
+                required_rack_id=str(kreuz_return_policy["required_rack_id"]),
+                mode=str(kreuz_return_policy.get("mode", "")),
+            )
+
         selected_device_id = self._select_device_id(world, process, policy)
         # Centrifugation can move racks between source and centrifuge stations.
         # Keep process execution active even when samples are not currently staged
@@ -670,6 +934,25 @@ class DynamicStatePlanner:
                 target_jig_id=int(source_jig_id),
                 selected_device_id=selected_device_id,
                 notes="Centrifugation remains in progress across centrifuge transfer stations.",
+            )
+        if (
+            process == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS
+            and source_station_id != policy.target_station_id
+            and source_station_id in set(policy.candidate_device_station_ids)
+        ):
+            return DynamicPlanAction(
+                action_type="PROCESS_SAMPLE",
+                sample_id=sample_id,
+                process=process,
+                source_station_id=source_station_id,
+                source_station_slot_id=source_station_slot_id,
+                source_slot_index=source_slot_index,
+                target_station_id=source_station_id,
+                target_station_slot_id=source_station_slot_id,
+                target_slot_index=source_slot_index,
+                target_jig_id=int(source_jig_id),
+                selected_device_id=selected_device_id,
+                notes="Immuno analysis remains in progress while racks are mounted in device station.",
             )
 
         staged, current_jig_id = self._is_sample_staged_for_policy(world, location, policy)
@@ -759,6 +1042,7 @@ class DynamicStatePlanner:
         order: Dict[ProcessType, int] = {
             ProcessType.SAMPLE_TYPE_DETECTION: 10,
             ProcessType.DECAP: 20,
+            ProcessType.FRIDGE_RACK_PROVISIONING: 25,
             ProcessType.CENTRIFUGATION: 30,
             ProcessType.IMMUNOHEMATOLOGY_ANALYSIS: 40,
             ProcessType.HEMATOLOGY_ANALYSIS: 40,

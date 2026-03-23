@@ -34,10 +34,14 @@ from Device.centrifuge_usage_strategy import (
     compile_centrifuge_usage_plan,
 )
 from Device.registry import build_device_registry_from_world
+from Device.wise_adapter import wise_snapshot_to_metadata
 from engine.sender import build_sender
 from world.export_world_snapshot_jsonl import build_snapshot_records, write_jsonl
 from world.lab_world import (
+    Cap,
+    CapOnSampleLocation,
     CapState,
+    CapStateRecord,
     Device,
     GripperLocation,
     ProcessType,
@@ -46,6 +50,7 @@ from world.lab_world import (
     Sample,
     SampleState,
     SlotKind,
+    StoredCapLocation,
     StationKind,
     WorldModel,
     ensure_world_config_file,
@@ -71,6 +76,8 @@ PLATE_STATION_ID = "uLMPlateStation"
 PLATE_RACK_SLOT_ID = "URGRackSlot"
 THREE_FINGER_STATION_ID = "3-FingerGripperStation"
 THREE_FINGER_SLOT_ID = "SampleSlot1"
+THREE_FINGER_RECAP_JIG_ID = 14
+THREE_FINGER_KREUZ_RECAP_JIG_ID = 15
 CENTRIFUGE_STATION_ID = "CentrifugeStation"
 IH500_STATION_ID = "BioRadIH500Station"
 IH500_SOURCE_JIG_ID = 12
@@ -118,6 +125,12 @@ CENTRIFUGE_MODE = os.getenv("UGO_CENTRIFUGE_MODE", "AUTO").strip().upper()
 SAMPLE_ROUTING_RULES_FILE = Path(
     os.getenv("UGO_SAMPLE_ROUTING_RULES_FILE", str(PROJECT_ROOT / "routing" / "sample_routing_rules.json"))
 ).resolve()
+IMMUNO_KREUZPROBE_MAP_FILE = Path(
+    os.getenv(
+        "UGO_IMMUNO_KREUZPROBE_MAP_FILE",
+        str(PROJECT_ROOT / "routing" / "immuno_kreuzprobe_map.json"),
+    )
+).resolve()
 PROCESS_POLICIES_FILE = Path(
     os.getenv("UGO_PROCESS_POLICIES_FILE", str(PROJECT_ROOT / "planning" / "process_policies.json"))
 ).resolve()
@@ -153,6 +166,16 @@ try:
     STATE_DRIVEN_WAIT_POLL_S = float(os.getenv("UGO_STATE_DRIVEN_WAIT_POLL_S", "1.0").strip())
 except Exception:
     STATE_DRIVEN_WAIT_POLL_S = 1.0
+ENABLE_WISE_POLLING = os.getenv("UGO_ENABLE_WISE_POLLING", "1").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
+PLANNER_USE_WISE_READINESS = os.getenv("UGO_PLANNER_USE_WISE_READINESS", "0").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
 WAIT_READY_PACKML_STATES = {"COMPLETE", "IDLE", "STOPPED"}
 SAMPLE_HOLD_STATUS_RUNNING = "RUNNING"
 SAMPLE_HOLD_STATUS_READY_TO_UNLOAD = "READY_TO_UNLOAD"
@@ -180,6 +203,54 @@ STATE_CHANGE_FIELDNAMES = [
     "task_output_position",
     "task_data",
 ]
+
+
+def _normalize_barcode_key(value: Any) -> str:
+    return str(value or "").strip().upper()
+
+
+def _load_immuno_kreuzprobe_map(path: Path) -> Dict[str, str]:
+    """Load immuno barcode -> Kreuzprobe sample-id mapping from JSON."""
+    if not path.exists():
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except Exception:
+        return {}
+
+    mapping: Dict[str, str] = {}
+
+    if isinstance(raw, dict):
+        forward = raw.get("immuno_to_kreuzprobe")
+        reverse = raw.get("kreuzprobe_to_immuno")
+
+        if isinstance(forward, dict):
+            for barcode, kreuz_id in forward.items():
+                key = _normalize_barcode_key(barcode)
+                value = str(kreuz_id or "").strip()
+                if key and value:
+                    mapping[key] = value
+
+        if isinstance(reverse, dict):
+            for kreuz_id, barcode in reverse.items():
+                key = _normalize_barcode_key(barcode)
+                value = str(kreuz_id or "").strip()
+                if key and value:
+                    mapping[key] = value
+
+        # Backward-compatible flat object: {"<barcode>": "KREUZPROBE_0001"}
+        if not mapping:
+            for barcode, kreuz_id in raw.items():
+                if not isinstance(barcode, str):
+                    continue
+                if isinstance(kreuz_id, (str, int, float)):
+                    key = _normalize_barcode_key(barcode)
+                    value = str(kreuz_id).strip()
+                    if key and value:
+                        mapping[key] = value
+
+    return mapping
 
 
 def _try_parse_string_list(value: str) -> Optional[List[int]]:
@@ -251,6 +322,23 @@ def _try_parse_presence_mask_positions(value: Any) -> Optional[List[int]]:
 
     # Camera mask is 1-based when mapped to rack slot positions.
     return [idx for idx, token in enumerate(tokens, start=1) if token == "F"]
+
+
+def _to_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return bool(default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(int(value))
+    txt = str(value).strip().lower()
+    if not txt:
+        return bool(default)
+    if txt in {"1", "true", "yes", "y", "on"}:
+        return True
+    if txt in {"0", "false", "no", "n", "off"}:
+        return False
+    return bool(default)
 
 
 def extract_positions(result: Dict[str, Any]) -> List[int]:
@@ -390,8 +478,21 @@ def extract_sample_barcode(result: Dict[str, Any]) -> Optional[str]:
             continue
         if source_kind == "message" and txt.isdigit() and len(txt) <= 2:
             continue
+        # Keep the full barcode as returned by 3FG.
         return txt
     return None
+
+
+def _classification_key_from_barcode(barcode: Optional[str]) -> Optional[str]:
+    txt = str(barcode or "").strip()
+    if not txt:
+        return None
+    if txt.lower() in {"none", "null", "n/a"}:
+        return None
+    if len(txt) < 2:
+        return txt
+    # Sample class routing is based on the last two characters.
+    return txt[-2:]
 
 
 def build_sample_router() -> ChainedSampleRouter:
@@ -488,6 +589,10 @@ def _slot_map_from_raw(raw: Any) -> Dict[int, str]:
     return out
 
 
+def _looks_like_cap_id(entity_id: str) -> bool:
+    return str(entity_id).strip().upper().startswith("CAP_")
+
+
 def _ensure_sample_exists(world: WorldModel, sample_id: str) -> None:
     if sample_id in world.samples:
         return
@@ -542,6 +647,8 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
 
     world.samples.clear()
     world.sample_states.clear()
+    world.caps.clear()
+    world.cap_states.clear()
 
     robot_station = state.get("robot_current_station_id")
     if isinstance(robot_station, str) and robot_station in world.stations:
@@ -549,7 +656,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
     else:
         world.robot_current_station_id = None
 
-    sample_ids: Set[str] = set()
+    occupant_ids: Set[str] = set()
     for raw_rack in state.get("racks", []) if isinstance(state.get("racks", []), list) else []:
         if not isinstance(raw_rack, dict):
             continue
@@ -569,8 +676,22 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
         rack = world.racks[rack_id]
         rack.occupied_slots = _slot_map_from_raw(raw_rack.get("occupied_slots", {}))
         rack.reserved_slots = _slot_map_from_raw(raw_rack.get("reserved_slots", {}))
-        sample_ids.update(rack.occupied_slots.values())
-        sample_ids.update(rack.reserved_slots.values())
+        occupant_ids.update(rack.occupied_slots.values())
+        occupant_ids.update(rack.reserved_slots.values())
+
+    explicit_cap_ids: Set[str] = set()
+    raw_cap_locations = state.get("cap_locations", [])
+    if isinstance(raw_cap_locations, list):
+        for raw_cap_loc in raw_cap_locations:
+            if not isinstance(raw_cap_loc, dict):
+                continue
+            cap_id = str(raw_cap_loc.get("cap_id", "")).strip()
+            if cap_id:
+                explicit_cap_ids.add(cap_id)
+
+    cap_like_ids: Set[str] = {sid for sid in occupant_ids if _looks_like_cap_id(sid)}
+    cap_like_ids.update(explicit_cap_ids)
+    sample_ids: Set[str] = {sid for sid in occupant_ids if sid not in cap_like_ids}
 
     for sample_id in sorted(sample_ids):
         _ensure_sample_exists(world, sample_id)
@@ -590,6 +711,8 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                 continue
             sample_id = str(raw_loc.get("sample_id", "")).strip()
             if not sample_id:
+                continue
+            if sample_id in cap_like_ids:
                 continue
             _ensure_sample_exists(world, sample_id)
 
@@ -619,6 +742,8 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
     for (station_id, station_slot_id), rack_id in sorted(world.rack_placements.items()):
         rack = world.racks[rack_id]
         for slot_index, sample_id in sorted(rack.occupied_slots.items()):
+            if sample_id in cap_like_ids:
+                continue
             _ensure_sample_exists(world, sample_id)
             if sample_id not in world.sample_states:
                 world.sample_states[sample_id] = SampleState(
@@ -631,6 +756,103 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                     ),
                 )
 
+    if isinstance(raw_cap_locations, list) and raw_cap_locations:
+        for raw_cap_loc in raw_cap_locations:
+            if not isinstance(raw_cap_loc, dict):
+                continue
+            cap_id = str(raw_cap_loc.get("cap_id", "")).strip()
+            if not cap_id:
+                continue
+            assigned_sample_id = str(raw_cap_loc.get("assigned_sample_id", "")).strip()
+            if assigned_sample_id and assigned_sample_id not in world.samples:
+                _ensure_sample_exists(world, assigned_sample_id)
+            try:
+                cap_obj_type = int(raw_cap_loc.get("obj_type", 9014))
+            except Exception:
+                cap_obj_type = 9014
+            world.caps[cap_id] = Cap(
+                id=cap_id,
+                obj_type=cap_obj_type,
+                assigned_sample_id=assigned_sample_id,
+            )
+            location_type = str(raw_cap_loc.get("location_type", "ON_SAMPLE")).strip().upper()
+            if location_type == "STORED":
+                station_id = str(raw_cap_loc.get("station_id", "")).strip()
+                station_slot_id = str(raw_cap_loc.get("station_slot_id", "")).strip()
+                rack_id = str(raw_cap_loc.get("rack_id", "")).strip()
+                try:
+                    slot_index = int(raw_cap_loc.get("slot_index"))
+                except Exception:
+                    continue
+                world.cap_states[cap_id] = CapStateRecord(
+                    cap_id=cap_id,
+                    location=StoredCapLocation(
+                        station_id=station_id,
+                        station_slot_id=station_slot_id,
+                        rack_id=rack_id,
+                        slot_index=slot_index,
+                    ),
+                )
+                rack = world.racks.get(rack_id)
+                if rack is not None and rack.occupied_slots.get(slot_index) is None:
+                    rack.occupied_slots[slot_index] = cap_id
+            else:
+                sample_id = str(raw_cap_loc.get("sample_id", "")).strip()
+                if not sample_id and assigned_sample_id:
+                    sample_id = assigned_sample_id
+                if sample_id and sample_id not in world.samples:
+                    _ensure_sample_exists(world, sample_id)
+                world.cap_states[cap_id] = CapStateRecord(
+                    cap_id=cap_id,
+                    location=CapOnSampleLocation(sample_id=sample_id),
+                )
+    else:
+        for (station_id, station_slot_id), rack_id in sorted(world.rack_placements.items()):
+            rack = world.racks[rack_id]
+            for slot_index, occupant_id in sorted(rack.occupied_slots.items()):
+                if not _looks_like_cap_id(occupant_id):
+                    continue
+                cap_id = str(occupant_id)
+                inferred_sample_id = cap_id[4:] if cap_id.upper().startswith("CAP_") and len(cap_id) > 4 else ""
+                world.caps[cap_id] = Cap(
+                    id=cap_id,
+                    obj_type=9014,
+                    assigned_sample_id=inferred_sample_id,
+                )
+                world.cap_states[cap_id] = CapStateRecord(
+                    cap_id=cap_id,
+                    location=StoredCapLocation(
+                        station_id=station_id,
+                        station_slot_id=station_slot_id,
+                        rack_id=rack_id,
+                        slot_index=slot_index,
+                    ),
+                )
+
+    samples_with_cap_on_sample: Set[str] = set()
+    samples_with_stored_cap: Set[str] = set()
+    for cap_id, cap_state in sorted(world.cap_states.items()):
+        loc = cap_state.location
+        if isinstance(loc, CapOnSampleLocation):
+            sample_id = str(loc.sample_id).strip()
+            if sample_id:
+                samples_with_cap_on_sample.add(sample_id)
+            continue
+        cap = world.caps.get(cap_id)
+        assigned_sample_id = str(cap.assigned_sample_id).strip() if cap is not None else ""
+        if assigned_sample_id:
+            samples_with_stored_cap.add(assigned_sample_id)
+
+    for sample_id in sorted(samples_with_stored_cap):
+        if sample_id in samples_with_cap_on_sample:
+            continue
+        if sample_id in world.samples:
+            world.set_sample_cap_state(sample_id, CapState.DECAPPED)
+    for sample_id in sorted(samples_with_cap_on_sample):
+        if sample_id in world.samples:
+            world.set_sample_cap_state(sample_id, CapState.CAPPED)
+
+    world.ensure_cap_tracking_for_capped_samples()
     world._sample_counter = _sample_counter_from_ids(set(world.samples.keys()))
 
 
@@ -1044,12 +1266,51 @@ def _world_state_snapshot(world: WorldModel) -> Dict[str, Any]:
                     "gripper_id": loc.gripper_id,
                 }
             )
+    cap_locations = []
+    for cap_id in sorted(world.caps.keys()):
+        cap = world.caps[cap_id]
+        cap_state = world.cap_states.get(cap_id)
+        if cap_state is None:
+            cap_locations.append(
+                {
+                    "cap_id": cap_id,
+                    "obj_type": int(cap.obj_type),
+                    "assigned_sample_id": str(cap.assigned_sample_id),
+                    "location_type": "UNKNOWN",
+                }
+            )
+            continue
+        loc = cap_state.location
+        if isinstance(loc, StoredCapLocation):
+            cap_locations.append(
+                {
+                    "cap_id": cap_id,
+                    "obj_type": int(cap.obj_type),
+                    "assigned_sample_id": str(cap.assigned_sample_id),
+                    "location_type": "STORED",
+                    "station_id": str(loc.station_id),
+                    "station_slot_id": str(loc.station_slot_id),
+                    "rack_id": str(loc.rack_id),
+                    "slot_index": int(loc.slot_index),
+                }
+            )
+        elif isinstance(loc, CapOnSampleLocation):
+            cap_locations.append(
+                {
+                    "cap_id": cap_id,
+                    "obj_type": int(cap.obj_type),
+                    "assigned_sample_id": str(cap.assigned_sample_id),
+                    "location_type": "ON_SAMPLE",
+                    "sample_id": str(loc.sample_id),
+                }
+            )
     return {
         "robot_current_station_id": world.robot_current_station_id,
         "rack_in_gripper_id": world.rack_in_gripper_id,
         "station_slots": station_slots,
         "racks": racks,
         "sample_locations": sample_locations,
+        "cap_locations": cap_locations,
     }
 
 
@@ -1413,7 +1674,10 @@ def build_tree(
         except Exception as exc:
             planner_plan_error = str(exc)
         try:
-            dynamic_state_planner = DynamicStatePlanner.from_file(PROCESS_POLICIES_FILE)
+            dynamic_state_planner = DynamicStatePlanner.from_file(
+                PROCESS_POLICIES_FILE,
+                use_wise_readiness=PLANNER_USE_WISE_READINESS,
+            )
         except Exception as exc:
             dynamic_state_planner_error = str(exc)
         required_station_ids.update({INPUT_STATION_ID, PLATE_STATION_ID, THREE_FINGER_STATION_ID, "CHARGE"})
@@ -1509,6 +1773,7 @@ def build_tree(
             bb["tree_profile"] = "planner_getting_new_samples_v1"
             bb["planned_steps"] = [step.step_id for step in planner_plan_steps]
             bb["dynamic_process_policies_file"] = str(PROCESS_POLICIES_FILE)
+            bb["planner_use_wise_readiness"] = bool(PLANNER_USE_WISE_READINESS)
         else:
             bb["tree_profile"] = "blank_scaffold_v1"
         bb["scaffold_steps"] = list(active_step_names)
@@ -1770,6 +2035,156 @@ def build_tree(
         metadata = dict(dev.metadata) if isinstance(dev.metadata, dict) else {}
         return str(metadata.get("packml_state", "")).strip().upper()
 
+    def _get_world_device_metadata(device_id: str) -> Dict[str, Any]:
+        dev = world.devices.get(str(device_id))
+        if dev is None:
+            raise KeyError(f"Unknown world device '{device_id}'")
+        return dict(dev.metadata) if isinstance(dev.metadata, dict) else {}
+
+    def _replace_world_device_metadata(device_id: str, metadata: Dict[str, Any]) -> None:
+        dev = world.devices.get(str(device_id))
+        if dev is None:
+            raise KeyError(f"Unknown world device '{device_id}'")
+        world.devices[str(device_id)] = Device(
+            id=str(dev.id),
+            name=str(dev.name),
+            station_id=str(dev.station_id),
+            capabilities=dev.capabilities,
+            metadata=dict(metadata),
+        )
+
+    def _set_world_device_wise_state(
+        device_id: str,
+        wise_payload: Dict[str, Any],
+        *,
+        source: str = "WiseModulePoll",
+    ) -> None:
+        metadata = _get_world_device_metadata(device_id)
+        payload = dict(wise_payload) if isinstance(wise_payload, dict) else {}
+        metadata["wise_state"] = payload
+        metadata["wise_state_ts"] = _local_now_iso()
+        metadata["wise_state_source"] = str(source)
+        metadata["wise_online"] = bool(_to_bool(payload.get("online"), False))
+        metadata["wise_stale"] = bool(_to_bool(payload.get("stale"), True))
+        metadata["wise_error"] = str(payload.get("error", "")).strip()
+        if metadata["wise_online"] and (not metadata["wise_stale"]):
+            metadata["wise_last_ok_ts"] = _local_now_iso()
+        _replace_world_device_metadata(device_id, metadata)
+
+    def _parse_wise_slot_ready_channel_map(device_id: str) -> Dict[int, int]:
+        metadata = _get_world_device_metadata(device_id)
+        wise_cfg = metadata.get("wise")
+        if not isinstance(wise_cfg, dict):
+            return {}
+
+        out: Dict[int, int] = {}
+        raw_mapping = (
+            wise_cfg.get("rack_ready_channels")
+            or wise_cfg.get("slot_ready_channels")
+            or wise_cfg.get("slot_to_channel")
+        )
+        if isinstance(raw_mapping, dict):
+            for raw_slot, raw_channel in raw_mapping.items():
+                match = re.search(r"(\d+)", str(raw_slot))
+                if match is None:
+                    continue
+                try:
+                    out[int(match.group(1))] = int(raw_channel)
+                except Exception:
+                    continue
+        elif isinstance(raw_mapping, (list, tuple)):
+            for idx, raw_channel in enumerate(raw_mapping, start=1):
+                try:
+                    out[int(idx)] = int(raw_channel)
+                except Exception:
+                    continue
+
+        if out:
+            return out
+
+        channel_map = wise_cfg.get("channel_map")
+        if isinstance(channel_map, dict):
+            for raw_name, raw_channel in channel_map.items():
+                name = str(raw_name).strip().lower().replace("-", "_")
+                match = re.search(r"slot[_]?(\d+)", name)
+                if match is None:
+                    continue
+                if "ready" not in name:
+                    continue
+                try:
+                    out[int(match.group(1))] = int(raw_channel)
+                except Exception:
+                    continue
+        return out
+
+    def _wise_ready_details_for_device(
+        device_id: str,
+        *,
+        required_slots: Optional[Sequence[int]] = None,
+    ) -> Dict[str, Any]:
+        metadata = _get_world_device_metadata(device_id)
+        wise_cfg = metadata.get("wise")
+        if not isinstance(wise_cfg, dict):
+            return {
+                "configured": False,
+                "enabled": False,
+                "online": False,
+                "stale": True,
+                "required_slots": [],
+                "ready_slots": [],
+                "missing_slots": [],
+                "ready_by_slot": {},
+                "all_ready": False,
+                "error": "Wise configuration missing",
+            }
+
+        enabled = bool(_to_bool(wise_cfg.get("enabled"), False))
+        slot_map = _parse_wise_slot_ready_channel_map(device_id)
+        required: List[int]
+        if required_slots is None:
+            required = sorted(slot_map.keys())
+        else:
+            required = sorted({int(x) for x in required_slots if int(x) > 0})
+
+        wise_state = metadata.get("wise_state")
+        state_dict = dict(wise_state) if isinstance(wise_state, dict) else {}
+        online = bool(_to_bool(state_dict.get("online"), False))
+        stale = bool(_to_bool(state_dict.get("stale"), True))
+        error = str(state_dict.get("error", "")).strip()
+        channels_raw = state_dict.get("channels")
+        channels: Dict[int, bool] = {}
+        if isinstance(channels_raw, dict):
+            for raw_key, raw_val in channels_raw.items():
+                try:
+                    channels[int(raw_key)] = bool(_to_bool(raw_val, False))
+                except Exception:
+                    continue
+
+        ready_by_slot: Dict[int, Optional[bool]] = {}
+        for slot_index in required:
+            channel_index = slot_map.get(int(slot_index))
+            if channel_index is None:
+                ready_by_slot[int(slot_index)] = None
+                continue
+            ready_by_slot[int(slot_index)] = bool(channels.get(int(channel_index), False))
+
+        ready_slots = sorted([slot for slot, is_ready in ready_by_slot.items() if is_ready is True])
+        missing_slots = sorted([slot for slot, is_ready in ready_by_slot.items() if is_ready is not True])
+        configured = bool(enabled and slot_map and required)
+        all_ready = bool(configured and online and (not stale) and (not missing_slots))
+        return {
+            "configured": bool(configured),
+            "enabled": bool(enabled),
+            "online": bool(online),
+            "stale": bool(stale),
+            "required_slots": [int(x) for x in required],
+            "ready_slots": [int(x) for x in ready_slots],
+            "missing_slots": [int(x) for x in missing_slots],
+            "ready_by_slot": {str(int(k)): v for k, v in sorted(ready_by_slot.items())},
+            "all_ready": bool(all_ready),
+            "error": str(error),
+        }
+
     def _sync_runtime_device_packml_state(device_id: str, packml_state: str) -> None:
         desired = str(packml_state or "").strip().upper()
         if not desired:
@@ -1824,6 +2239,7 @@ def build_tree(
         wait_device_id = str(bb.get("state_driven_wait_device_id", "")).strip()
         wait_reason = str(bb.get("state_driven_waiting_reason", "")).strip()
         wait_process = str(bb.get("state_driven_wait_process", "")).strip().upper()
+        wait_source = str(bb.get("state_driven_wait_source", "PACKML")).strip().upper() or "PACKML"
         ready_states = _resolve_wait_ready_states(bb.get("state_driven_wait_ready_states", ()))
 
         if not wait_device_id:
@@ -1833,12 +2249,78 @@ def build_tree(
             )
             return False
 
+        if wait_source == "WISE" and wait_process == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value:
+            required_slots_raw = bb.get("state_driven_wait_wise_required_slots", [])
+            required_slots: List[int] = []
+            if isinstance(required_slots_raw, (list, tuple, set)):
+                for item in required_slots_raw:
+                    try:
+                        required_slots.append(int(item))
+                    except Exception:
+                        continue
+            elif str(required_slots_raw).strip():
+                for token in str(required_slots_raw).split(","):
+                    token_txt = str(token).strip()
+                    if not token_txt:
+                        continue
+                    try:
+                        required_slots.append(int(token_txt))
+                    except Exception:
+                        continue
+
+            details = _wise_ready_details_for_device(
+                wait_device_id,
+                required_slots=required_slots,
+            )
+            bb["state_driven_wait_last_wise_state"] = dict(details)
+            if bool(details.get("all_ready", False)):
+                bb["state_driven_waiting_external_completion"] = False
+                bb["state_driven_waiting_reason"] = ""
+                bb["state_driven_wait_satisfied_ts"] = _local_now_iso()
+                bb.pop("state_driven_wait_process", None)
+                bb.pop("state_driven_wait_device_id", None)
+                bb.pop("state_driven_wait_ready_states", None)
+                bb.pop("state_driven_wait_source", None)
+                bb.pop("state_driven_wait_wise_required_slots", None)
+                bb.pop("state_driven_wait_last_packml_state", None)
+                append_world_event(
+                    occupancy_records,
+                    world,
+                    event_type="STATE_DRIVEN_WAIT_SATISFIED",
+                    entity_type="WORKFLOW",
+                    entity_id="STATE_DRIVEN_PLANNING",
+                    details={
+                        "phase": "StateDrivenPlanning",
+                        "loop_index": int(loop_index),
+                        "process": str(wait_process),
+                        "device_id": str(wait_device_id),
+                        "source": "WISE",
+                        "ready_slots": list(details.get("ready_slots", [])),
+                        "required_slots": list(details.get("required_slots", [])),
+                    },
+                )
+                return True
+
+            print(
+                "StateDriven waiting: Wise readiness pending "
+                f"(process={wait_process}, device={wait_device_id}, source=WISE, "
+                f"ready_slots={details.get('ready_slots', [])}, "
+                f"missing_slots={details.get('missing_slots', [])}, "
+                f"online={details.get('online', False)}, stale={details.get('stale', True)})"
+            )
+            return False
+
         current_state = _get_world_device_packml_state(wait_device_id)
         bb["state_driven_wait_last_packml_state"] = str(current_state)
         if current_state in ready_states:
             bb["state_driven_waiting_external_completion"] = False
             bb["state_driven_waiting_reason"] = ""
             bb["state_driven_wait_satisfied_ts"] = _local_now_iso()
+            bb.pop("state_driven_wait_process", None)
+            bb.pop("state_driven_wait_device_id", None)
+            bb.pop("state_driven_wait_ready_states", None)
+            bb.pop("state_driven_wait_source", None)
+            bb.pop("state_driven_wait_wise_required_slots", None)
             append_world_event(
                 occupancy_records,
                 world,
@@ -1919,6 +2401,11 @@ def build_tree(
             {"itm_id": int(x.itm_id), "packml_state": str(x.packml_state), "reason": str(x.reason)}
             for x in mapping_result.unmapped
         ]
+        if ENABLE_WISE_POLLING:
+            if not _refresh_world_device_states_from_wise(bb, loop_index):
+                return False
+        else:
+            bb["wise_status_update_assignments"] = []
 
         append_world_event(
             occupancy_records,
@@ -1932,6 +2419,82 @@ def build_tree(
                 "raw_devices": str(raw_devices),
                 "assignments": bb["device_status_update_assignments"],
                 "unmapped": bb["device_status_update_unmapped"],
+                "wise_assignments": bb.get("wise_status_update_assignments", []),
+                "loop_index": int(loop_index),
+            },
+        )
+        return True
+
+    def _refresh_world_device_states_from_wise(bb: Blackboard, loop_index: int) -> bool:
+        try:
+            wise_modules = runtime_devices.get_wise_modules()
+        except Exception as exc:
+            print(f"StateDriven Wise refresh failed: cannot access Wise registry ({exc})")
+            return False
+        if not wise_modules:
+            bb["wise_status_update_assignments"] = []
+            return True
+
+        assignments: List[Dict[str, Any]] = []
+        for device_id in sorted(wise_modules.keys()):
+            module = wise_modules[device_id]
+            try:
+                snapshot = module.poll_inputs()
+            except Exception as exc:
+                print(
+                    "StateDriven Wise refresh failed: poll exception "
+                    f"(device='{device_id}', loop={int(loop_index)}, error={exc})"
+                )
+                return False
+
+            payload = wise_snapshot_to_metadata(snapshot)
+            try:
+                _set_world_device_wise_state(device_id, payload, source="WiseModulePoll")
+            except Exception as exc:
+                print(
+                    "StateDriven Wise refresh failed: cannot write world metadata "
+                    f"(device='{device_id}', error={exc})"
+                )
+                return False
+
+            try:
+                ready_details = _wise_ready_details_for_device(device_id)
+            except Exception as exc:
+                print(
+                    "StateDriven Wise refresh failed: cannot derive ready slots "
+                    f"(device='{device_id}', error={exc})"
+                )
+                return False
+
+            metadata = _get_world_device_metadata(device_id)
+            metadata["wise_ready_slots"] = list(ready_details.get("ready_slots", []))
+            metadata["wise_missing_ready_slots"] = list(ready_details.get("missing_slots", []))
+            metadata["wise_all_ready"] = bool(ready_details.get("all_ready", False))
+            _replace_world_device_metadata(device_id, metadata)
+
+            assignments.append(
+                {
+                    "device_id": str(device_id),
+                    "online": bool(payload.get("online", False)),
+                    "stale": bool(payload.get("stale", True)),
+                    "error": str(payload.get("error", "")),
+                    "ready_slots": list(ready_details.get("ready_slots", [])),
+                    "missing_slots": list(ready_details.get("missing_slots", [])),
+                    "all_ready": bool(ready_details.get("all_ready", False)),
+                }
+            )
+
+        bb["wise_status_update_assignments"] = assignments
+        append_world_event(
+            occupancy_records,
+            world,
+            event_type="WISE_STATUS_UPDATED",
+            entity_type="WORKFLOW",
+            entity_id="STATE_DRIVEN_PLANNING",
+            details={
+                "phase": "StateDrivenPlanning",
+                "source_task": "WiseModulePoll",
+                "assignments": assignments,
                 "loop_index": int(loop_index),
             },
         )
@@ -2000,6 +2563,183 @@ def build_tree(
             jig_id=int(target_jig_id),
         )
         return target_station_id, str(slot_id), int(slot_idx)
+
+    def _pair_immuno_sample_with_kreuzprobe(
+        *,
+        primary_sample_id: str,
+        immuno_barcode: str,
+        decision_processes: Sequence[ProcessType],
+        decision_source: str,
+        decision_classification: str,
+        target_slot_id: str,
+    ) -> Tuple[bool, Optional[str], str]:
+        barcode_key = _normalize_barcode_key(immuno_barcode)
+        if not barcode_key:
+            return False, None, "immuno sample has no barcode; pairing requires barcode label"
+
+        mapping = _load_immuno_kreuzprobe_map(IMMUNO_KREUZPROBE_MAP_FILE)
+        if not mapping:
+            return (
+                False,
+                None,
+                f"pairing map is missing/empty ({IMMUNO_KREUZPROBE_MAP_FILE})",
+            )
+
+        kreuz_sample_id = str(mapping.get(barcode_key, "")).strip()
+        if not kreuz_sample_id:
+            return (
+                False,
+                None,
+                f"no Kreuzprobe mapping for immuno barcode '{barcode_key}' in {IMMUNO_KREUZPROBE_MAP_FILE}",
+            )
+        if kreuz_sample_id == str(primary_sample_id):
+            return False, None, "mapped Kreuzprobe sample equals primary sample id"
+
+        primary_state = world.sample_states.get(str(primary_sample_id))
+        if primary_state is None:
+            return False, None, f"unknown primary sample state '{primary_sample_id}'"
+        primary_details = (
+            dict(primary_state.classification_details)
+            if isinstance(primary_state.classification_details, dict)
+            else {}
+        )
+        existing_pair = ""
+        pairing_raw = primary_details.get("pairing")
+        if isinstance(pairing_raw, dict):
+            existing_pair = str(pairing_raw.get("paired_sample_id", "")).strip()
+        if existing_pair:
+            if existing_pair == kreuz_sample_id:
+                return True, kreuz_sample_id, "already paired"
+            return (
+                False,
+                None,
+                f"primary sample already paired with '{existing_pair}' (requested '{kreuz_sample_id}')",
+            )
+
+        kreuz_sample = world.samples.get(kreuz_sample_id)
+        if kreuz_sample is None:
+            return False, None, f"mapped Kreuzprobe sample '{kreuz_sample_id}' not found in world samples"
+        kreuz_state = world.sample_states.get(kreuz_sample_id)
+        if kreuz_state is None or not isinstance(kreuz_state.location, RackLocation):
+            return False, None, f"mapped Kreuzprobe sample '{kreuz_sample_id}' has no rack location"
+        if (
+            str(kreuz_state.location.station_id) != "FridgeStation"
+            or str(kreuz_state.location.station_slot_id) != "URGFridgeRackSlot1"
+        ):
+            return (
+                False,
+                None,
+                "mapped Kreuzprobe sample is not staged in FridgeStation.URGFridgeRackSlot1",
+            )
+
+        if kreuz_sample.cap_state != CapState.CAPPED:
+            return False, None, f"mapped Kreuzprobe sample '{kreuz_sample_id}' is not capped"
+
+        if kreuz_state.completed_processes:
+            return (
+                False,
+                None,
+                f"mapped Kreuzprobe sample '{kreuz_sample_id}' already has completed processes",
+            )
+
+        kreuz_details = (
+            dict(kreuz_state.classification_details)
+            if isinstance(kreuz_state.classification_details, dict)
+            else {}
+        )
+        kreuz_pairing_raw = kreuz_details.get("pairing")
+        if isinstance(kreuz_pairing_raw, dict):
+            paired_primary = str(kreuz_pairing_raw.get("paired_sample_id", "")).strip()
+            if paired_primary and paired_primary != str(primary_sample_id):
+                return (
+                    False,
+                    None,
+                    f"mapped Kreuzprobe sample '{kreuz_sample_id}' is already paired with '{paired_primary}'",
+                )
+
+        try:
+            pending = world.pending_processes(kreuz_sample_id)
+        except Exception:
+            pending = ()
+        if pending:
+            return (
+                False,
+                None,
+                f"mapped Kreuzprobe sample '{kreuz_sample_id}' is already active with pending processes {list(pending)}",
+            )
+
+        pair_id = f"PAIR::{barcode_key}::{kreuz_sample_id}"
+        pair_payload_primary = {
+            "pair_id": pair_id,
+            "role": "PRIMARY",
+            "paired_sample_id": kreuz_sample_id,
+            "barcode_key": barcode_key,
+            "mapping_file": str(IMMUNO_KREUZPROBE_MAP_FILE),
+            "mapping_source": "IMMUNO_KREUZPROBE_MAP",
+        }
+        pair_payload_kreuz = {
+            "pair_id": pair_id,
+            "role": "KREUZPROBE",
+            "paired_sample_id": str(primary_sample_id),
+            "barcode_key": barcode_key,
+            "mapping_file": str(IMMUNO_KREUZPROBE_MAP_FILE),
+            "mapping_source": "IMMUNO_KREUZPROBE_MAP",
+        }
+
+        try:
+            world.classify_sample(
+                sample_id=kreuz_sample_id,
+                recognized=True,
+                classification_source="IMMUNO_KREUZPROBE_MAP",
+                barcode=str(kreuz_sample.barcode or kreuz_sample_id),
+                required_processes=(
+                    ProcessType.FRIDGE_RACK_PROVISIONING,
+                    *tuple(decision_processes),
+                ),
+                assigned_route=f"PairedKreuzprobe:{decision_classification}",
+                assigned_route_station_slot_id=str(target_slot_id),
+                assigned_route_rack_index=None,
+                classification_details={
+                    "provider": "IMMUNO_KREUZPROBE_MAP",
+                    "recognized": True,
+                    "paired_by": str(decision_source),
+                    "paired_for_sample_id": str(primary_sample_id),
+                    "source_fridge_location": {
+                        "station_id": str(kreuz_state.location.station_id),
+                        "station_slot_id": str(kreuz_state.location.station_slot_id),
+                        "rack_id": str(kreuz_state.location.rack_id),
+                        "slot_index": int(kreuz_state.location.slot_index),
+                    },
+                    "rack_provisioning_policy": {
+                        "process": ProcessType.FRIDGE_RACK_PROVISIONING.value,
+                        "source_station_id": "FridgeStation",
+                        "source_station_slot_id": "URGFridgeRackSlot1",
+                        "target_station_id": PLATE_STATION_ID,
+                        "target_station_slot_id": "URGFridgeRackSlot",
+                    },
+                    "terminal_return_policy": {
+                        "process": ProcessType.ARCHIVATION.value,
+                        "mode": "RETURN_TO_SOURCE_FRIDGE_SLOT",
+                        "source_station_id": str(kreuz_state.location.station_id),
+                        "source_station_slot_id": str(kreuz_state.location.station_slot_id),
+                        "required_rack_id": str(kreuz_state.location.rack_id),
+                        "target_station_id": PLATE_STATION_ID,
+                        "target_station_slot_id": "URGFridgeRackSlot",
+                        "target_slot_index": int(kreuz_state.location.slot_index),
+                    },
+                    "pairing": pair_payload_kreuz,
+                },
+            )
+        except Exception as exc:
+            return (
+                False,
+                None,
+                f"failed to classify paired Kreuzprobe sample '{kreuz_sample_id}': {exc}",
+            )
+
+        primary_details["pairing"] = pair_payload_primary
+        primary_state.classification_details = primary_details
+        return True, kreuz_sample_id, "paired"
 
     def _move_sample_between_slots(
         *,
@@ -2145,18 +2885,31 @@ def build_tree(
         return ok
 
     def _set_sample_cap_state(sample_id: str, cap_state: CapState) -> None:
-        sample = world.samples.get(sample_id)
-        if sample is None:
-            raise KeyError(f"Unknown sample '{sample_id}'")
-        world.samples[sample_id] = Sample(
-            id=sample.id,
-            barcode=sample.barcode,
-            obj_type=sample.obj_type,
-            length_mm=sample.length_mm,
-            diameter_mm=sample.diameter_mm,
-            cap_state=cap_state,
-            required_processes=sample.required_processes,
+        world.set_sample_cap_state(sample_id, cap_state)
+
+    def _resolve_recap_jig_id(sample_id: str, default_jig_id: int) -> int:
+        """Resolve recap-cap JIG by sample role.
+
+        - PRIMARY / non-paired samples -> JIG 14 (general recap caps)
+        - KREUZPROBE samples -> JIG 15 (Kreuzprobe recap caps)
+        """
+        state = world.sample_states.get(str(sample_id))
+        details = state.classification_details if isinstance(getattr(state, "classification_details", None), dict) else {}
+        pairing = details.get("pairing") if isinstance(details, dict) else None
+        role = str(pairing.get("role", "")).strip().upper() if isinstance(pairing, dict) else ""
+        target_jig_id = (
+            int(THREE_FINGER_KREUZ_RECAP_JIG_ID)
+            if role == "KREUZPROBE"
+            else int(THREE_FINGER_RECAP_JIG_ID)
         )
+        # Guard against config drift: if the requested jig is not configured on 3FG, keep prior behavior.
+        try:
+            slot_cfgs = world.slots_for_jig(THREE_FINGER_STATION_ID, int(target_jig_id))
+            if slot_cfgs:
+                return int(target_jig_id)
+        except Exception:
+            pass
+        return int(default_jig_id)
 
     def _append_process_completed_event(sample_id: str, process: ProcessType, details: Optional[Dict[str, Any]] = None) -> None:
         payload = {
@@ -2343,10 +3096,10 @@ def build_tree(
         if not bool(getattr(policy, "return_provisioned_rack_after_process", False)):
             return True
 
-        pending_for_process = _sample_ids_with_pending_process(process)
-        if pending_for_process:
-            return True
-
+        # Return decisions are made per provisioned rack, based on pending work
+        # of samples currently mounted in that rack. A global "any sample has this
+        # process pending" guard can block valid rack swaps when two flows share
+        # one receiver slot (for example Archive vs. Fridge transit racks).
         provisioned = bb.get("state_driven_provisioned_racks", {})
         if not isinstance(provisioned, dict) or not provisioned:
             return True
@@ -2370,7 +3123,9 @@ def build_tree(
                 _clear_rack_lock(bb, str(rack_id))
                 continue
 
-            # Keep rack on plate if any sample inside still has this process pending.
+            # Keep rack on plate if any sample inside still has pending work.
+            # This prevents returning transit racks while an active sample is
+            # still in-flight (for example after FRIDGE_RACK_PROVISIONING).
             try:
                 mounted_rack = world.get_rack_at(target_station_id, target_station_slot_id)
             except Exception as exc:
@@ -2381,7 +3136,7 @@ def build_tree(
                 return False
             for sid in mounted_rack.occupied_slots.values():
                 try:
-                    if process in world.pending_processes(str(sid)):
+                    if world.pending_processes(str(sid)):
                         return True
                 except Exception:
                     continue
@@ -2484,21 +3239,57 @@ def build_tree(
                 return True
         return False
 
-    def _is_centrifuge_rack(rack_id: str) -> bool:
+    def _rack_type_name_for_rack_id(rack_id: str) -> str:
         rack = world.racks.get(str(rack_id))
         if rack is None:
-            return False
+            return ""
         rack_type = str(getattr(getattr(rack, "rack_type", ""), "value", getattr(rack, "rack_type", "")))
+        return rack_type.strip().upper()
+
+    def _device_managed_rack_types() -> Set[str]:
+        rack_types: Set[str] = set()
+        for station_id in sorted(world.stations.keys()):
+            try:
+                station_devices = world.get_station_devices(station_id)
+            except Exception:
+                station_devices = []
+            if not station_devices:
+                continue
+            try:
+                station = world.get_station(station_id)
+            except Exception:
+                continue
+            for slot_cfg in station.slot_configs.values():
+                for rack_type in slot_cfg.accepted_rack_types:
+                    rack_type_txt = str(getattr(rack_type, "value", rack_type)).strip().upper()
+                    if rack_type_txt:
+                        rack_types.add(rack_type_txt)
+        return rack_types
+
+    def _is_device_managed_rack(
+        rack_id: str,
+        *,
+        device_rack_types: Optional[Set[str]] = None,
+    ) -> bool:
+        rack_type = _rack_type_name_for_rack_id(rack_id)
+        if not rack_type:
+            return False
+        tracked_types = device_rack_types if device_rack_types is not None else _device_managed_rack_types()
+        return rack_type in tracked_types
+
+    def _is_centrifuge_rack(rack_id: str) -> bool:
+        rack_type = _rack_type_name_for_rack_id(rack_id)
         return rack_type.strip().upper() == RackType.CENTRIFUGE_RACK.value
 
     def _next_idle_rack_return_candidate(bb: Blackboard) -> Optional[Dict[str, Any]]:
         if not baseline_rack_home_by_id:
             return None
 
+        device_rack_types = _device_managed_rack_types()
         for (station_id, station_slot_id), rack_id in sorted(world.rack_placements.items()):
             rack_id_txt = str(rack_id)
-            # Centrifuge racks are planner-controlled and must not be auto-returned on IDLE.
-            if _is_centrifuge_rack(rack_id_txt):
+            # Device racks are process-controlled and must not be auto-returned on IDLE.
+            if _is_device_managed_rack(rack_id_txt, device_rack_types=device_rack_types):
                 continue
             if _is_rack_locked(bb, rack_id_txt):
                 continue
@@ -2573,10 +3364,9 @@ def build_tree(
         if rack is None:
             print(f"StateDriven rack-return prerequisite failed: unknown rack '{rack_id}'")
             return False
-        rack_type = str(getattr(getattr(rack, "rack_type", ""), "value", getattr(rack, "rack_type", "")))
-        if rack_type.strip().upper() == RackType.CENTRIFUGE_RACK.value:
+        if _is_device_managed_rack(rack_id):
             print(
-                "StateDriven rack-return skipped: centrifuge racks are planner-controlled "
+                "StateDriven rack-return skipped: device racks are process-controlled "
                 f"(rack_id='{rack_id}')"
             )
             return True
@@ -3022,7 +3812,131 @@ def build_tree(
             )
         return [(idx, source_by_idx[idx], target_by_idx[idx]) for idx in sorted(source_idx)]
 
-    def _execute_ih500_immuno_cycle(sample_id: str, bb: Blackboard) -> bool:
+    def _resolve_immuno_device_id(preferred_device_id: str = "") -> str:
+        preferred = str(preferred_device_id or "").strip()
+        if preferred:
+            dev = world.devices.get(preferred)
+            if dev is not None:
+                if str(dev.station_id) == IH500_STATION_ID and ProcessType.IMMUNOHEMATOLOGY_ANALYSIS in dev.capabilities:
+                    return preferred
+        candidates: List[str] = []
+        for device_id in sorted(world.devices.keys()):
+            dev = world.devices[device_id]
+            if str(dev.station_id) != IH500_STATION_ID:
+                continue
+            if ProcessType.IMMUNOHEMATOLOGY_ANALYSIS not in dev.capabilities:
+                continue
+            candidates.append(str(device_id))
+        if not candidates:
+            return ""
+        return str(candidates[0])
+
+    def _arm_ih500_wait_for_wise(
+        bb: Blackboard,
+        *,
+        device_id: str,
+        required_slots: Sequence[int],
+        reason: str,
+    ) -> None:
+        bb["state_driven_waiting_external_completion"] = True
+        bb["state_driven_waiting_reason"] = str(reason)
+        bb["state_driven_wait_process"] = ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value
+        bb["state_driven_wait_device_id"] = str(device_id)
+        bb["state_driven_wait_source"] = "WISE"
+        bb["state_driven_wait_wise_required_slots"] = [int(x) for x in sorted({int(x) for x in required_slots})]
+        bb["state_driven_wait_armed_ts"] = _local_now_iso()
+
+    def _check_ih500_wise_unload_gate(
+        task_prefix: str,
+        bb: Blackboard,
+        *,
+        device_id: str,
+        required_slots: Sequence[int],
+    ) -> Tuple[bool, bool, List[int], List[int]]:
+        required: List[int] = sorted({int(x) for x in required_slots if int(x) > 0})
+        did = str(device_id).strip()
+        if not did:
+            print(f"{task_prefix} prerequisite failed: no IH500 device id available for Wise unload gate")
+            return False, False, [], required
+
+        metadata = _get_world_device_metadata(did)
+        wise_cfg = metadata.get("wise")
+        if not isinstance(wise_cfg, dict):
+            return True, False, list(required), []
+        if not _to_bool(wise_cfg.get("enabled"), False):
+            return True, False, list(required), []
+        if not _to_bool(wise_cfg.get("enforce_ready_for_unload"), False):
+            return True, False, list(required), []
+
+        details = _wise_ready_details_for_device(did, required_slots=required)
+        bb["last_ih500_wise_ready"] = dict(details)
+        if not bool(details.get("configured", False)):
+            print(
+                f"{task_prefix} prerequisite failed: Wise unload gate is enabled but slot mapping is missing "
+                f"(device='{did}')"
+            )
+            return False, False, [], required
+        if not bool(details.get("online", False)) or bool(details.get("stale", True)):
+            print(
+                f"{task_prefix} prerequisite failed: Wise state unavailable for unload decision "
+                f"(device='{did}', online={details.get('online', False)}, stale={details.get('stale', True)}, "
+                f"error='{details.get('error', '')}')"
+            )
+            return False, False, [], required
+
+        ready_slots_raw = details.get("ready_slots", [])
+        missing_slots_raw = details.get("missing_slots", [])
+        ready_slots: List[int] = []
+        missing_slots: List[int] = []
+        required_set = set(required)
+        if isinstance(ready_slots_raw, (list, tuple, set)):
+            for item in ready_slots_raw:
+                try:
+                    idx = int(item)
+                except Exception:
+                    continue
+                if idx in required_set:
+                    ready_slots.append(idx)
+        if isinstance(missing_slots_raw, (list, tuple, set)):
+            for item in missing_slots_raw:
+                try:
+                    idx = int(item)
+                except Exception:
+                    continue
+                if idx in required_set:
+                    missing_slots.append(idx)
+        ready_slots = sorted({int(x) for x in ready_slots})
+        missing_slots = sorted({int(x) for x in missing_slots})
+
+        if ready_slots:
+            if missing_slots:
+                print(
+                    "IH500 partial unload: releasing ready racks while waiting for remaining Wise-ready slots "
+                    f"(device='{did}', ready_slots={ready_slots}, missing_slots={missing_slots})"
+                )
+                return True, True, ready_slots, missing_slots
+            return True, False, ready_slots, []
+
+        wait_reason = (
+            "IH500 unload deferred: waiting for Wise rack-ready sensors "
+            f"(device='{did}', ready_slots={details.get('ready_slots', [])}, "
+            f"missing_slots={details.get('missing_slots', [])})"
+        )
+        _arm_ih500_wait_for_wise(
+            bb,
+            device_id=did,
+            required_slots=[int(x) for x in required],
+            reason=wait_reason,
+        )
+        print(wait_reason)
+        return False, True, [], list(required)
+
+    def _execute_ih500_immuno_cycle(
+        sample_id: str,
+        bb: Blackboard,
+        *,
+        selected_device_id: str = "",
+    ) -> bool:
         task_prefix = f"StateDriven.{sample_id}.{ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value}.Process"
         sample_state = world.sample_states.get(str(sample_id))
         if sample_state is None:
@@ -3057,17 +3971,7 @@ def build_tree(
             pair_state.append((idx, source_cfg, target_cfg, source_rack_id, target_rack_id))
 
         pair_count = len(pair_state)
-        mode = ""
-        if source_count == pair_count and target_count == 0:
-            mode = "LOAD_UNLOAD"
-        elif source_count == 0 and target_count == pair_count:
-            mode = "UNLOAD_ONLY"
-        else:
-            print(
-                f"{task_prefix} prerequisite failed: ambiguous rack distribution for IH500 cycle "
-                f"(source_jig={source_count}/{pair_count}, device_jig={target_count}/{pair_count})"
-            )
-            return False
+        mode = "UNLOAD_ONLY" if target_count > 0 else "LOAD_UNLOAD"
 
         active_pairs: List[Tuple[int, Any, Any, Optional[str], Optional[str]]] = []
         if mode == "LOAD_UNLOAD":
@@ -3087,11 +3991,8 @@ def build_tree(
         else:
             for idx, source_cfg, target_cfg, source_rack_id, target_rack_id in pair_state:
                 if not target_rack_id:
-                    print(
-                        f"{task_prefix} unload failed: expected device rack at "
-                        f"{IH500_STATION_ID}.{target_cfg.slot_id}"
-                    )
-                    return False
+                    # Mixed occupancy is valid for IH500; skip slots with no rack.
+                    continue
                 rack = world.racks.get(str(target_rack_id))
                 if rack is None:
                     print(f"{task_prefix} unload failed: unknown rack '{target_rack_id}'")
@@ -3109,6 +4010,11 @@ def build_tree(
 
         if not _ensure_station_reference(IH500_STATION_ID, task_prefix):
             return False
+
+        immuno_device_id = _resolve_immuno_device_id(selected_device_id)
+        active_slot_indexes = [int(idx) for idx, *_ in active_pairs]
+        unload_ready_slots: List[int] = list(active_slot_indexes)
+        pending_unload_slots: List[int] = []
 
         if mode == "LOAD_UNLOAD":
             for idx, source_cfg, target_cfg, source_rack_id, _ in active_pairs:
@@ -3166,7 +4072,61 @@ def build_tree(
                     },
                 )
 
-        for idx, source_cfg, target_cfg, _, _ in active_pairs:
+            allow_unload, waiting, unload_ready_slots, pending_unload_slots = _check_ih500_wise_unload_gate(
+                task_prefix,
+                bb,
+                device_id=immuno_device_id,
+                required_slots=active_slot_indexes,
+            )
+            if not allow_unload:
+                if waiting:
+                    bb["last_ih500_cycle_mode"] = "LOAD_WAIT_READY"
+                    bb["last_ih500_cycle_ts"] = _local_now_iso()
+                    return True
+                return False
+        else:
+            allow_unload, waiting, unload_ready_slots, pending_unload_slots = _check_ih500_wise_unload_gate(
+                task_prefix,
+                bb,
+                device_id=immuno_device_id,
+                required_slots=active_slot_indexes,
+            )
+            if not allow_unload:
+                if waiting:
+                    bb["last_ih500_cycle_mode"] = "WAIT_READY"
+                    bb["last_ih500_cycle_ts"] = _local_now_iso()
+                    return True
+                return False
+
+        unload_ready_set = {int(x) for x in unload_ready_slots if int(x) > 0}
+        unload_pairs = (
+            [pair for pair in active_pairs if int(pair[0]) in unload_ready_set]
+            if unload_ready_set
+            else list(active_pairs)
+        )
+        if not unload_pairs:
+            if pending_unload_slots:
+                wait_reason = (
+                    "IH500 unload deferred: waiting for remaining Wise rack-ready sensors "
+                    f"(device='{immuno_device_id}', ready_slots={sorted(unload_ready_set)}, "
+                    f"missing_slots={sorted({int(x) for x in pending_unload_slots if int(x) > 0})})"
+                )
+                _arm_ih500_wait_for_wise(
+                    bb,
+                    device_id=immuno_device_id,
+                    required_slots=[int(x) for x in pending_unload_slots],
+                    reason=wait_reason,
+                )
+                print(wait_reason)
+                bb["last_ih500_cycle_mode"] = f"{mode}_WAIT_READY"
+                bb["last_ih500_cycle_ts"] = _local_now_iso()
+                return True
+            print(f"{task_prefix}: no eligible IH500 racks selected for unload.")
+            bb["last_ih500_cycle_mode"] = str(mode)
+            bb["last_ih500_cycle_ts"] = _local_now_iso()
+            return True
+
+        for idx, source_cfg, target_cfg, _, _ in unload_pairs:
             device_rack_id = _rack_id_at(world, IH500_STATION_ID, str(target_cfg.slot_id))
             if not device_rack_id:
                 print(
@@ -3239,8 +4199,29 @@ def build_tree(
                 {"mode": mode, "source_jig_id": IH500_SOURCE_JIG_ID, "device_jig_id": IH500_DEVICE_JIG_ID},
             )
 
+        pending_after_unload = sorted({int(x) for x in pending_unload_slots if int(x) > 0})
+        if pending_after_unload:
+            wait_reason = (
+                "IH500 unload deferred: waiting for remaining Wise rack-ready sensors "
+                f"(device='{immuno_device_id}', ready_slots={sorted(unload_ready_set)}, "
+                f"missing_slots={pending_after_unload})"
+            )
+            _arm_ih500_wait_for_wise(
+                bb,
+                device_id=immuno_device_id,
+                required_slots=pending_after_unload,
+                reason=wait_reason,
+            )
+            print(wait_reason)
+            bb["last_ih500_cycle_mode"] = f"{mode}_PARTIAL_WAIT_READY"
+            bb["last_ih500_cycle_ts"] = _local_now_iso()
+            return True
+
         bb["state_driven_waiting_external_completion"] = False
         bb["state_driven_waiting_reason"] = ""
+        bb.pop("state_driven_wait_source", None)
+        bb.pop("state_driven_wait_wise_required_slots", None)
+        bb.pop("state_driven_wait_last_wise_state", None)
         bb["last_ih500_cycle_mode"] = str(mode)
         bb["last_ih500_cycle_ts"] = _local_now_iso()
         return True
@@ -3374,6 +4355,8 @@ def build_tree(
                 "process": action.process.value,
             },
         )
+        if not _maybe_return_provisioned_racks_after_process(ProcessType.FRIDGE_RACK_PROVISIONING, bb):
+            return False
         bb["state_driven_last_action"] = action.to_dict()
         return True
 
@@ -3406,18 +4389,201 @@ def build_tree(
                 ProcessType.SAMPLE_TYPE_DETECTION: 3,
             }
             slot_cfg = world.get_slot_config(str(state.location.station_id), str(state.location.station_slot_id))
+            sample_process_jig_id = int(slot_cfg.jig_id)
+            recap_storage_jig_id = int(slot_cfg.jig_id)
+            if process in {ProcessType.DECAP, ProcessType.CAP}:
+                recap_storage_jig_id = _resolve_recap_jig_id(sample_id, int(slot_cfg.jig_id))
+
+            decap_target_slot_id = ""
+            decap_target_slot_index = 0
+            decap_target_cfg = None
+            decap_cap_obj_type = 9014
+            if process == ProcessType.DECAP:
+                try:
+                    cap_id_on_sample = world.cap_id_on_sample(sample_id)
+                    if cap_id_on_sample is None:
+                        world.ensure_cap_for_sample(sample_id)
+                        cap_id_on_sample = world.cap_id_on_sample(sample_id)
+                    if cap_id_on_sample is None:
+                        raise ValueError("No cap tracked on sample before decap")
+                    decap_target_slot_id, decap_target_slot_index = world.select_next_target_slot_for_jig(
+                        station_id=str(state.location.station_id),
+                        jig_id=int(recap_storage_jig_id),
+                    )
+                    decap_target_cfg = world.get_slot_config(
+                        str(state.location.station_id),
+                        str(decap_target_slot_id),
+                    )
+                    cap_obj = world.caps.get(str(cap_id_on_sample))
+                    decap_cap_obj_type = int(getattr(cap_obj, "obj_type", 9014))
+                except Exception as exc:
+                    print(
+                        "StateDriven decap failed while planning cap placement in recap jig "
+                        f"(sample='{sample_id}', station='{state.location.station_id}', "
+                        f"jig_id={int(recap_storage_jig_id)}): {exc}"
+                    )
+                    return False
+
+            if process == ProcessType.CAP:
+                try:
+                    cap_id_to_pick, cap_source_slot_id, cap_source_slot_index, _ = world.select_cap_for_sample_from_jig(
+                        sample_id,
+                        station_id=str(state.location.station_id),
+                        jig_id=int(recap_storage_jig_id),
+                    )
+                except Exception as exc:
+                    print(
+                        "StateDriven recap failed while selecting cap from recap jig "
+                        f"(sample='{sample_id}', station='{state.location.station_id}', "
+                        f"jig_id={int(recap_storage_jig_id)}): {exc}"
+                    )
+                    return False
+
+                # Physical precondition for capping: pick the selected cap from the recap rack first.
+                if str(cap_source_slot_id).strip():
+                    cap_source_cfg = world.get_slot_config(str(state.location.station_id), str(cap_source_slot_id))
+                    cap_obj_nbr = int(
+                        world.obj_nbr_for_slot_index(
+                            str(state.location.station_id),
+                            str(cap_source_slot_id),
+                            int(cap_source_slot_index),
+                        )
+                    )
+                    cap_obj = world.caps.get(str(cap_id_to_pick))
+                    cap_obj_type = int(getattr(cap_obj, "obj_type", 9014))
+                    if not _run_single_task_action(
+                        itm_id=int(cap_source_cfg.itm_id),
+                        jig_id=int(cap_source_cfg.jig_id),
+                        obj_nbr=int(cap_obj_nbr),
+                        action=ACTION_PICK,
+                        obj_type=int(cap_obj_type),
+                        task_name=f"{task_prefix}.PickCap",
+                    ):
+                        return False
+
             overrides = {
                 "ITM_ID": int(slot_cfg.itm_id),
-                "JIG_ID": int(slot_cfg.jig_id),
+                "JIG_ID": int(sample_process_jig_id),
                 "ACT": int(action_code_by_process[process]),
             }
             ok, _ = _run_task("ProcessAt3FingerStation", overrides, task_prefix)
             if not ok:
                 return False
             if process == ProcessType.DECAP:
+                if decap_target_cfg is None:
+                    print(
+                        "StateDriven decap failed: missing recap target configuration "
+                        f"(sample='{sample_id}', station='{state.location.station_id}', "
+                        f"jig_id={int(recap_storage_jig_id)})"
+                    )
+                    return False
+
+                decap_target_obj_nbr = int(
+                    world.obj_nbr_for_slot_index(
+                        str(state.location.station_id),
+                        str(decap_target_slot_id),
+                        int(decap_target_slot_index),
+                    )
+                )
+                if not _run_single_task_action(
+                    itm_id=int(decap_target_cfg.itm_id),
+                    jig_id=int(decap_target_cfg.jig_id),
+                    obj_nbr=int(decap_target_obj_nbr),
+                    action=ACTION_PLACE,
+                    obj_type=int(decap_cap_obj_type),
+                    task_name=f"{task_prefix}.PlaceCap",
+                ):
+                    return False
+
+                try:
+                    cap_id, target_slot_id, target_slot_index = world.store_cap_from_sample_in_jig(
+                        sample_id,
+                        station_id=str(state.location.station_id),
+                        jig_id=int(recap_storage_jig_id),
+                        target_slot_id=str(decap_target_slot_id),
+                        target_slot_index=int(decap_target_slot_index),
+                    )
+                    target_rack_id = world.get_rack_at(
+                        str(state.location.station_id),
+                        str(target_slot_id),
+                    ).id
+                except Exception as exc:
+                    print(
+                        "StateDriven decap failed while storing cap in recap jig "
+                        f"(sample='{sample_id}', station='{state.location.station_id}', "
+                        f"jig_id={int(recap_storage_jig_id)}): {exc}"
+                    )
+                    return False
                 _set_sample_cap_state(sample_id, CapState.DECAPPED)
+                append_world_event(
+                    occupancy_records,
+                    world,
+                    event_type="CAP_MOVED",
+                    entity_type="CAP",
+                    entity_id=str(cap_id),
+                    source={
+                        "location_type": "ON_SAMPLE",
+                        "sample_id": str(sample_id),
+                    },
+                    target={
+                        "location_type": "RACK",
+                        "station_id": str(state.location.station_id),
+                        "station_slot_id": str(target_slot_id),
+                        "rack_id": str(target_rack_id),
+                        "slot_index": int(target_slot_index),
+                    },
+                    details={
+                        "phase": "StateDrivenPlanning",
+                        "process": ProcessType.DECAP.value,
+                        "process_jig_id": int(sample_process_jig_id),
+                        "recap_jig_id": int(recap_storage_jig_id),
+                    },
+                )
             elif process == ProcessType.CAP:
+                try:
+                    cap_id, source_slot_id, source_slot_index, assigned_match = world.attach_cap_to_sample_from_jig(
+                        sample_id,
+                        station_id=str(state.location.station_id),
+                        jig_id=int(recap_storage_jig_id),
+                    )
+                except Exception as exc:
+                    print(
+                        "StateDriven recap failed while attaching cap from recap jig "
+                        f"(sample='{sample_id}', station='{state.location.station_id}', "
+                        f"jig_id={int(recap_storage_jig_id)}): {exc}"
+                    )
+                    return False
                 _set_sample_cap_state(sample_id, CapState.CAPPED)
+                if source_slot_id:
+                    source_rack_id = world.get_rack_at(
+                        str(state.location.station_id),
+                        str(source_slot_id),
+                    ).id
+                    append_world_event(
+                        occupancy_records,
+                        world,
+                        event_type="CAP_MOVED",
+                        entity_type="CAP",
+                        entity_id=str(cap_id),
+                        source={
+                            "location_type": "RACK",
+                            "station_id": str(state.location.station_id),
+                            "station_slot_id": str(source_slot_id),
+                            "rack_id": str(source_rack_id),
+                            "slot_index": int(source_slot_index),
+                        },
+                        target={
+                            "location_type": "ON_SAMPLE",
+                            "sample_id": str(sample_id),
+                        },
+                        details={
+                            "phase": "StateDrivenPlanning",
+                            "process": ProcessType.CAP.value,
+                            "process_jig_id": int(sample_process_jig_id),
+                            "recap_jig_id": int(recap_storage_jig_id),
+                            "assigned_match": bool(assigned_match),
+                        },
+                    )
             world.mark_process_completed(sample_id, process)
             _append_process_completed_event(sample_id, process)
             bb["state_driven_last_action"] = action.to_dict()
@@ -3489,6 +4655,9 @@ def build_tree(
             bb.pop("state_driven_wait_device_id", None)
             bb.pop("state_driven_wait_ready_states", None)
             bb.pop("state_driven_wait_last_packml_state", None)
+            bb.pop("state_driven_wait_source", None)
+            bb.pop("state_driven_wait_wise_required_slots", None)
+            bb.pop("state_driven_wait_last_wise_state", None)
             bb["state_driven_last_action"] = action.to_dict()
             return True
 
@@ -3500,8 +4669,24 @@ def build_tree(
             bb["state_driven_last_action"] = action.to_dict()
             return True
 
+        if process == ProcessType.FRIDGE_RACK_PROVISIONING:
+            world.mark_process_completed(sample_id, ProcessType.FRIDGE_RACK_PROVISIONING)
+            _append_process_completed_event(
+                sample_id,
+                ProcessType.FRIDGE_RACK_PROVISIONING,
+                {"mode": "RACK_PROVISION_ONLY"},
+            )
+            if not _maybe_return_provisioned_racks_after_process(ProcessType.FRIDGE_RACK_PROVISIONING, bb):
+                return False
+            bb["state_driven_last_action"] = action.to_dict()
+            return True
+
         if process == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS:
-            ok = _execute_ih500_immuno_cycle(sample_id, bb)
+            ok = _execute_ih500_immuno_cycle(
+                sample_id,
+                bb,
+                selected_device_id=str(action.selected_device_id or ""),
+            )
             if not ok:
                 return False
             bb["state_driven_last_action"] = action.to_dict()
@@ -3869,10 +5054,11 @@ def build_tree(
 
                 sample_type = extract_sample_type(process_result)
                 barcode = extract_sample_barcode(process_result)
+                classification_key = _classification_key_from_barcode(barcode)
                 decision = router.route(
                     SampleRoutingRequest(
                         sample_id=sample_id,
-                        barcode=barcode,
+                        barcode=classification_key,
                         sample_type=sample_type,
                     )
                 )
@@ -3920,6 +5106,8 @@ def build_tree(
                             "provider": str(decision.source),
                             "recognized": bool(decision.recognized),
                             "sample_type": decision.sample_type,
+                            "classification_key": str(classification_key or ""),
+                            "full_barcode": str(barcode or ""),
                             "target_station_slot_id": decision.target_station_slot_id,
                             "target_rack_index": decision.target_rack_index,
                             "details": dict(decision.details or {}),
@@ -3931,6 +5119,9 @@ def build_tree(
 
                 resolved_sample_id = str(sample_id)
                 normalized_barcode = str(barcode).strip() if barcode is not None else ""
+                normalized_classification_key = (
+                    str(classification_key).strip() if classification_key is not None else ""
+                )
                 if normalized_barcode:
                     try:
                         resolved_sample_id = str(
@@ -3946,6 +5137,43 @@ def build_tree(
                             f"'{sample_id}' with barcode '{normalized_barcode}': {exc}"
                         )
                         return False
+
+                paired_kreuzprobe_sample_id = ""
+                if ProcessType.IMMUNOHEMATOLOGY_ANALYSIS in set(decision_processes):
+                    pair_ok, paired_kreuzprobe_sample_id, pair_reason = _pair_immuno_sample_with_kreuzprobe(
+                        primary_sample_id=str(resolved_sample_id),
+                        immuno_barcode=normalized_barcode,
+                        decision_processes=decision_processes,
+                        decision_source=str(decision.source),
+                        decision_classification=str(decision.classification),
+                        target_slot_id=str(target_slot_id),
+                    )
+                    if not pair_ok:
+                        print(
+                            "GettingNewSamples pairing failed for immuno sample "
+                            f"'{resolved_sample_id}': {pair_reason}"
+                        )
+                        return False
+                    append_world_event(
+                        occupancy_records,
+                        world,
+                        event_type="SAMPLES_PAIRED",
+                        entity_type="SAMPLE",
+                        entity_id=str(resolved_sample_id),
+                        source={"sample_id": str(resolved_sample_id)},
+                        target={"sample_id": str(paired_kreuzprobe_sample_id or "")},
+                        details={
+                            "phase": "GettingNewSamples",
+                            "step_id": step_id,
+                            "classification": str(decision.classification),
+                            "provider": str(decision.source),
+                            "barcode": normalized_barcode,
+                            "classification_key": normalized_classification_key,
+                            "paired_kreuzprobe_sample_id": str(paired_kreuzprobe_sample_id or ""),
+                            "mapping_file": str(IMMUNO_KREUZPROBE_MAP_FILE),
+                            "pairing_status": str(pair_reason),
+                        },
+                    )
 
                 append_world_event(
                     occupancy_records,
@@ -3965,6 +5193,9 @@ def build_tree(
                         "provider": str(decision.source),
                         "original_sample_id": str(sample_id),
                         "resolved_sample_id": str(resolved_sample_id),
+                        "barcode": normalized_barcode,
+                        "classification_key": normalized_classification_key,
+                        "paired_kreuzprobe_sample_id": str(paired_kreuzprobe_sample_id or ""),
                     },
                 )
                 routed_sample_ids.append(str(resolved_sample_id))

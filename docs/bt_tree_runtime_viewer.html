@@ -369,7 +369,7 @@ const DEFAULT_MMD = `flowchart TD
     U --> P{"plan_next status"}
     P -->|READY| X["Execute action: PROCESS_SAMPLE / STAGE_SAMPLE / PROVISION_RACK"]
     X --> U
-    P -->|IDLE + return-candidate| R["Execute RETURN_RACK_HOME"]
+    P -->|IDLE + non-device return-candidate| R["Execute RETURN_RACK_HOME"]
     R --> U
     P -->|IDLE + no return-candidate| OK["SUCCESS"]
     P -->|BLOCKED / action failure| FAIL["FAILURE"]`;
