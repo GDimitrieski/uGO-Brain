@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from engine.bt_nodes import ActionNode, Blackboard, ConditionNode, ForEachNode, RetryNode, SequenceNode, Status
+from engine.bt_nodes import ActionNode, Blackboard, ConditionNode, ForEachNode, Node, RetryNode, SequenceNode, Status
 from engine.command_layer import CommandSender
 from planning.planner import DynamicPlanAction, DynamicStatePlanner, Goal, PlanStep, RulePlanner
 from routing.sample_routing import (
@@ -71,7 +71,7 @@ OBJ_TYPE_PROBE = 810
 RACK_SLOT_INDEX = 1
 
 INPUT_STATION_ID = "InputStation"
-INPUT_SLOT_ID = "URGRackSlot"
+INPUT_SLOT_ID = "URGRackSlot1"
 PLATE_STATION_ID = "uLMPlateStation"
 PLATE_RACK_SLOT_ID = "URGRackSlot"
 THREE_FINGER_STATION_ID = "3-FingerGripperStation"
@@ -1819,6 +1819,152 @@ def build_tree(
         # Workflow status/step context is internal-only; no planner error posting.
         bb["workflow_context_message"] = msg
         bb["workflow_context_ts"] = _local_now_iso()
+
+    def _input_rack_wait_poll_interval_s() -> float:
+        try:
+            return max(0.2, float(STATE_DRIVEN_WAIT_POLL_S))
+        except Exception:
+            return 1.0
+
+    def _should_poll_input_rack(bb: Blackboard) -> bool:
+        interval_s = _input_rack_wait_poll_interval_s()
+        now_s = time.monotonic()
+        last_poll_s = float(bb.get("input_rack_wait_last_poll_s", 0.0))
+        if (now_s - last_poll_s) < interval_s:
+            return False
+        bb["input_rack_wait_last_poll_s"] = now_s
+        return True
+
+    def _await_input_rack_status(bb: Blackboard) -> Status:
+        active_context["bb"] = bb
+        step = plan_step_by_id.get("await_input_rack_present")
+        if step is None:
+            print("GettingNewSamples failed: planner step 'await_input_rack_present' not found")
+            return Status.FAILURE
+
+        bb["last_plan_step"] = str(step.step_id)
+        _post_workflow_context_message(bb, _context_message_for_plan_step(step))
+
+        rack_id = _rack_id_at(world, INPUT_STATION_ID, INPUT_SLOT_ID)
+        if rack_id:
+            bb["input_rack_id"] = str(rack_id)
+            return Status.SUCCESS
+
+        _post_workflow_context_message(bb, "Waiting for Input Rack at Input Station")
+        if not _should_poll_input_rack(bb):
+            return Status.RUNNING
+
+        if ENABLE_WISE_POLLING:
+            loop_index = int(bb.get("input_rack_wait_loop", 0))
+            bb["input_rack_wait_loop"] = loop_index + 1
+            if not _refresh_world_device_states_from_wise(bb, loop_index):
+                print("AwaitInputRack failed: Wise polling did not succeed")
+                return Status.FAILURE
+        else:
+            print("AwaitInputRack failed: WISE polling disabled; cannot wait on input sensor")
+            return Status.FAILURE
+
+        wise_modules = runtime_devices.get_wise_modules_at_station(INPUT_STATION_ID)
+        if not wise_modules:
+            print("AwaitInputRack failed: no WISE module configured for InputStation")
+            return Status.FAILURE
+
+        for device_id, _module in wise_modules:
+            details = _wise_ready_details_for_device(device_id, required_slots=[1])
+            bb["input_rack_wait_last_wise"] = dict(details)
+            if not details.get("configured", False):
+                print("AwaitInputRack failed: InputStation WISE module not configured for slot readiness")
+                return Status.FAILURE
+            if not details.get("online", False) or details.get("stale", True):
+                print("AwaitInputRack failed: InputStation WISE module offline or stale")
+                return Status.FAILURE
+            if details.get("all_ready", False):
+                updated_id = _update_world_input_rack_from_wise_ready()
+                if updated_id:
+                    bb["input_rack_id"] = str(updated_id)
+                    return Status.SUCCESS
+                last_notice = float(bb.get("input_rack_wait_last_notice_s", 0.0))
+                now_s = time.monotonic()
+                if (now_s - last_notice) > 5.0:
+                    print(
+                        "AwaitInputRack: sensor ready but world could not be updated; "
+                        "waiting for manual rack placement confirmation"
+                    )
+                    bb["input_rack_wait_last_notice_s"] = now_s
+                return Status.RUNNING
+
+        return Status.RUNNING
+
+    class AwaitInputRackNode(Node):
+        def tick(self, bb: Blackboard) -> Status:
+            return _await_input_rack_status(bb)
+
+    def _update_world_input_rack_from_wise_ready() -> Optional[str]:
+        rack_id = _rack_id_at(world, INPUT_STATION_ID, INPUT_SLOT_ID)
+        if rack_id:
+            return rack_id
+
+        urg_rack_ids = [
+            rid for rid, rack in world.racks.items() if rack and rack.rack_type == RackType.URG_RACK
+        ]
+        if not urg_rack_ids:
+            print("AwaitInputRack: no URG racks available to map from WISE readiness")
+            return None
+
+        candidate_id: Optional[str] = None
+        candidate_loc: Optional[Tuple[str, str]] = None
+        for rid in urg_rack_ids:
+            loc = _find_rack_location(world, rid)
+            if loc and loc[0] == INPUT_STATION_ID:
+                candidate_id = rid
+                candidate_loc = loc
+                break
+
+        if candidate_id is None:
+            if len(urg_rack_ids) == 1:
+                candidate_id = urg_rack_ids[0]
+                candidate_loc = _find_rack_location(world, candidate_id)
+            else:
+                print(
+                    "AwaitInputRack: multiple URG racks present; cannot auto-select "
+                    "rack to assign to InputStation slot1"
+                )
+                return None
+
+        if candidate_id is None:
+            return None
+
+        if candidate_loc == (INPUT_STATION_ID, INPUT_SLOT_ID):
+            return candidate_id
+
+        try:
+            if candidate_loc is None:
+                if world.rack_in_gripper_id == candidate_id:
+                    world.rack_in_gripper_id = None
+                world.place_rack(INPUT_STATION_ID, INPUT_SLOT_ID, candidate_id)
+            else:
+                world.move_rack(
+                    source_station_id=candidate_loc[0],
+                    source_station_slot_id=candidate_loc[1],
+                    target_station_id=INPUT_STATION_ID,
+                    target_station_slot_id=INPUT_SLOT_ID,
+                )
+            append_world_event(
+                occupancy_records,
+                world,
+                event_type="INPUT_RACK_WISE_READY",
+                entity_type="WORKFLOW",
+                entity_id="GETTING_NEW_SAMPLES",
+                details={
+                    "reason": "wise_slot_ready",
+                    "rack_id": str(candidate_id),
+                    "target_slot_id": INPUT_SLOT_ID,
+                },
+            )
+            return candidate_id
+        except Exception as exc:
+            print(f"AwaitInputRack: failed to update world from WISE readiness ({exc})")
+            return None
 
     def _csv_value(value: Any) -> Any:
         if isinstance(value, (dict, list, tuple, set)):
@@ -5552,13 +5698,10 @@ def build_tree(
         )
     ]
     for step_name in active_step_names:
-        nodes.append(
-            RetryNode(
-                step_name,
-                ConditionNode(step_name, make_step(step_name)),
-                max_attempts=1,
-            )
-        )
+        if step_name == "await_input_rack_present":
+            nodes.append(RetryNode(step_name, AwaitInputRackNode(step_name), max_attempts=1))
+            continue
+        nodes.append(RetryNode(step_name, ConditionNode(step_name, make_step(step_name)), max_attempts=1))
 
     return SequenceNode("RackAndProbeTransferFlow", nodes)
 

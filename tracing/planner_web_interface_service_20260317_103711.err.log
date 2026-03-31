@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\integration\planner_web_interface\service.py", line 729, in <module>
+    main()
+  File "C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\integration\planner_web_interface\service.py", line 725, in main
+    bridge.run_forever()
+  File "C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\integration\planner_web_interface\service.py", line 693, in run_forever
+    snap = self.sync_once()
+  File "C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\integration\planner_web_interface\service.py", line 671, in sync_once
+    self._handle_event_automatic(command_event)
+  File "C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\integration\planner_web_interface\service.py", line 622, in _handle_event_automatic
+    self._reset_world_to_baseline()
+  File "C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\integration\planner_web_interface\service.py", line 546, in _reset_world_to_baseline
+    from world.export_world_snapshot_jsonl import build_snapshot_records, write_jsonl
+ModuleNotFoundError: No module named 'world'

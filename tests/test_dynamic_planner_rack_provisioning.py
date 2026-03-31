@@ -6,7 +6,7 @@ from world.lab_world import ProcessType, RackType, build_default_world
 
 PLATE_STATION_ID = "uLMPlateStation"
 INPUT_STATION_ID = "InputStation"
-INPUT_URG_SLOT_ID = "URGRackSlot"
+INPUT_URG_SLOT_ID = "URGRackSlot2"
 PLATE_ARCHIVE_SLOT_ID = "URGFridgeRackSlot"
 ARCHIVE_STATION_ID = "ArchiveStation"
 ARCHIVE_SLOT_ID = "URGFridgeRackSlot"

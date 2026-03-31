@@ -1,1547 +1,2059 @@
 {
-  "stations": [
-    {
-      "id": "InputStation",
-      "name": "InputStation",
-      "itm_id": 2,
-      "kind": "EXTERNAL",
-      "amr_pos_target": "2",
-      "landmark_id": "LM_INPUT_001",
-      "slot_configs": [
+    "stations": [
         {
-          "slot_id": "URGRackSlot",
-          "kind": "URG_RACK_SLOT",
-          "jig_id": 1,
-          "itm_id": 2,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "URG_RACK"
-          ]
+            "id": "InputStation",
+            "name": "InputStation",
+            "itm_id": 2,
+            "kind": "EXTERNAL",
+            "amr_pos_target": "2",
+            "landmark_id": "LM_INPUT_001",
+            "slot_configs": [
+                {
+                    "slot_id": "URGRackSlot1",
+                    "kind": "URG_RACK_SLOT",
+                    "jig_id": 1,
+                    "itm_id": 2,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "URG_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "URGRackSlot2",
+                    "kind": "URG_RACK_SLOT",
+                    "jig_id": 1,
+                    "itm_id": 2,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 2,
+                    "obj_nbr_offset": 1,
+                    "accepted_rack_types": [
+                        "URG_RACK"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "CHARGE",
+            "name": "CHARGE",
+            "itm_id": 3,
+            "kind": "EXTERNAL",
+            "amr_pos_target": "3",
+            "landmark_id": null,
+            "slot_configs": []
+        },
+        {
+            "id": "BioRadIH500Station",
+            "name": "BioRadIH500Station",
+            "itm_id": 7,
+            "kind": "EXTERNAL",
+            "amr_pos_target": "7",
+            "landmark_id": "LM_IH500_001",
+            "slot_configs": [
+                {
+                    "slot_id": "BioRadIH500Slot1",
+                    "kind": "BIORAD_IH500_RACK_SLOT",
+                    "jig_id": 50,
+                    "itm_id": 7,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "BIORAD_IH500_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "BioRadIH500Slot2",
+                    "kind": "BIORAD_IH500_RACK_SLOT",
+                    "jig_id": 50,
+                    "itm_id": 7,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 2,
+                    "obj_nbr_offset": 12,
+                    "accepted_rack_types": [
+                        "BIORAD_IH500_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "BioRadIH500Slot3",
+                    "kind": "BIORAD_IH500_RACK_SLOT",
+                    "jig_id": 50,
+                    "itm_id": 7,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 3,
+                    "obj_nbr_offset": 24,
+                    "accepted_rack_types": [
+                        "BIORAD_IH500_RACK"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "BioRadIH1000Station",
+            "name": "BioRadIH1000Station",
+            "itm_id": 6,
+            "kind": "EXTERNAL",
+            "amr_pos_target": "6",
+            "landmark_id": "LM_IH1000_001",
+            "slot_configs": []
+        },
+        {
+            "id": "CentrifugeStation",
+            "name": "CentrifugeStation",
+            "itm_id": 5,
+            "kind": "EXTERNAL",
+            "amr_pos_target": "5",
+            "landmark_id": "LM_CENTRIFUGE_001",
+            "slot_configs": [
+                {
+                    "slot_id": "CentrifugeRacksSlot1",
+                    "kind": "CENTRIFUGE_RACK_SLOT",
+                    "jig_id": 2,
+                    "itm_id": 5,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "CENTRIFUGE_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "CentrifugeRacksSlot2",
+                    "kind": "CENTRIFUGE_RACK_SLOT",
+                    "jig_id": 2,
+                    "itm_id": 5,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 2,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "CENTRIFUGE_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "CentrifugeRacksSlot3",
+                    "kind": "CENTRIFUGE_RACK_SLOT",
+                    "jig_id": 2,
+                    "itm_id": 5,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 3,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "CENTRIFUGE_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "CentrifugeRacksSlot4",
+                    "kind": "CENTRIFUGE_RACK_SLOT",
+                    "jig_id": 2,
+                    "itm_id": 5,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 4,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "CENTRIFUGE_RACK"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "ArchiveStation",
+            "name": "ArchiveStation",
+            "itm_id": 9,
+            "kind": "EXTERNAL",
+            "amr_pos_target": "9",
+            "landmark_id": "LM_ARCHIVE_001",
+            "slot_configs": [
+                {
+                    "slot_id": "URGFridgeRackSlot",
+                    "kind": "FRIDGE_URG_RACK_SLOT",
+                    "jig_id": 13,
+                    "itm_id": 9,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "FRIDGE_URG_RACK"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "FridgeStation",
+            "name": "FridgeStation",
+            "itm_id": 8,
+            "kind": "EXTERNAL",
+            "amr_pos_target": "8",
+            "landmark_id": "LM_FRIDGE_001",
+            "slot_configs": [
+                {
+                    "slot_id": "URGFridgeRackSlot1",
+                    "kind": "FRIDGE_URG_RACK_SLOT",
+                    "jig_id": 13,
+                    "itm_id": 8,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "FRIDGE_URG_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "URGFridgeRackSlot2",
+                    "kind": "FRIDGE_URG_RACK_SLOT",
+                    "jig_id": 13,
+                    "itm_id": 8,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 2,
+                    "obj_nbr_offset": 42,
+                    "accepted_rack_types": [
+                        "FRIDGE_URG_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "URGFridgeRackSlot3",
+                    "kind": "FRIDGE_URG_RACK_SLOT",
+                    "jig_id": 13,
+                    "itm_id": 8,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 3,
+                    "obj_nbr_offset": 84,
+                    "accepted_rack_types": [
+                        "FRIDGE_URG_RACK"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "uLMPlateStation",
+            "name": "uLMPlateStation",
+            "itm_id": 1,
+            "kind": "ON_ROBOT_PLATE",
+            "amr_pos_target": null,
+            "landmark_id": null,
+            "slot_configs": [
+                {
+                    "slot_id": "URGRackSlot",
+                    "kind": "URG_RACK_SLOT",
+                    "jig_id": 1,
+                    "itm_id": 1,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "URG_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "CentrifugeRacksSlot1",
+                    "kind": "CENTRIFUGE_RACK_SLOT",
+                    "jig_id": 2,
+                    "itm_id": 1,
+                    "rack_capacity": 4,
+                    "rack_pattern": "1x4",
+                    "rack_rows": 1,
+                    "rack_cols": 4,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "CENTRIFUGE_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "CentrifugeRacksSlot2",
+                    "kind": "CENTRIFUGE_RACK_SLOT",
+                    "jig_id": 2,
+                    "itm_id": 1,
+                    "rack_capacity": 4,
+                    "rack_pattern": "1x4",
+                    "rack_rows": 1,
+                    "rack_cols": 4,
+                    "rack_index": 2,
+                    "obj_nbr_offset": 9,
+                    "accepted_rack_types": [
+                        "CENTRIFUGE_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "CentrifugeRacksSlot3",
+                    "kind": "CENTRIFUGE_RACK_SLOT",
+                    "jig_id": 2,
+                    "itm_id": 1,
+                    "rack_capacity": 4,
+                    "rack_pattern": "1x4",
+                    "rack_rows": 1,
+                    "rack_cols": 4,
+                    "rack_index": 3,
+                    "obj_nbr_offset": 18,
+                    "accepted_rack_types": [
+                        "CENTRIFUGE_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "CentrifugeRacksSlot4",
+                    "kind": "CENTRIFUGE_RACK_SLOT",
+                    "jig_id": 2,
+                    "itm_id": 1,
+                    "rack_capacity": 4,
+                    "rack_pattern": "1x4",
+                    "rack_rows": 1,
+                    "rack_cols": 4,
+                    "rack_index": 4,
+                    "obj_nbr_offset": 27,
+                    "accepted_rack_types": [
+                        "CENTRIFUGE_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "TaraRacksSlot1",
+                    "kind": "TARA_RACK_SLOT",
+                    "jig_id": 3,
+                    "itm_id": 1,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "TARA_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "IntermediateRackSlot1",
+                    "kind": "INTERMEDIATE_RACK_SLOT",
+                    "jig_id": 4,
+                    "itm_id": 1,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "INTERMEDIATE_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "URGFridgeRackSlot",
+                    "kind": "FRIDGE_URG_RACK_SLOT",
+                    "jig_id": 13,
+                    "itm_id": 1,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "FRIDGE_URG_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "BioRadIH500Slot1",
+                    "kind": "BIORAD_IH500_RACK_SLOT",
+                    "jig_id": 12,
+                    "itm_id": 1,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "BIORAD_IH500_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "BioRadIH500Slot2",
+                    "kind": "BIORAD_IH500_RACK_SLOT",
+                    "jig_id": 12,
+                    "itm_id": 1,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 2,
+                    "obj_nbr_offset": 12,
+                    "accepted_rack_types": [
+                        "BIORAD_IH500_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "BioRadIH500Slot3",
+                    "kind": "BIORAD_IH500_RACK_SLOT",
+                    "jig_id": 12,
+                    "itm_id": 1,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 3,
+                    "obj_nbr_offset": 24,
+                    "accepted_rack_types": [
+                        "BIORAD_IH500_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "BioRadIH1000Slot1",
+                    "kind": "BIORAD_IH1000_RACK_SLOT",
+                    "jig_id": 11,
+                    "itm_id": 1,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "BIORAD_IH1000_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "BioRadIH1000Slot2",
+                    "kind": "BIORAD_IH1000_RACK_SLOT",
+                    "jig_id": 11,
+                    "itm_id": 1,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 2,
+                    "obj_nbr_offset": 12,
+                    "accepted_rack_types": [
+                        "BIORAD_IH1000_RACK"
+                    ]
+                },
+                {
+                    "slot_id": "BioRadIH1000Slot3",
+                    "kind": "BIORAD_IH1000_RACK_SLOT",
+                    "jig_id": 11,
+                    "itm_id": 1,
+                    "rack_capacity": 3,
+                    "rack_pattern": "1x3",
+                    "rack_rows": 1,
+                    "rack_cols": 3,
+                    "rack_index": 3,
+                    "obj_nbr_offset": 24,
+                    "accepted_rack_types": [
+                        "BIORAD_IH1000_RACK"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "3-FingerGripperStation",
+            "name": "3-FingerGripperStation",
+            "itm_id": 1,
+            "kind": "ON_ROBOT_PLATE",
+            "amr_pos_target": null,
+            "landmark_id": null,
+            "slot_configs": [
+                {
+                    "slot_id": "SampleSlot1",
+                    "kind": "THREE_FINGER_GRIPPER_SAMPLE_SLOT",
+                    "jig_id": 10,
+                    "itm_id": 1,
+                    "rack_capacity": 1,
+                    "rack_pattern": "1x1",
+                    "rack_rows": 1,
+                    "rack_cols": 1,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "THREE_FINGER_GRIPPER_SAMPLE_HOLDER"
+                    ]
+                },
+                {
+                    "slot_id": "RecapCapsSlot",
+                    "kind": "THREE_FINGER_GRIPPER_SAMPLE_SLOT",
+                    "jig_id": 14,
+                    "itm_id": 1,
+                    "rack_capacity": 9,
+                    "rack_pattern": "3x3",
+                    "rack_rows": 3,
+                    "rack_cols": 3,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "THREE_FINGER_GRIPPER_SAMPLE_HOLDER"
+                    ]
+                },
+                {
+                    "slot_id": "KreuzprobeRecapCapsSlot",
+                    "kind": "THREE_FINGER_GRIPPER_SAMPLE_SLOT",
+                    "jig_id": 15,
+                    "itm_id": 1,
+                    "rack_capacity": 9,
+                    "rack_pattern": "3x3",
+                    "rack_rows": 3,
+                    "rack_cols": 3,
+                    "rack_index": 1,
+                    "obj_nbr_offset": 0,
+                    "accepted_rack_types": [
+                        "THREE_FINGER_GRIPPER_SAMPLE_HOLDER"
+                    ]
+                }
+            ]
         }
-      ]
-    },
-    {
-      "id": "CHARGE",
-      "name": "CHARGE",
-      "itm_id": 3,
-      "kind": "EXTERNAL",
-      "amr_pos_target": "3",
-      "landmark_id": null,
-      "slot_configs": []
-    },
-    {
-      "id": "BioRadIH500Station",
-      "name": "BioRadIH500Station",
-      "itm_id": 7,
-      "kind": "EXTERNAL",
-      "amr_pos_target": "7",
-      "landmark_id": "LM_IH500_001",
-      "slot_configs": [
+    ],
+    "landmarks": [
         {
-          "slot_id": "BioRadIH500Slot1",
-          "kind": "BIORAD_IH500_RACK_SLOT",
-          "jig_id": 50,
-          "itm_id": 7,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "BIORAD_IH500_RACK"
-          ]
+            "id": "LM_INPUT_001",
+            "code": "LM_INPUT_001",
+            "station_id": "InputStation"
         },
         {
-          "slot_id": "BioRadIH500Slot2",
-          "kind": "BIORAD_IH500_RACK_SLOT",
-          "jig_id": 50,
-          "itm_id": 7,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 2,
-          "obj_nbr_offset": 12,
-          "accepted_rack_types": [
-            "BIORAD_IH500_RACK"
-          ]
+            "id": "LM_IH500_001",
+            "code": "LM_IH500_001",
+            "station_id": "BioRadIH500Station"
         },
         {
-          "slot_id": "BioRadIH500Slot3",
-          "kind": "BIORAD_IH500_RACK_SLOT",
-          "jig_id": 50,
-          "itm_id": 7,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 3,
-          "obj_nbr_offset": 24,
-          "accepted_rack_types": [
-            "BIORAD_IH500_RACK"
-          ]
+            "id": "LM_IH1000_001",
+            "code": "LM_IH1000_001",
+            "station_id": "BioRadIH1000Station"
+        },
+        {
+            "id": "LM_CENTRIFUGE_001",
+            "code": "LM_CENTRIFUGE_001",
+            "station_id": "CentrifugeStation"
+        },
+        {
+            "id": "LM_ARCHIVE_001",
+            "code": "LM_ARCHIVE_001",
+            "station_id": "ArchiveStation"
+        },
+        {
+            "id": "LM_FRIDGE_001",
+            "code": "LM_FRIDGE_001",
+            "station_id": "FridgeStation"
         }
-      ]
-    },
-    {
-      "id": "BioRadIH1000Station",
-      "name": "BioRadIH1000Station",
-      "itm_id": 6,
-      "kind": "EXTERNAL",
-      "amr_pos_target": "6",
-      "landmark_id": "LM_IH1000_001",
-      "slot_configs": []
-    },
-    {
-      "id": "CentrifugeStation",
-      "name": "CentrifugeStation",
-      "itm_id": 5,
-      "kind": "EXTERNAL",
-      "amr_pos_target": "5",
-      "landmark_id": "LM_CENTRIFUGE_001",
-      "slot_configs": [
+    ],
+    "racks": [
         {
-          "slot_id": "CentrifugeRacksSlot1",
-          "kind": "CENTRIFUGE_RACK_SLOT",
-          "jig_id": 2,
-          "itm_id": 5,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "CENTRIFUGE_RACK"
-          ]
+            "id": "RACK_INPUT_URG_01",
+            "rack_type": "URG_RACK",
+            "capacity": 32,
+            "pattern": "URG_4x8_PIN2",
+            "pin_obj_type": 551,
+            "rows": 8,
+            "cols": 4,
+            "blocked_slots": [
+                15,
+                18
+            ]
         },
         {
-          "slot_id": "CentrifugeRacksSlot2",
-          "kind": "CENTRIFUGE_RACK_SLOT",
-          "jig_id": 2,
-          "itm_id": 5,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 2,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "CENTRIFUGE_RACK"
-          ]
+            "id": "RACK_ULM_CENTRIFUGE_01",
+            "rack_type": "CENTRIFUGE_RACK",
+            "capacity": 9,
+            "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
+            "pin_obj_type": 520,
+            "rows": 3,
+            "cols": 3,
+            "blocked_slots": [
+                5
+            ]
         },
         {
-          "slot_id": "CentrifugeRacksSlot3",
-          "kind": "CENTRIFUGE_RACK_SLOT",
-          "jig_id": 2,
-          "itm_id": 5,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 3,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "CENTRIFUGE_RACK"
-          ]
+            "id": "RACK_ULM_CENTRIFUGE_02",
+            "rack_type": "CENTRIFUGE_RACK",
+            "capacity": 9,
+            "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
+            "pin_obj_type": 520,
+            "rows": 3,
+            "cols": 3,
+            "blocked_slots": [
+                5
+            ]
         },
         {
-          "slot_id": "CentrifugeRacksSlot4",
-          "kind": "CENTRIFUGE_RACK_SLOT",
-          "jig_id": 2,
-          "itm_id": 5,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 4,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "CENTRIFUGE_RACK"
-          ]
+            "id": "RACK_ULM_CENTRIFUGE_03",
+            "rack_type": "CENTRIFUGE_RACK",
+            "capacity": 9,
+            "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
+            "pin_obj_type": 520,
+            "rows": 3,
+            "cols": 3,
+            "blocked_slots": [
+                5
+            ]
+        },
+        {
+            "id": "RACK_ULM_CENTRIFUGE_04",
+            "rack_type": "CENTRIFUGE_RACK",
+            "capacity": 9,
+            "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
+            "pin_obj_type": 520,
+            "rows": 3,
+            "cols": 3,
+            "blocked_slots": [
+                5
+            ]
+        },
+        {
+            "id": "RACK_ULM_TARA_01",
+            "rack_type": "TARA_RACK",
+            "capacity": 3,
+            "pattern": "1x3",
+            "pin_obj_type": 9010,
+            "rows": 1,
+            "cols": 3,
+            "blocked_slots": [],
+            "occupied_slots": {
+                "1": "DUMMY_0001",
+                "2": "DUMMY_0002",
+                "3": "DUMMY_0003"
+            }
+        },
+        {
+            "id": "RACK_ULM_INTERMEDIATE_01",
+            "rack_type": "INTERMEDIATE_RACK",
+            "capacity": 24,
+            "pattern": "INTERMEDIATE_4x6",
+            "pin_obj_type": 9011,
+            "rows": 4,
+            "cols": 6,
+            "blocked_slots": []
+        },
+        {
+            "id": "RACK_ULM_BIORAD_IH500_01",
+            "rack_type": "BIORAD_IH500_RACK",
+            "capacity": 13,
+            "pattern": "BIORAD_IH500_1x13_PIN3",
+            "pin_obj_type": 520,
+            "rows": 1,
+            "cols": 13,
+            "blocked_slots": [
+                3,
+                7,
+                10
+            ]
+        },
+        {
+            "id": "RACK_ULM_BIORAD_IH500_02",
+            "rack_type": "BIORAD_IH500_RACK",
+            "capacity": 13,
+            "pattern": "BIORAD_IH500_1x13_PIN3",
+            "pin_obj_type": 520,
+            "rows": 1,
+            "cols": 13,
+            "blocked_slots": [
+                3,
+                7,
+                10
+            ]
+        },
+        {
+            "id": "RACK_ULM_BIORAD_IH500_03",
+            "rack_type": "BIORAD_IH500_RACK",
+            "capacity": 13,
+            "pattern": "BIORAD_IH500_1x13_PIN3",
+            "pin_obj_type": 520,
+            "rows": 1,
+            "cols": 13,
+            "blocked_slots": [
+                3,
+                7,
+                10
+            ]
+        },
+        {
+            "id": "RACK_ULM_BIORAD_IH1000_01",
+            "rack_type": "BIORAD_IH1000_RACK",
+            "capacity": 12,
+            "pattern": "BIORAD_IH1000_1x12_PIN2",
+            "pin_obj_type": 9013,
+            "rows": 1,
+            "cols": 12,
+            "blocked_slots": [
+                5,
+                7
+            ]
+        },
+        {
+            "id": "RACK_ULM_BIORAD_IH1000_02",
+            "rack_type": "BIORAD_IH1000_RACK",
+            "capacity": 12,
+            "pattern": "BIORAD_IH1000_1x12_PIN2",
+            "pin_obj_type": 9013,
+            "rows": 1,
+            "cols": 12,
+            "blocked_slots": [
+                5,
+                7
+            ]
+        },
+        {
+            "id": "RACK_ULM_BIORAD_IH1000_03",
+            "rack_type": "BIORAD_IH1000_RACK",
+            "capacity": 12,
+            "pattern": "BIORAD_IH1000_1x12_PIN2",
+            "pin_obj_type": 9013,
+            "rows": 1,
+            "cols": 12,
+            "blocked_slots": [
+                5,
+                7
+            ]
+        },
+        {
+            "id": "RACK_FRIDGE_URG_4x11_01",
+            "rack_type": "FRIDGE_URG_RACK",
+            "capacity": 42,
+            "pattern": "ARCHIVE_4x11_PIN2",
+            "pin_obj_type": 9015,
+            "rows": 11,
+            "cols": 4,
+            "blocked_slots": [
+                42,
+                43
+            ],
+            "occupied_slots": {
+                "1": "KREUZPROBE_0001",
+                "4": "KREUZPROBE_0002",
+                "5": "KREUZPROBE_0003",
+                "6": "KREUZPROBE_0004",
+                "7": "KREUZPROBE_0005",
+                "8": "KREUZPROBE_0006",
+                "9": "KREUZPROBE_0007",
+                "10": "KREUZPROBE_0008",
+                "11": "KREUZPROBE_0009",
+                "12": "KREUZPROBE_0010",
+                "13": "KREUZPROBE_0011",
+                "14": "KREUZPROBE_0012",
+                "15": "KREUZPROBE_0013",
+                "16": "KREUZPROBE_0014",
+                "17": "KREUZPROBE_0015",
+                "18": "KREUZPROBE_0016",
+                "19": "KREUZPROBE_0017",
+                "20": "KREUZPROBE_0018",
+                "21": "KREUZPROBE_0019",
+                "22": "KREUZPROBE_0020",
+                "23": "KREUZPROBE_0021",
+                "24": "KREUZPROBE_0022",
+                "25": "KREUZPROBE_0023",
+                "26": "KREUZPROBE_0024",
+                "27": "KREUZPROBE_0025",
+                "28": "KREUZPROBE_0026",
+                "29": "KREUZPROBE_0027",
+                "30": "KREUZPROBE_0028",
+                "31": "KREUZPROBE_0029",
+                "33": "KREUZPROBE_0031",
+                "34": "KREUZPROBE_0032",
+                "35": "KREUZPROBE_0033",
+                "36": "KREUZPROBE_0034",
+                "37": "KREUZPROBE_0035",
+                "38": "KREUZPROBE_0036",
+                "39": "KREUZPROBE_0037",
+                "40": "KREUZPROBE_0038",
+                "41": "KREUZPROBE_0039",
+                "2": "KREUZPROBE_0040",
+                "3": "KREUZPROBE_0041",
+                "44": "KREUZPROBE_0042",
+                "32": "KREUZPROBE_0030"
+            }
+        },
+        {
+            "id": "RACK_ARCHIVE_URG_4x11_01",
+            "rack_type": "FRIDGE_URG_RACK",
+            "capacity": 42,
+            "pattern": "ARCHIVE_4x11_PIN2",
+            "pin_obj_type": 9015,
+            "rows": 11,
+            "cols": 4,
+            "blocked_slots": [
+                42,
+                43
+            ]
+        },
+        {
+            "id": "RACK_3FG_SAMPLE_HOLDER_01",
+            "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
+            "capacity": 1,
+            "pattern": "THREE_FINGER_GRIPPER_1x1",
+            "pin_obj_type": 9014,
+            "rows": 1,
+            "cols": 1,
+            "blocked_slots": []
+        },
+        {
+            "id": "RACK_3FG_RECAP_CAPS_01",
+            "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
+            "capacity": 9,
+            "pattern": "THREE_FINGER_GRIPPER_CAP_HOLDER_3x3",
+            "pin_obj_type": 9014,
+            "rows": 3,
+            "cols": 3,
+            "blocked_slots": []
+        },
+        {
+            "id": "RACK_3FG_KREUZ_CAPS_01",
+            "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
+            "capacity": 9,
+            "pattern": "THREE_FINGER_GRIPPER_CAP_HOLDER_3x3",
+            "pin_obj_type": 9014,
+            "rows": 3,
+            "cols": 3,
+            "blocked_slots": []
         }
-      ]
-    },
-    {
-      "id": "ArchiveStation",
-      "name": "ArchiveStation",
-      "itm_id": 9,
-      "kind": "EXTERNAL",
-      "amr_pos_target": "9",
-      "landmark_id": "LM_ARCHIVE_001",
-      "slot_configs": [
+    ],
+    "devices": [
         {
-          "slot_id": "URGFridgeRackSlot",
-          "kind": "FRIDGE_URG_RACK_SLOT",
-          "jig_id": 13,
-          "itm_id": 9,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "FRIDGE_URG_RACK"
-          ]
+            "id": "CENTRIFUGE_DEVICE_01",
+            "name": "Centrifuge",
+            "station_id": "CentrifugeStation",
+            "model": "Rotina380R",
+            "device_class": "HettichRotina380RDevice",
+            "capabilities": [
+                "CENTRIFUGATION"
+            ],
+            "planner_role": "PROCESSOR",
+            "exclude_station_racks_from_idle_return": true,
+            "device_capabilities": {
+                "supported_processes": [
+                    "CENTRIFUGATION"
+                ],
+                "refrigerated": true,
+                "automatic_rotor_recognition": true,
+                "powered_lid_lock": true,
+                "imbalance_detection": true,
+                "interfaces": [
+                    "RS232",
+                    "LOCAL_UI"
+                ]
+            },
+            "rotor_configuration": {
+                "rotor_id": "GENERIC_ROTOR",
+                "rotor_type": "CONFIGURABLE",
+                "positions": [
+                    {
+                        "index": 1,
+                        "angle_deg": 0.0,
+                        "opposite_index": 3
+                    },
+                    {
+                        "index": 2,
+                        "angle_deg": 90.0,
+                        "opposite_index": 4
+                    },
+                    {
+                        "index": 3,
+                        "angle_deg": 180.0,
+                        "opposite_index": 1
+                    },
+                    {
+                        "index": 4,
+                        "angle_deg": 270.0,
+                        "opposite_index": 2
+                    }
+                ],
+                "buckets": [],
+                "adapters": []
+            },
+            "balance_model": {
+                "rule_type": "OPPOSITE_POSITION",
+                "require_symmetry": true,
+                "tolerance_g": null,
+                "max_imbalance_g": null
+            },
+            "lid_control_strategy": {
+                "type": "manual",
+                "method": "local_ui_or_api"
+            },
+            "start_strategy": {
+                "type": "manual",
+                "method": "local_ui_or_api"
+            },
+            "status_strategy": {
+                "type": "in_memory",
+                "source": "status_light_or_rs232",
+                "state_map": {}
+            },
+            "usage_profile": {
+                "type": "Rotina380UsageProfile",
+                "source_station_id": "uLMPlateStation",
+                "centrifuge_station_id": "CentrifugeStation",
+                "fixed_receiver_obj_nbr": 1,
+                "target_loading_jig_id": 2,
+                "tara_probe_jig_id": 3,
+                "enable_tara_balancing": true,
+                "return_tara_probes_on_unload": true
+            }
+        },
+        {
+            "id": "THREE_FINGER_GRIPPER_DEVICE_01",
+            "name": "3-FingerGripper",
+            "station_id": "3-FingerGripperStation",
+            "capabilities": [
+                "CAP",
+                "DECAP",
+                "SAMPLE_TYPE_DETECTION"
+            ],
+            "planner_role": "PROCESSOR",
+            "exclude_station_racks_from_idle_return": true
+        },
+        {
+            "id": "INPUT_STATION_WISE_DEVICE_01",
+            "name": "InputStation Wise Module",
+            "station_id": "InputStation",
+            "capabilities": [],
+            "planner_role": "SENSOR",
+            "exclude_station_racks_from_idle_return": false,
+            "wise": {
+                "enabled": true,
+                "host": "192.168.137.101",
+                "port": 80,
+                "scheme": "http",
+                "auth": {
+                    "username": "root",
+                    "password": "12345678"
+                },
+                "di_slot": 0,
+                "di_endpoint_template": "/di_value/slot_{slot}",
+                "timeout_s": 3.0,
+                "poll_interval_s": 1.0,
+                "stale_after_s": 6.0,
+                "verify_tls": true,
+                "slot_ready_channels": {
+                    "1": 0
+                }
+            }
+        },
+        {
+            "id": "BIORAD_IH500_DEVICE_01",
+            "name": "BioRad IH-500",
+            "station_id": "BioRadIH500Station",
+            "model": "IH500",
+            "device_class": "BioradIh500Device",
+            "capabilities": [
+                "IMMUNOHEMATOLOGY_ANALYSIS"
+            ],
+            "planner_role": "PROCESSOR",
+            "exclude_station_racks_from_idle_return": true,
+            "device_capabilities": {
+                "supported_processes": [
+                    "IMMUNOHEMATOLOGY_ANALYSIS"
+                ],
+                "continuous_loading": true,
+                "auto_start": false,
+                "nominal_sample_capacity": 50
+            },
+            "load_interface": {
+                "carrier_type": "RACK",
+                "loading_area": "SEPARATE_LOADING_AREA",
+                "rack_geometry": {},
+                "slot_layout": {}
+            },
+            "start_strategy": {
+                "type": "manual",
+                "method": "status_light_or_interface"
+            },
+            "status_strategy": {
+                "type": "in_memory",
+                "source": "status_light",
+                "state_map": {}
+            },
+            "wise": {
+                "enabled": true,
+                "host": "192.168.137.101",
+                "port": 80,
+                "scheme": "http",
+                "auth": {
+                    "username": "root",
+                    "password": "12345678"
+                },
+                "di_slot": 0,
+                "di_endpoint_template": "/di_value/slot_{slot}",
+                "timeout_s": 3.0,
+                "poll_interval_s": 1.0,
+                "stale_after_s": 5.0,
+                "verify_tls": true,
+                "enforce_ready_for_unload": true,
+                "required_for_selection": false,
+                "required_for_processes": [
+                    "IMMUNOHEMATOLOGY_ANALYSIS"
+                ],
+                "rack_ready_channels": {
+                    "1": 0,
+                    "2": 1,
+                    "3": 2
+                }
+            }
+        },
+        {
+            "id": "BIORAD_IH1000_DEVICE_01",
+            "name": "BioRad IH-1000",
+            "station_id": "BioRadIH1000Station",
+            "model": "IH1000",
+            "device_class": "BioradIh1000Device",
+            "capabilities": [
+                "IMMUNOHEMATOLOGY_ANALYSIS"
+            ],
+            "planner_role": "PROCESSOR",
+            "exclude_station_racks_from_idle_return": true,
+            "device_capabilities": {
+                "supported_processes": [
+                    "IMMUNOHEMATOLOGY_ANALYSIS"
+                ],
+                "continuous_loading": true,
+                "auto_start": true,
+                "nominal_sample_capacity": 180
+            },
+            "load_interface": {
+                "carrier_type": "RACK",
+                "loading_area": "MAIN_LOADING_AREA",
+                "rack_geometry": {},
+                "slot_layout": {}
+            },
+            "start_strategy": {
+                "type": "automatic",
+                "method": "auto_start_documented"
+            },
+            "status_strategy": {
+                "type": "in_memory",
+                "source": "status_light_or_interface",
+                "state_map": {}
+            }
         }
-      ]
-    },
-    {
-      "id": "FridgeStation",
-      "name": "FridgeStation",
-      "itm_id": 8,
-      "kind": "EXTERNAL",
-      "amr_pos_target": "8",
-      "landmark_id": "LM_FRIDGE_001",
-      "slot_configs": [
+    ],
+    "rack_placements": [
         {
-          "slot_id": "URGFridgeRackSlot1",
-          "kind": "FRIDGE_URG_RACK_SLOT",
-          "jig_id": 13,
-          "itm_id": 8,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "FRIDGE_URG_RACK"
-          ]
+            "station_id": "InputStation",
+            "station_slot_id": "URGRackSlot2",
+            "rack_id": "RACK_INPUT_URG_01"
         },
         {
-          "slot_id": "URGFridgeRackSlot2",
-          "kind": "FRIDGE_URG_RACK_SLOT",
-          "jig_id": 13,
-          "itm_id": 8,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 2,
-          "obj_nbr_offset": 42,
-          "accepted_rack_types": [
-            "FRIDGE_URG_RACK"
-          ]
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "CentrifugeRacksSlot1",
+            "rack_id": "RACK_ULM_CENTRIFUGE_01"
         },
         {
-          "slot_id": "URGFridgeRackSlot3",
-          "kind": "FRIDGE_URG_RACK_SLOT",
-          "jig_id": 13,
-          "itm_id": 8,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 3,
-          "obj_nbr_offset": 84,
-          "accepted_rack_types": [
-            "FRIDGE_URG_RACK"
-          ]
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "CentrifugeRacksSlot2",
+            "rack_id": "RACK_ULM_CENTRIFUGE_02"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "CentrifugeRacksSlot3",
+            "rack_id": "RACK_ULM_CENTRIFUGE_03"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "CentrifugeRacksSlot4",
+            "rack_id": "RACK_ULM_CENTRIFUGE_04"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "TaraRacksSlot1",
+            "rack_id": "RACK_ULM_TARA_01"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "IntermediateRackSlot1",
+            "rack_id": "RACK_ULM_INTERMEDIATE_01"
+        },
+        {
+            "station_id": "FridgeStation",
+            "station_slot_id": "URGFridgeRackSlot1",
+            "rack_id": "RACK_FRIDGE_URG_4x11_01"
+        },
+        {
+            "station_id": "ArchiveStation",
+            "station_slot_id": "URGFridgeRackSlot",
+            "rack_id": "RACK_ARCHIVE_URG_4x11_01"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "BioRadIH500Slot1",
+            "rack_id": "RACK_ULM_BIORAD_IH500_01"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "BioRadIH500Slot2",
+            "rack_id": "RACK_ULM_BIORAD_IH500_02"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "BioRadIH500Slot3",
+            "rack_id": "RACK_ULM_BIORAD_IH500_03"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "BioRadIH1000Slot1",
+            "rack_id": "RACK_ULM_BIORAD_IH1000_01"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "BioRadIH1000Slot2",
+            "rack_id": "RACK_ULM_BIORAD_IH1000_02"
+        },
+        {
+            "station_id": "uLMPlateStation",
+            "station_slot_id": "BioRadIH1000Slot3",
+            "rack_id": "RACK_ULM_BIORAD_IH1000_03"
+        },
+        {
+            "station_id": "3-FingerGripperStation",
+            "station_slot_id": "SampleSlot1",
+            "rack_id": "RACK_3FG_SAMPLE_HOLDER_01"
+        },
+        {
+            "station_id": "3-FingerGripperStation",
+            "station_slot_id": "RecapCapsSlot",
+            "rack_id": "RACK_3FG_RECAP_CAPS_01"
+        },
+        {
+            "station_id": "3-FingerGripperStation",
+            "station_slot_id": "KreuzprobeRecapCapsSlot",
+            "rack_id": "RACK_3FG_KREUZ_CAPS_01"
         }
-      ]
-    },
-    {
-      "id": "uLMPlateStation",
-      "name": "uLMPlateStation",
-      "itm_id": 1,
-      "kind": "ON_ROBOT_PLATE",
-      "amr_pos_target": null,
-      "landmark_id": null,
-      "slot_configs": [
+    ],
+    "robot_current_station_id": "CHARGE",
+    "samples": [
         {
-          "slot_id": "URGRackSlot",
-          "kind": "URG_RACK_SLOT",
-          "jig_id": 1,
-          "itm_id": 1,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "URG_RACK"
-          ]
+            "id": "DUMMY_0001",
+            "barcode": "DUMMY_0001",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "CentrifugeRacksSlot1",
-          "kind": "CENTRIFUGE_RACK_SLOT",
-          "jig_id": 2,
-          "itm_id": 1,
-          "rack_capacity": 4,
-          "rack_pattern": "1x4",
-          "rack_rows": 1,
-          "rack_cols": 4,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "CENTRIFUGE_RACK"
-          ]
+            "id": "DUMMY_0002",
+            "barcode": "DUMMY_0002",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "CentrifugeRacksSlot2",
-          "kind": "CENTRIFUGE_RACK_SLOT",
-          "jig_id": 2,
-          "itm_id": 1,
-          "rack_capacity": 4,
-          "rack_pattern": "1x4",
-          "rack_rows": 1,
-          "rack_cols": 4,
-          "rack_index": 2,
-          "obj_nbr_offset": 9,
-          "accepted_rack_types": [
-            "CENTRIFUGE_RACK"
-          ]
+            "id": "DUMMY_0003",
+            "barcode": "DUMMY_0003",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "CentrifugeRacksSlot3",
-          "kind": "CENTRIFUGE_RACK_SLOT",
-          "jig_id": 2,
-          "itm_id": 1,
-          "rack_capacity": 4,
-          "rack_pattern": "1x4",
-          "rack_rows": 1,
-          "rack_cols": 4,
-          "rack_index": 3,
-          "obj_nbr_offset": 18,
-          "accepted_rack_types": [
-            "CENTRIFUGE_RACK"
-          ]
+            "id": "KREUZPROBE_0001",
+            "barcode": "KREUZPROBE_0001",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "CentrifugeRacksSlot4",
-          "kind": "CENTRIFUGE_RACK_SLOT",
-          "jig_id": 2,
-          "itm_id": 1,
-          "rack_capacity": 4,
-          "rack_pattern": "1x4",
-          "rack_rows": 1,
-          "rack_cols": 4,
-          "rack_index": 4,
-          "obj_nbr_offset": 27,
-          "accepted_rack_types": [
-            "CENTRIFUGE_RACK"
-          ]
+            "id": "KREUZPROBE_0002",
+            "barcode": "KREUZPROBE_0002",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "TaraRacksSlot1",
-          "kind": "TARA_RACK_SLOT",
-          "jig_id": 3,
-          "itm_id": 1,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "TARA_RACK"
-          ]
+            "id": "KREUZPROBE_0003",
+            "barcode": "KREUZPROBE_0003",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "IntermediateRackSlot1",
-          "kind": "INTERMEDIATE_RACK_SLOT",
-          "jig_id": 4,
-          "itm_id": 1,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "INTERMEDIATE_RACK"
-          ]
+            "id": "KREUZPROBE_0004",
+            "barcode": "KREUZPROBE_0004",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "URGFridgeRackSlot",
-          "kind": "FRIDGE_URG_RACK_SLOT",
-          "jig_id": 13,
-          "itm_id": 1,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "FRIDGE_URG_RACK"
-          ]
+            "id": "KREUZPROBE_0005",
+            "barcode": "KREUZPROBE_0005",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "BioRadIH500Slot1",
-          "kind": "BIORAD_IH500_RACK_SLOT",
-          "jig_id": 12,
-          "itm_id": 1,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "BIORAD_IH500_RACK"
-          ]
+            "id": "KREUZPROBE_0006",
+            "barcode": "KREUZPROBE_0006",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "BioRadIH500Slot2",
-          "kind": "BIORAD_IH500_RACK_SLOT",
-          "jig_id": 12,
-          "itm_id": 1,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 2,
-          "obj_nbr_offset": 12,
-          "accepted_rack_types": [
-            "BIORAD_IH500_RACK"
-          ]
+            "id": "KREUZPROBE_0007",
+            "barcode": "KREUZPROBE_0007",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "BioRadIH500Slot3",
-          "kind": "BIORAD_IH500_RACK_SLOT",
-          "jig_id": 12,
-          "itm_id": 1,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 3,
-          "obj_nbr_offset": 24,
-          "accepted_rack_types": [
-            "BIORAD_IH500_RACK"
-          ]
+            "id": "KREUZPROBE_0008",
+            "barcode": "KREUZPROBE_0008",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "BioRadIH1000Slot1",
-          "kind": "BIORAD_IH1000_RACK_SLOT",
-          "jig_id": 11,
-          "itm_id": 1,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "BIORAD_IH1000_RACK"
-          ]
+            "id": "KREUZPROBE_0009",
+            "barcode": "KREUZPROBE_0009",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "BioRadIH1000Slot2",
-          "kind": "BIORAD_IH1000_RACK_SLOT",
-          "jig_id": 11,
-          "itm_id": 1,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 2,
-          "obj_nbr_offset": 12,
-          "accepted_rack_types": [
-            "BIORAD_IH1000_RACK"
-          ]
+            "id": "KREUZPROBE_0010",
+            "barcode": "KREUZPROBE_0010",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
         },
         {
-          "slot_id": "BioRadIH1000Slot3",
-          "kind": "BIORAD_IH1000_RACK_SLOT",
-          "jig_id": 11,
-          "itm_id": 1,
-          "rack_capacity": 3,
-          "rack_pattern": "1x3",
-          "rack_rows": 1,
-          "rack_cols": 3,
-          "rack_index": 3,
-          "obj_nbr_offset": 24,
-          "accepted_rack_types": [
-            "BIORAD_IH1000_RACK"
-          ]
+            "id": "KREUZPROBE_0011",
+            "barcode": "KREUZPROBE_0011",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0012",
+            "barcode": "KREUZPROBE_0012",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0013",
+            "barcode": "KREUZPROBE_0013",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0014",
+            "barcode": "KREUZPROBE_0014",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0015",
+            "barcode": "KREUZPROBE_0015",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0016",
+            "barcode": "KREUZPROBE_0016",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0017",
+            "barcode": "KREUZPROBE_0017",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0018",
+            "barcode": "KREUZPROBE_0018",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0019",
+            "barcode": "KREUZPROBE_0019",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0020",
+            "barcode": "KREUZPROBE_0020",
+            "obj_type": 811,
+            "length_mm": 75.0,
+            "diameter_mm": 13.0,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0021",
+            "barcode": "KREUZPROBE_0021",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0022",
+            "barcode": "KREUZPROBE_0022",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0023",
+            "barcode": "KREUZPROBE_0023",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0024",
+            "barcode": "KREUZPROBE_0024",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0025",
+            "barcode": "KREUZPROBE_0025",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0026",
+            "barcode": "KREUZPROBE_0026",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0027",
+            "barcode": "KREUZPROBE_0027",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0028",
+            "barcode": "KREUZPROBE_0028",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0029",
+            "barcode": "KREUZPROBE_0029",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0030",
+            "barcode": "KREUZPROBE_0030",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0031",
+            "barcode": "KREUZPROBE_0031",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0032",
+            "barcode": "KREUZPROBE_0032",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0033",
+            "barcode": "KREUZPROBE_0033",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0034",
+            "barcode": "KREUZPROBE_0034",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0035",
+            "barcode": "KREUZPROBE_0035",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0036",
+            "barcode": "KREUZPROBE_0036",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0037",
+            "barcode": "KREUZPROBE_0037",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0038",
+            "barcode": "KREUZPROBE_0038",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0039",
+            "barcode": "KREUZPROBE_0039",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0040",
+            "barcode": "KREUZPROBE_0040",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0041",
+            "barcode": "KREUZPROBE_0041",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
+        },
+        {
+            "id": "KREUZPROBE_0042",
+            "barcode": "KREUZPROBE_0042",
+            "obj_type": 811,
+            "length_mm": 75,
+            "diameter_mm": 13,
+            "cap_state": "CAPPED",
+            "required_processes": []
         }
-      ]
-    },
-    {
-      "id": "3-FingerGripperStation",
-      "name": "3-FingerGripperStation",
-      "itm_id": 1,
-      "kind": "ON_ROBOT_PLATE",
-      "amr_pos_target": null,
-      "landmark_id": null,
-      "slot_configs": [
+    ],
+    "sample_states": [
         {
-          "slot_id": "SampleSlot1",
-          "kind": "THREE_FINGER_GRIPPER_SAMPLE_SLOT",
-          "jig_id": 10,
-          "itm_id": 1,
-          "rack_capacity": 1,
-          "rack_pattern": "1x1",
-          "rack_rows": 1,
-          "rack_cols": 1,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "THREE_FINGER_GRIPPER_SAMPLE_HOLDER"
-          ]
+            "sample_id": "DUMMY_0001",
+            "location": {
+                "type": "RACK",
+                "station_id": "uLMPlateStation",
+                "station_slot_id": "TaraRacksSlot1",
+                "rack_id": "RACK_ULM_TARA_01",
+                "slot_index": 1
+            },
+            "completed_processes": []
         },
         {
-          "slot_id": "RecapCapsSlot",
-          "kind": "THREE_FINGER_GRIPPER_SAMPLE_SLOT",
-          "jig_id": 14,
-          "itm_id": 1,
-          "rack_capacity": 9,
-          "rack_pattern": "3x3",
-          "rack_rows": 3,
-          "rack_cols": 3,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "THREE_FINGER_GRIPPER_SAMPLE_HOLDER"
-          ]
+            "sample_id": "DUMMY_0002",
+            "location": {
+                "type": "RACK",
+                "station_id": "uLMPlateStation",
+                "station_slot_id": "TaraRacksSlot1",
+                "rack_id": "RACK_ULM_TARA_01",
+                "slot_index": 2
+            },
+            "completed_processes": []
         },
         {
-          "slot_id": "KreuzprobeRecapCapsSlot",
-          "kind": "THREE_FINGER_GRIPPER_SAMPLE_SLOT",
-          "jig_id": 15,
-          "itm_id": 1,
-          "rack_capacity": 9,
-          "rack_pattern": "3x3",
-          "rack_rows": 3,
-          "rack_cols": 3,
-          "rack_index": 1,
-          "obj_nbr_offset": 0,
-          "accepted_rack_types": [
-            "THREE_FINGER_GRIPPER_SAMPLE_HOLDER"
-          ]
+            "sample_id": "DUMMY_0003",
+            "location": {
+                "type": "RACK",
+                "station_id": "uLMPlateStation",
+                "station_slot_id": "TaraRacksSlot1",
+                "rack_id": "RACK_ULM_TARA_01",
+                "slot_index": 3
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0001",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 1
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0002",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 4
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0003",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 5
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0004",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 6
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0005",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 7
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0006",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 8
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0007",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 9
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0008",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 10
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0009",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 11
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0010",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 12
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0011",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 13
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0012",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 14
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0013",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 15
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0014",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 16
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0015",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 17
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0016",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 18
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0017",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 19
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0018",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 20
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0019",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 21
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0020",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 22
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0021",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 23
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0022",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 24
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0023",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 25
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0024",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 26
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0025",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 27
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0026",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 28
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0027",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 29
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0028",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 30
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0029",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 31
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0030",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 32
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0031",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 33
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0032",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 34
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0033",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 35
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0034",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 36
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0035",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 37
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0036",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 38
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0037",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 39
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0038",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 40
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0039",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 41
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0040",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 2
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0041",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 3
+            },
+            "completed_processes": []
+        },
+        {
+            "sample_id": "KREUZPROBE_0042",
+            "location": {
+                "type": "RACK",
+                "station_id": "FridgeStation",
+                "station_slot_id": "URGFridgeRackSlot1",
+                "rack_id": "RACK_FRIDGE_URG_4x11_01",
+                "slot_index": 44
+            },
+            "completed_processes": []
         }
-      ]
-    }
-  ],
-  "landmarks": [
-    {
-      "id": "LM_INPUT_001",
-      "code": "LM_INPUT_001",
-      "station_id": "InputStation"
-    },
-    {
-      "id": "LM_IH500_001",
-      "code": "LM_IH500_001",
-      "station_id": "BioRadIH500Station"
-    },
-    {
-      "id": "LM_IH1000_001",
-      "code": "LM_IH1000_001",
-      "station_id": "BioRadIH1000Station"
-    },
-    {
-      "id": "LM_CENTRIFUGE_001",
-      "code": "LM_CENTRIFUGE_001",
-      "station_id": "CentrifugeStation"
-    },
-    {
-      "id": "LM_ARCHIVE_001",
-      "code": "LM_ARCHIVE_001",
-      "station_id": "ArchiveStation"
-    },
-    {
-      "id": "LM_FRIDGE_001",
-      "code": "LM_FRIDGE_001",
-      "station_id": "FridgeStation"
-    }
-  ],
-  "racks": [
-    {
-      "id": "RACK_INPUT_URG_01",
-      "rack_type": "URG_RACK",
-      "capacity": 32,
-      "pattern": "URG_4x8_PIN2",
-      "pin_obj_type": 551,
-      "rows": 8,
-      "cols": 4,
-      "blocked_slots": [
-        15,
-        18
-      ]
-    },
-    {
-      "id": "RACK_ULM_CENTRIFUGE_01",
-      "rack_type": "CENTRIFUGE_RACK",
-      "capacity": 9,
-      "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
-      "pin_obj_type": 520,
-      "rows": 3,
-      "cols": 3,
-      "blocked_slots": [
-        5
-      ]
-    },
-    {
-      "id": "RACK_ULM_CENTRIFUGE_02",
-      "rack_type": "CENTRIFUGE_RACK",
-      "capacity": 9,
-      "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
-      "pin_obj_type": 520,
-      "rows": 3,
-      "cols": 3,
-      "blocked_slots": [
-        5
-      ]
-    },
-    {
-      "id": "RACK_ULM_CENTRIFUGE_03",
-      "rack_type": "CENTRIFUGE_RACK",
-      "capacity": 9,
-      "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
-      "pin_obj_type": 520,
-      "rows": 3,
-      "cols": 3,
-      "blocked_slots": [
-        5
-      ]
-    },
-    {
-      "id": "RACK_ULM_CENTRIFUGE_04",
-      "rack_type": "CENTRIFUGE_RACK",
-      "capacity": 9,
-      "pattern": "CENTRIFUGE_3x3_PIN_CENTER",
-      "pin_obj_type": 520,
-      "rows": 3,
-      "cols": 3,
-      "blocked_slots": [
-        5
-      ]
-    },
-    {
-      "id": "RACK_ULM_TARA_01",
-      "rack_type": "TARA_RACK",
-      "capacity": 3,
-      "pattern": "1x3",
-      "pin_obj_type": 9010,
-      "rows": 1,
-      "cols": 3,
-      "blocked_slots": [],
-      "occupied_slots": {
-        "1": "DUMMY_0001",
-        "2": "DUMMY_0002",
-        "3": "DUMMY_0003"
-      }
-    },
-    {
-      "id": "RACK_ULM_INTERMEDIATE_01",
-      "rack_type": "INTERMEDIATE_RACK",
-      "capacity": 24,
-      "pattern": "INTERMEDIATE_4x6",
-      "pin_obj_type": 9011,
-      "rows": 4,
-      "cols": 6,
-      "blocked_slots": []
-    },
-    {
-      "id": "RACK_ULM_BIORAD_IH500_01",
-      "rack_type": "BIORAD_IH500_RACK",
-      "capacity": 13,
-      "pattern": "BIORAD_IH500_1x13_PIN3",
-      "pin_obj_type": 520,
-      "rows": 1,
-      "cols": 13,
-      "blocked_slots": [
-        4,
-        7,
-        11
-      ]
-    },
-    {
-      "id": "RACK_ULM_BIORAD_IH500_02",
-      "rack_type": "BIORAD_IH500_RACK",
-      "capacity": 13,
-      "pattern": "BIORAD_IH500_1x13_PIN3",
-      "pin_obj_type": 520,
-      "rows": 1,
-      "cols": 13,
-      "blocked_slots": [
-        4,
-        7,
-        11
-      ]
-    },
-    {
-      "id": "RACK_ULM_BIORAD_IH500_03",
-      "rack_type": "BIORAD_IH500_RACK",
-      "capacity": 13,
-      "pattern": "BIORAD_IH500_1x13_PIN3",
-      "pin_obj_type": 520,
-      "rows": 1,
-      "cols": 13,
-      "blocked_slots": [
-        4,
-        7,
-        11
-      ]
-    },
-    {
-      "id": "RACK_ULM_BIORAD_IH1000_01",
-      "rack_type": "BIORAD_IH1000_RACK",
-      "capacity": 12,
-      "pattern": "BIORAD_IH1000_1x12_PIN2",
-      "pin_obj_type": 9013,
-      "rows": 1,
-      "cols": 12,
-      "blocked_slots": [
-        5,
-        7
-      ]
-    },
-    {
-      "id": "RACK_ULM_BIORAD_IH1000_02",
-      "rack_type": "BIORAD_IH1000_RACK",
-      "capacity": 12,
-      "pattern": "BIORAD_IH1000_1x12_PIN2",
-      "pin_obj_type": 9013,
-      "rows": 1,
-      "cols": 12,
-      "blocked_slots": [
-        5,
-        7
-      ]
-    },
-    {
-      "id": "RACK_ULM_BIORAD_IH1000_03",
-      "rack_type": "BIORAD_IH1000_RACK",
-      "capacity": 12,
-      "pattern": "BIORAD_IH1000_1x12_PIN2",
-      "pin_obj_type": 9013,
-      "rows": 1,
-      "cols": 12,
-      "blocked_slots": [
-        5,
-        7
-      ]
-    },
-    {
-      "id": "RACK_FRIDGE_URG_4x11_01",
-      "rack_type": "FRIDGE_URG_RACK",
-      "capacity": 42,
-      "pattern": "ARCHIVE_4x11_PIN2",
-      "pin_obj_type": 9015,
-      "rows": 11,
-      "cols": 4,
-      "blocked_slots": [
-        2,
-        3
-      ],
-      "occupied_slots": {
-        "1": "KREUZPROBE_0001",
-        "4": "KREUZPROBE_0002",
-        "5": "KREUZPROBE_0003",
-        "6": "KREUZPROBE_0004",
-        "7": "KREUZPROBE_0005",
-        "8": "KREUZPROBE_0006",
-        "9": "KREUZPROBE_0007",
-        "10": "KREUZPROBE_0008",
-        "11": "KREUZPROBE_0009",
-        "12": "KREUZPROBE_0010",
-        "13": "KREUZPROBE_0011",
-        "14": "KREUZPROBE_0012",
-        "15": "KREUZPROBE_0013",
-        "16": "KREUZPROBE_0014",
-        "17": "KREUZPROBE_0015",
-        "18": "KREUZPROBE_0016",
-        "19": "KREUZPROBE_0017",
-        "20": "KREUZPROBE_0018",
-        "21": "KREUZPROBE_0019",
-        "22": "KREUZPROBE_0020"
-      }
-    },
-    {
-      "id": "RACK_ARCHIVE_URG_4x11_01",
-      "rack_type": "FRIDGE_URG_RACK",
-      "capacity": 42,
-      "pattern": "ARCHIVE_4x11_PIN2",
-      "pin_obj_type": 9015,
-      "rows": 11,
-      "cols": 4,
-      "blocked_slots": [
-        2,
-        3
-      ]
-    },
-    {
-      "id": "RACK_3FG_SAMPLE_HOLDER_01",
-      "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
-      "capacity": 1,
-      "pattern": "THREE_FINGER_GRIPPER_1x1",
-      "pin_obj_type": 9014,
-      "rows": 1,
-      "cols": 1,
-      "blocked_slots": []
-    },
-    {
-      "id": "RACK_3FG_RECAP_CAPS_01",
-      "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
-      "capacity": 9,
-      "pattern": "THREE_FINGER_GRIPPER_CAP_HOLDER_3x3",
-      "pin_obj_type": 9014,
-      "rows": 3,
-      "cols": 3,
-      "blocked_slots": []
-    },
-    {
-      "id": "RACK_3FG_KREUZ_CAPS_01",
-      "rack_type": "THREE_FINGER_GRIPPER_SAMPLE_HOLDER",
-      "capacity": 9,
-      "pattern": "THREE_FINGER_GRIPPER_CAP_HOLDER_3x3",
-      "pin_obj_type": 9014,
-      "rows": 3,
-      "cols": 3,
-      "blocked_slots": []
-    }
-  ],
-  "devices": [
-    {
-      "id": "CENTRIFUGE_DEVICE_01",
-      "name": "Centrifuge",
-      "station_id": "CentrifugeStation",
-      "model": "Rotina380R",
-      "device_class": "HettichRotina380RDevice",
-      "capabilities": [
-        "CENTRIFUGATION"
-      ],
-      "device_capabilities": {
-        "supported_processes": [
-          "CENTRIFUGATION"
-        ],
-        "refrigerated": true,
-        "automatic_rotor_recognition": true,
-        "powered_lid_lock": true,
-        "imbalance_detection": true,
-        "interfaces": [
-          "RS232",
-          "LOCAL_UI"
-        ]
-      },
-      "rotor_configuration": {
-        "rotor_id": "GENERIC_ROTOR",
-        "rotor_type": "CONFIGURABLE",
-        "positions": [
-          {
-            "index": 1,
-            "angle_deg": 0.0,
-            "opposite_index": 3
-          },
-          {
-            "index": 2,
-            "angle_deg": 90.0,
-            "opposite_index": 4
-          },
-          {
-            "index": 3,
-            "angle_deg": 180.0,
-            "opposite_index": 1
-          },
-          {
-            "index": 4,
-            "angle_deg": 270.0,
-            "opposite_index": 2
-          }
-        ],
-        "buckets": [],
-        "adapters": []
-      },
-      "balance_model": {
-        "rule_type": "OPPOSITE_POSITION",
-        "require_symmetry": true,
-        "tolerance_g": null,
-        "max_imbalance_g": null
-      },
-      "lid_control_strategy": {
-        "type": "manual",
-        "method": "local_ui_or_api"
-      },
-      "start_strategy": {
-        "type": "manual",
-        "method": "local_ui_or_api"
-      },
-      "status_strategy": {
-        "type": "in_memory",
-        "source": "status_light_or_rs232",
-        "state_map": {}
-      },
-      "usage_profile": {
-        "type": "Rotina380UsageProfile",
-        "source_station_id": "uLMPlateStation",
-        "centrifuge_station_id": "CentrifugeStation",
-        "fixed_receiver_obj_nbr": 1,
-        "target_loading_jig_id": 2,
-        "tara_probe_jig_id": 3,
-        "enable_tara_balancing": true,
-        "return_tara_probes_on_unload": true
-      }
-    },
-    {
-      "id": "THREE_FINGER_GRIPPER_DEVICE_01",
-      "name": "3-FingerGripper",
-      "station_id": "3-FingerGripperStation",
-      "capabilities": [
-        "CAP",
-        "DECAP",
-        "SAMPLE_TYPE_DETECTION"
-      ]
-    },
-    {
-      "id": "BIORAD_IH500_DEVICE_01",
-      "name": "BioRad IH-500",
-      "station_id": "BioRadIH500Station",
-      "model": "IH500",
-      "device_class": "BioradIh500Device",
-      "capabilities": [
-        "IMMUNOHEMATOLOGY_ANALYSIS"
-      ],
-      "device_capabilities": {
-        "supported_processes": [
-          "IMMUNOHEMATOLOGY_ANALYSIS"
-        ],
-        "continuous_loading": true,
-        "auto_start": false,
-        "nominal_sample_capacity": 50
-      },
-      "load_interface": {
-        "carrier_type": "RACK",
-        "loading_area": "SEPARATE_LOADING_AREA",
-        "rack_geometry": {},
-        "slot_layout": {}
-      },
-      "start_strategy": {
-        "type": "manual",
-        "method": "status_light_or_interface"
-      },
-      "status_strategy": {
-        "type": "in_memory",
-        "source": "status_light",
-        "state_map": {}
-      },
-      "wise": {
-        "enabled": true,
-        "host": "192.168.137.101",
-        "port": 80,
-        "scheme": "http",
-        "auth": {
-          "username": "root",
-          "password": "12345678"
-        },
-        "di_slot": 0,
-        "di_endpoint_template": "/di_value/slot_{slot}",
-        "timeout_s": 3.0,
-        "poll_interval_s": 1.0,
-        "stale_after_s": 5.0,
-        "verify_tls": true,
-        "enforce_ready_for_unload": true,
-        "required_for_selection": false,
-        "required_for_processes": [
-          "IMMUNOHEMATOLOGY_ANALYSIS"
-        ],
-        "rack_ready_channels": {
-          "1": 0,
-          "2": 1,
-          "3": 2
-        }
-      }
-    },
-    {
-      "id": "BIORAD_IH1000_DEVICE_01",
-      "name": "BioRad IH-1000",
-      "station_id": "BioRadIH1000Station",
-      "model": "IH1000",
-      "device_class": "BioradIh1000Device",
-      "capabilities": [
-        "IMMUNOHEMATOLOGY_ANALYSIS"
-      ],
-      "device_capabilities": {
-        "supported_processes": [
-          "IMMUNOHEMATOLOGY_ANALYSIS"
-        ],
-        "continuous_loading": true,
-        "auto_start": true,
-        "nominal_sample_capacity": 180
-      },
-      "load_interface": {
-        "carrier_type": "RACK",
-        "loading_area": "MAIN_LOADING_AREA",
-        "rack_geometry": {},
-        "slot_layout": {}
-      },
-      "start_strategy": {
-        "type": "automatic",
-        "method": "auto_start_documented"
-      },
-      "status_strategy": {
-        "type": "in_memory",
-        "source": "status_light_or_interface",
-        "state_map": {}
-      }
-    }
-  ],
-  "rack_placements": [
-    {
-      "station_id": "InputStation",
-      "station_slot_id": "URGRackSlot",
-      "rack_id": "RACK_INPUT_URG_01"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "CentrifugeRacksSlot1",
-      "rack_id": "RACK_ULM_CENTRIFUGE_01"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "CentrifugeRacksSlot2",
-      "rack_id": "RACK_ULM_CENTRIFUGE_02"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "CentrifugeRacksSlot3",
-      "rack_id": "RACK_ULM_CENTRIFUGE_03"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "CentrifugeRacksSlot4",
-      "rack_id": "RACK_ULM_CENTRIFUGE_04"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "TaraRacksSlot1",
-      "rack_id": "RACK_ULM_TARA_01"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "IntermediateRackSlot1",
-      "rack_id": "RACK_ULM_INTERMEDIATE_01"
-    },
-    {
-      "station_id": "FridgeStation",
-      "station_slot_id": "URGFridgeRackSlot1",
-      "rack_id": "RACK_FRIDGE_URG_4x11_01"
-    },
-    {
-      "station_id": "ArchiveStation",
-      "station_slot_id": "URGFridgeRackSlot",
-      "rack_id": "RACK_ARCHIVE_URG_4x11_01"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "BioRadIH500Slot1",
-      "rack_id": "RACK_ULM_BIORAD_IH500_01"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "BioRadIH500Slot2",
-      "rack_id": "RACK_ULM_BIORAD_IH500_02"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "BioRadIH500Slot3",
-      "rack_id": "RACK_ULM_BIORAD_IH500_03"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "BioRadIH1000Slot1",
-      "rack_id": "RACK_ULM_BIORAD_IH1000_01"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "BioRadIH1000Slot2",
-      "rack_id": "RACK_ULM_BIORAD_IH1000_02"
-    },
-    {
-      "station_id": "uLMPlateStation",
-      "station_slot_id": "BioRadIH1000Slot3",
-      "rack_id": "RACK_ULM_BIORAD_IH1000_03"
-    },
-    {
-      "station_id": "3-FingerGripperStation",
-      "station_slot_id": "SampleSlot1",
-      "rack_id": "RACK_3FG_SAMPLE_HOLDER_01"
-    },
-    {
-      "station_id": "3-FingerGripperStation",
-      "station_slot_id": "RecapCapsSlot",
-      "rack_id": "RACK_3FG_RECAP_CAPS_01"
-    },
-    {
-      "station_id": "3-FingerGripperStation",
-      "station_slot_id": "KreuzprobeRecapCapsSlot",
-      "rack_id": "RACK_3FG_KREUZ_CAPS_01"
-    }
-  ],
-  "robot_current_station_id": "InputStation",
-  "samples": [
-    {
-      "id": "DUMMY_0001",
-      "barcode": "DUMMY_0001",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "DUMMY_0002",
-      "barcode": "DUMMY_0002",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "DUMMY_0003",
-      "barcode": "DUMMY_0003",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0001",
-      "barcode": "KREUZPROBE_0001",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0002",
-      "barcode": "KREUZPROBE_0002",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0003",
-      "barcode": "KREUZPROBE_0003",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0004",
-      "barcode": "KREUZPROBE_0004",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0005",
-      "barcode": "KREUZPROBE_0005",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0006",
-      "barcode": "KREUZPROBE_0006",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0007",
-      "barcode": "KREUZPROBE_0007",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0008",
-      "barcode": "KREUZPROBE_0008",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0009",
-      "barcode": "KREUZPROBE_0009",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0010",
-      "barcode": "KREUZPROBE_0010",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0011",
-      "barcode": "KREUZPROBE_0011",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0012",
-      "barcode": "KREUZPROBE_0012",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0013",
-      "barcode": "KREUZPROBE_0013",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0014",
-      "barcode": "KREUZPROBE_0014",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0015",
-      "barcode": "KREUZPROBE_0015",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0016",
-      "barcode": "KREUZPROBE_0016",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0017",
-      "barcode": "KREUZPROBE_0017",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0018",
-      "barcode": "KREUZPROBE_0018",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0019",
-      "barcode": "KREUZPROBE_0019",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    },
-    {
-      "id": "KREUZPROBE_0020",
-      "barcode": "KREUZPROBE_0020",
-      "obj_type": 810,
-      "length_mm": 75.0,
-      "diameter_mm": 13.0,
-      "cap_state": "CAPPED",
-      "required_processes": []
-    }
-  ],
-  "sample_states": [
-    {
-      "sample_id": "DUMMY_0001",
-      "location": {
-        "type": "RACK",
-        "station_id": "uLMPlateStation",
-        "station_slot_id": "TaraRacksSlot1",
-        "rack_id": "RACK_ULM_TARA_01",
-        "slot_index": 1
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "DUMMY_0002",
-      "location": {
-        "type": "RACK",
-        "station_id": "uLMPlateStation",
-        "station_slot_id": "TaraRacksSlot1",
-        "rack_id": "RACK_ULM_TARA_01",
-        "slot_index": 2
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "DUMMY_0003",
-      "location": {
-        "type": "RACK",
-        "station_id": "uLMPlateStation",
-        "station_slot_id": "TaraRacksSlot1",
-        "rack_id": "RACK_ULM_TARA_01",
-        "slot_index": 3
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0001",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 1
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0002",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 4
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0003",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 5
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0004",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 6
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0005",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 7
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0006",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 8
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0007",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 9
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0008",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 10
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0009",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 11
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0010",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 12
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0011",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 13
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0012",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 14
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0013",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 15
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0014",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 16
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0015",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 17
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0016",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 18
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0017",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 19
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0018",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 20
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0019",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 21
-      },
-      "completed_processes": []
-    },
-    {
-      "sample_id": "KREUZPROBE_0020",
-      "location": {
-        "type": "RACK",
-        "station_id": "FridgeStation",
-        "station_slot_id": "URGFridgeRackSlot1",
-        "rack_id": "RACK_FRIDGE_URG_4x11_01",
-        "slot_index": 22
-      },
-      "completed_processes": []
-    }
-  ]
+    ]
 }

@@ -8,7 +8,8 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 from world.lab_world import CapState, ProcessType, RackLocation, RackType, WorldModel
 
 INPUT_STATION_ID = "InputStation"
-INPUT_SLOT_ID = "URGRackSlot"
+INPUT_SLOT_ID = "URGRackSlot1"
+INPUT_RETURN_SLOT_ID = "URGRackSlot2"
 PLATE_STATION_ID = "uLMPlateStation"
 CHARGE_STATION_ID = "CHARGE"
 SCAN_LANDMARK_ACT = 30
@@ -160,8 +161,9 @@ class RulePlanner:
         )
 
     def _build_getting_new_samples_plan(self, world: WorldModel) -> List[PlanStep]:
-        self._ensure_input_rack_present(world)
         input_station = world.get_station(INPUT_STATION_ID)
+        world.get_slot_config(INPUT_STATION_ID, INPUT_SLOT_ID)
+        world.get_slot_config(INPUT_STATION_ID, INPUT_RETURN_SLOT_ID)
         world.get_station(CHARGE_STATION_ID)
 
         if not input_station.amr_pos_target:
@@ -176,8 +178,8 @@ class RulePlanner:
                 step_type="PHASE",
                 station_id=INPUT_STATION_ID,
                 notes=(
-                    "Trigger/schedule this fixed intake plan only when InputStation.URGRackSlot "
-                    "contains a rack."
+                    "Wait for rack presence at InputStation.URGRackSlot1 "
+                    "(sensor-backed WISE update)."
                 ),
             ),
             PlanStep(
@@ -206,7 +208,7 @@ class RulePlanner:
                 step_id="transfer_input_rack",
                 label="Transfer Input Rack To Plate",
                 step_type="PHASE",
-                notes="Pick rack from InputStation and place to uLMPlate URG slot.",
+                notes="Pick rack from InputStation.URGRackSlot1 and place to uLMPlate URG slot.",
             ),
             PlanStep(
                 step_id="charge",
@@ -265,21 +267,15 @@ class RulePlanner:
             ) from exc
         return {"ITM_ID": itm_id, "ACT": SCAN_LANDMARK_ACT}
 
-    @staticmethod
-    def _ensure_input_rack_present(world: WorldModel) -> None:
-        if (INPUT_STATION_ID, INPUT_SLOT_ID) not in world.rack_placements:
-            raise ValueError(
-                "Input rack not present at InputStation.URGRackSlot. "
-                "Do not schedule GettingNewSamples plan until rack arrival."
-            )
-
-
 class DynamicStatePlanner:
     """Phase-1 dynamic planner:
     - evaluate active samples from world state
     - pick the next actionable process step
     - return a single action proposal or explicit blocked reasons
     """
+
+    IH500_SAMPLE_SLOT_INDEXES: Tuple[int, ...] = (1, 2, 4, 5, 6)
+    IH500_KREUZPROBE_SLOT_INDEXES: Tuple[int, ...] = (8, 9, 11, 12, 13)
 
     def __init__(
         self,
@@ -515,13 +511,126 @@ class DynamicStatePlanner:
                 return str(dev_id)
         return None
 
+    @staticmethod
+    def _sample_pairing_role(world: WorldModel, sample_id: str) -> str:
+        state = world.sample_states.get(str(sample_id))
+        if state is None or not isinstance(state.classification_details, dict):
+            return ""
+        pairing = state.classification_details.get("pairing")
+        if not isinstance(pairing, dict):
+            return ""
+        return str(pairing.get("role", "")).strip().upper()
+
+    @classmethod
+    def _preferred_target_slot_indexes_for_sample(
+        cls,
+        world: WorldModel,
+        sample_id: str,
+        process: ProcessType,
+        policy: ProcessPolicy,
+    ) -> Optional[Tuple[int, ...]]:
+        if process != ProcessType.IMMUNOHEMATOLOGY_ANALYSIS:
+            return None
+
+        required_types = set(policy.required_rack_types)
+        if required_types and RackType.BIORAD_IH500_RACK not in required_types:
+            return None
+
+        role = cls._sample_pairing_role(world, sample_id)
+        if role == "KREUZPROBE":
+            return tuple(cls.IH500_KREUZPROBE_SLOT_INDEXES)
+        return tuple(cls.IH500_SAMPLE_SLOT_INDEXES)
+
+    @staticmethod
+    def _sample_pairing_info(world: WorldModel, sample_id: str) -> Dict[str, Any]:
+        state = world.sample_states.get(str(sample_id))
+        if state is None or not isinstance(state.classification_details, dict):
+            return {}
+        pairing = state.classification_details.get("pairing")
+        if not isinstance(pairing, dict):
+            return {}
+        return dict(pairing)
+
+    @classmethod
+    def _preferred_target_station_slot_for_sample(
+        cls,
+        world: WorldModel,
+        sample_id: str,
+        process: ProcessType,
+        policy: ProcessPolicy,
+    ) -> Tuple[Optional[str], bool]:
+        """Return (slot_id, strict).
+
+        For immuno sample-pairs, enforce same rack (strict=True) when a valid shared
+        target station slot can be resolved.
+        """
+        if process != ProcessType.IMMUNOHEMATOLOGY_ANALYSIS:
+            return None, False
+
+        required_types = set(policy.required_rack_types)
+        if required_types and RackType.BIORAD_IH500_RACK not in required_types:
+            return None, False
+
+        allowed_jigs = {int(x) for x in policy.target_jig_ids}
+        state = world.sample_states.get(str(sample_id))
+        if state is None:
+            return None, False
+
+        pairing = cls._sample_pairing_info(world, sample_id)
+        paired_sample_id = str(pairing.get("paired_sample_id", "")).strip()
+        has_pair = bool(paired_sample_id)
+
+        candidate_slot_ids: List[str] = []
+
+        if has_pair:
+            paired_state = world.sample_states.get(paired_sample_id)
+            if isinstance(getattr(paired_state, "location", None), RackLocation):
+                paired_loc = paired_state.location
+                if str(paired_loc.station_id) == str(policy.target_station_id):
+                    candidate_slot_ids.append(str(paired_loc.station_slot_id))
+            if paired_state is not None:
+                pair_assigned_slot = str(getattr(paired_state, "assigned_route_station_slot_id", "")).strip()
+                if pair_assigned_slot:
+                    candidate_slot_ids.append(pair_assigned_slot)
+
+        own_assigned_slot = str(getattr(state, "assigned_route_station_slot_id", "")).strip()
+        if own_assigned_slot:
+            candidate_slot_ids.append(own_assigned_slot)
+
+        seen: Set[str] = set()
+        for slot_id in candidate_slot_ids:
+            if not slot_id or slot_id in seen:
+                continue
+            seen.add(slot_id)
+            try:
+                cfg = world.get_slot_config(policy.target_station_id, str(slot_id))
+            except Exception:
+                continue
+            if int(cfg.jig_id) not in allowed_jigs:
+                continue
+            if required_types:
+                try:
+                    rack = world.get_rack_at(policy.target_station_id, str(slot_id))
+                except Exception:
+                    continue
+                if rack.rack_type not in required_types:
+                    continue
+            return str(slot_id), bool(has_pair)
+
+        return None, False
+
     def _is_sample_staged_for_policy(
         self,
         world: WorldModel,
         location: RackLocation,
         policy: ProcessPolicy,
+        *,
+        preferred_slot_indexes: Optional[Sequence[int]] = None,
+        preferred_station_slot_id: Optional[str] = None,
     ) -> Tuple[bool, int]:
         if str(location.station_id) != str(policy.target_station_id):
+            return False, -1
+        if preferred_station_slot_id and str(location.station_slot_id) != str(preferred_station_slot_id):
             return False, -1
         cfg = world.get_slot_config(location.station_id, location.station_slot_id)
         jig_id = int(cfg.jig_id)
@@ -536,20 +645,72 @@ class DynamicStatePlanner:
             rack_id_txt = str(location.rack_id).strip().upper()
             if not any(rack_id_txt.startswith(prefix) for prefix in policy.allowed_target_rack_id_prefixes):
                 return False, jig_id
+        if preferred_slot_indexes is not None:
+            allowed = {int(x) for x in preferred_slot_indexes}
+            if int(location.slot_index) not in allowed:
+                return False, jig_id
         return True, jig_id
 
     def _resolve_target_slot(
         self,
         world: WorldModel,
         policy: ProcessPolicy,
+        *,
+        preferred_slot_indexes: Optional[Sequence[int]] = None,
+        preferred_station_slot_id: Optional[str] = None,
+        strict_station_slot: bool = False,
     ) -> Tuple[str, int, int]:
         errors: List[str] = []
+
+        if preferred_station_slot_id:
+            try:
+                cfg = world.get_slot_config(policy.target_station_id, str(preferred_station_slot_id))
+                if int(cfg.jig_id) not in {int(x) for x in policy.target_jig_ids}:
+                    raise ValueError(
+                        f"preferred slot '{preferred_station_slot_id}' is not in target_jig_ids={list(policy.target_jig_ids)}"
+                    )
+                rack = world.get_rack_at(policy.target_station_id, str(preferred_station_slot_id))
+                if policy.required_rack_types and rack.rack_type not in set(policy.required_rack_types):
+                    allowed = ", ".join(rt.value for rt in policy.required_rack_types)
+                    raise ValueError(
+                        f"preferred slot '{preferred_station_slot_id}' has rack type '{rack.rack_type.value}', "
+                        f"expected one of [{allowed}]"
+                    )
+                allowed_indexes: Optional[Set[int]] = None
+                if preferred_slot_indexes is not None:
+                    allowed_indexes = {int(x) for x in preferred_slot_indexes}
+                free_slots = [
+                    int(idx)
+                    for idx in rack.available_slots()
+                    if int(idx) not in set(int(x) for x in rack.occupied_slots.keys())
+                    and (allowed_indexes is None or int(idx) in allowed_indexes)
+                ]
+                if free_slots:
+                    return str(preferred_station_slot_id), int(free_slots[0]), int(cfg.jig_id)
+                preferred_msg = (
+                    f", allowed_slot_indexes={sorted(allowed_indexes)}"
+                    if allowed_indexes is not None
+                    else ""
+                )
+                raise ValueError(
+                    f"preferred slot '{preferred_station_slot_id}' has no free position{preferred_msg}"
+                )
+            except Exception as exc:
+                errors.append(f"preferred_slot='{preferred_station_slot_id}': {exc}")
+                if strict_station_slot:
+                    detail = "; ".join(errors)
+                    raise ValueError(
+                        f"No target slot available for process '{policy.process.value}' at station "
+                        f"'{policy.target_station_id}' ({detail})"
+                    )
+
         for jig_id in policy.target_jig_ids:
             try:
                 slot_id, slot_index = world.select_next_target_slot_for_jig(
                     station_id=policy.target_station_id,
                     jig_id=int(jig_id),
                     strategy=(policy.loading_strategy or None),
+                    preferred_slot_indexes=preferred_slot_indexes,
                 )
             except Exception as exc:
                 errors.append(f"JIG_ID={int(jig_id)}: {exc}")
@@ -955,7 +1116,25 @@ class DynamicStatePlanner:
                 notes="Immuno analysis remains in progress while racks are mounted in device station.",
             )
 
-        staged, current_jig_id = self._is_sample_staged_for_policy(world, location, policy)
+        preferred_target_slots = self._preferred_target_slot_indexes_for_sample(
+            world,
+            sample_id,
+            process,
+            policy,
+        )
+        preferred_target_station_slot_id, strict_target_station_slot = self._preferred_target_station_slot_for_sample(
+            world,
+            sample_id,
+            process,
+            policy,
+        )
+        staged, current_jig_id = self._is_sample_staged_for_policy(
+            world,
+            location,
+            policy,
+            preferred_slot_indexes=preferred_target_slots,
+            preferred_station_slot_id=preferred_target_station_slot_id,
+        )
         if staged:
             if policy.requires_device and not selected_device_id:
                 allowed = ", ".join(policy.candidate_device_station_ids) or "ANY"
@@ -978,7 +1157,13 @@ class DynamicStatePlanner:
             )
 
         try:
-            target_slot_id, target_slot_index, target_jig_id = self._resolve_target_slot(world, policy)
+            target_slot_id, target_slot_index, target_jig_id = self._resolve_target_slot(
+                world,
+                policy,
+                preferred_slot_indexes=preferred_target_slots,
+                preferred_station_slot_id=preferred_target_station_slot_id,
+                strict_station_slot=bool(strict_target_station_slot),
+            )
         except Exception as stage_exc:
             try:
                 provision_action = self._build_provision_action(world, sample_id, process, policy)

@@ -1,0 +1,49 @@
+IH-500 Device Integration Gaps
+==============================
+
+Context:
+- IMMUNOHEMATOLOGY_ANALYSIS execution is currently implemented in workflow logic via rack transfer steps.
+- Task catalog currently defines SingleDeviceAction ACT values [1, 2, 3, 4, 30] with centrifuge-oriented semantics.
+
+Known gaps:
+1) No dedicated IH-500 runtime device interface/class (PackML/service wrapper) exists in Device/.
+2) No IH-500-specific SingleDeviceAction ACT mapping is defined in Available_Tasks.json.
+   - Current ACT map is: OpenHatch, StartCentrifuge, CloseHatch, MoveRotor, ScanLandMark.
+3) IMMUNOHEMATOLOGY_ANALYSIS execution currently performs rack push-in / pull-out only.
+   - No explicit analyzer command sequence: start analysis, monitor running state, wait for completion.
+4) No analysis result acquisition/validation from IH-500 is integrated into world/LIS flow.
+5) Process completion is marked after unload by workflow logic, not by confirmed IH-500 completion event/result.
+6) IH-500 cycle currently expects strict rack-index symmetry between:
+   - uLMPlateStation JIG_ID=12
+   - BioRadIH500Station JIG_ID=50
+   Partial/mixed rack distributions are rejected.
+7) No IH-500 fault handling/retry/recovery strategy is implemented (beyond task failure stop).
+8) Execution mode ambiguity for decision-time device statuses:
+   - When `UGO_SIMULATE_DEVICES=1`, statuses are synthetic from `SimulatedRobotClient`.
+   - Real PACKML-based decisions (e.g., via `UpdateWorldState_From_uLM`) require live mode (`UGO_SIMULATE_DEVICES=0`) and reachable backend task execution.
+9) World topology is not fully config-driven yet.
+   - Adding a new station or additional slots in an existing station cannot be guaranteed by `world/world_config.json` alone.
+   - Planner/workflow/resume still contain hardcoded station/slot constants (for example InputStation/URGRackSlot paths).
+   - Result: config changes for topology often require coordinated code updates to planning, workflow execution, and resume logic.
+
+
+
+Preprocessing :
+Decapping & Barcode orientation ! -> Decapping is already implemented as an injection whenever the IMMUNOHEMATOLOGY_ANALYSIS process is triggered
+
+
+Racks:
+Partial gap: rack locking exists but mainly for provisioned racks; no full lease lifecycle for all “rack in use” cases
+
+
+
+## General Advice :
+      If redoing the project, I would change this:
+
+      Keep horizon=1, but add a formal reservation/lease manager (rack, slot, device, time) in planner state.
+      Move process logic into per-process handlers (stage, execute, finalize) so ARCHIVATION is first-class, not special-cased.
+      Split the large workflow file into planner_core, bt_executor, device_adapter, world_projection.
+      Make retry/abort policy declarative (per action/process) instead of hardcoded max_attempts=1.
+      Add scenario benchmark tests from AGENTS rules (landmark enforcement, no wrong-process execution, no rack thrash, empty-rack return behavior).
+      Add explicit action cost scoring (travel + rack moves + device readiness) to reduce oscillations while staying horizon-1.
+      Best-fit concept for your project remains: Reactive Horizon-1 + Reservation-aware Opportunistic Scheduling.

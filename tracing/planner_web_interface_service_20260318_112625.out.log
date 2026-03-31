@@ -1,0 +1,1470 @@
+Login successful.
+{'data': {'user': {'id': 2, 'name': 'planner', 'isAdmin': False, 'isMod': False, 'isPlanner': True, 'createdAt': '2026-03-02T12:45:58.147Z', 'updatedAt': '2026-03-02T12:45:58.147Z'}, 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzczODI5NTg2LCJleHAiOjE3NzM4NTgzODZ9.mrppSBof_u-dAWVd5n3vPa0KBdrL4tf7ujJyL5QCN3I'}, 'message': 'login'}
+State sent successfully.
+{'data': {'state': 0}, 'message': 'State received'}
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': 0}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Transient state begin: RESETTING (3), min_hold_s=3.000
+State sent successfully.
+{'data': {'state': 3}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 3}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 3}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 3}, 'message': 'State received'}
+Transient state end: RESETTING held_for_s=3.016
+World reset to baseline complete. Backup folder: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\versions\reset_20260318_112629
+State sent successfully.
+{'data': {'state': 0}, 'message': 'State received'}
+Bridge sync: mode=automatic requested_event=0 requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': 1}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 4}}
+Transient state begin: STARTING (4), min_hold_s=3.000
+State sent successfully.
+{'data': {'state': 4}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 4}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 4}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 4}, 'message': 'State received'}
+Transient state end: STARTING held_for_s=3.015
+Starting planner workflow: C:\Users\GoceDimitrieskiUnite\AppData\Local\Programs\Python\Python39\python.exe -m workflows.rack_probe_transfer_workflow
+State sent successfully.
+{'data': {'state': 1}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 1}, 'message': 'State received'}
+Bridge sync: mode=automatic requested_event=1 requested_state=4 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}Login successful.
+{'data': {'user': {'id': 2, 'name': 'planner', 'isAdmin': False, 'isMod': False, 'isPlanner': True, 'createdAt': '2026-03-02T12:45:58.147Z', 'updatedAt': '2026-03-02T12:45:58.147Z'}, 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzczODI5NTk3LCJleHAiOjE3NzM4NTgzOTd9.rFCJYaDm1lpedANmUNNb5nSkh5kakltFHhS4ul_sTog'}, 'message': 'login'}
+World resume: restored from C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.jsonl
+Trace session: append (world resumed from previous snapshot)
+TREE: Status.RUNNING
+TREE: Status.RUNNING
+Task request successful.
+{'data': {'RequestId': '72e462a4-80fa-4744-b819-75cd35a8e46f', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '72e462a4-80fa-4744-b819-75cd35a8e46f', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '72e462a4-80fa-4744-b819-75cd35a8e46f', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '72e462a4-80fa-4744-b819-75cd35a8e46f', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': 'NavigationComplete'}}}
+Request Status: {'data': {'id': '72e462a4-80fa-4744-b819-75cd35a8e46f', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': 'NavigationComplete'}}}
+TREE: Status.RUNNING
+Task request successful.
+{'data': {'RequestId': 'a2bb605b-c3fd-4529-b393-6d70413a2be9', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'a2bb605b-c3fd-4529-b393-6d70413a2be9', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'a2bb605b-c3fd-4529-b393-6d70413a2be9', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'a2bb605b-c3fd-4529-b393-6d70413a2be9', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': 'p[0, 0, 0, 0, 0, 0]'}}}
+TREE: Status.RUNNING
+Task request successful.
+{'data': {'RequestId': '9a8b83b6-2606-4536-acec-6c60fa82167a', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '9a8b83b6-2606-4536-acec-6c60fa82167a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '9a8b83b6-2606-4536-acec-6c60fa82167a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '9a8b83b6-2606-4536-acec-6c60fa82167a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Request Status: {'data': {'id': '9a8b83b6-2606-4536-acec-6c60fa82167a', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Task request successful.
+{'data': {'RequestId': '60dc2c05-32c5-42ef-ac99-fd9c7041662d', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '60dc2c05-32c5-42ef-ac99-fd9c7041662d', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '60dc2c05-32c5-42ef-ac99-fd9c7041662d', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '60dc2c05-32c5-42ef-ac99-fd9c7041662d', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Request Status: {'data': {'id': '60dc2c05-32c5-42ef-ac99-fd9c7041662d', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+TREE: Status.RUNNING
+Task request successful.
+{'data': {'RequestId': '22c26f9a-754d-4b2d-adf9-549bb30394b9', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '22c26f9a-754d-4b2d-adf9-549bb30394b9', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '22c26f9a-754d-4b2d-adf9-549bb30394b9', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '22c26f9a-754d-4b2d-adf9-549bb30394b9', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': 'NavigationComplete'}}}
+Request Status: {'data': {'id': '22c26f9a-754d-4b2d-adf9-549bb30394b9', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': 'NavigationComplete'}}}
+TREE: Status.RUNNING
+Task request successful.
+{'data': {'RequestId': '79fe3457-eb0c-49a4-bd38-72c64bc923d8', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '79fe3457-eb0c-49a4-bd38-72c64bc923d8', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '79fe3457-eb0c-49a4-bd38-72c64bc923d8', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '79fe3457-eb0c-49a4-bd38-72c64bc923d8', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': '[1,2]'}}}
+Request Status: {'data': {'id': '79fe3457-eb0c-49a4-bd38-72c64bc923d8', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': '[1,2]'}}}
+TREE: Status.RUNNING
+Task request successful.
+{'data': {'RequestId': '0528e677-5c95-41c9-bd81-31d4b0adfd1b', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '0528e677-5c95-41c9-bd81-31d4b0adfd1b', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '0528e677-5c95-41c9-bd81-31d4b0adfd1b', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '0528e677-5c95-41c9-bd81-31d4b0adfd1b', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Task request successful.
+{'data': {'RequestId': 'd932e148-4a12-4563-a1c9-feb7243b3662', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'd932e148-4a12-4563-a1c9-feb7243b3662', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'd932e148-4a12-4563-a1c9-feb7243b3662', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'd932e148-4a12-4563-a1c9-feb7243b3662', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Request Status: {'data': {'id': 'd932e148-4a12-4563-a1c9-feb7243b3662', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Task request successful.
+{'data': {'RequestId': 'a432de82-b034-4196-b5ba-d998cb7217dd', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'a432de82-b034-4196-b5ba-d998cb7217dd', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'a432de82-b034-4196-b5ba-d998cb7217dd', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'a432de82-b034-4196-b5ba-d998cb7217dd', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': '03'}}}
+Request Status: {'data': {'id': 'a432de82-b034-4196-b5ba-d998cb7217dd', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': '03'}}}
+Task request successful.
+{'data': {'RequestId': '34657dd1-0865-46bc-bc6e-d121961777f2', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '34657dd1-0865-46bc-bc6e-d121961777f2', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '34657dd1-0865-46bc-bc6e-d121961777f2', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '34657dd1-0865-46bc-bc6e-d121961777f2', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Task request successful.
+{'data': {'RequestId': '49422dbb-4b93-41c2-815a-a6c39c6ea065', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '49422dbb-4b93-41c2-815a-a6c39c6ea065', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '49422dbb-4b93-41c2-815a-a6c39c6ea065', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '49422dbb-4b93-41c2-815a-a6c39c6ea065', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Request Status: {'data': {'id': '49422dbb-4b93-41c2-815a-a6c39c6ea065', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Task request successful.
+{'data': {'RequestId': '9d2a229b-8c16-4352-92ad-888d7915f3c3', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '9d2a229b-8c16-4352-92ad-888d7915f3c3', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '9d2a229b-8c16-4352-92ad-888d7915f3c3', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '9d2a229b-8c16-4352-92ad-888d7915f3c3', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Task request successful.
+{'data': {'RequestId': 'ee2c8e3d-bb42-4488-8cc6-abb34f8ebb84', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'ee2c8e3d-bb42-4488-8cc6-abb34f8ebb84', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'ee2c8e3d-bb42-4488-8cc6-abb34f8ebb84', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'ee2c8e3d-bb42-4488-8cc6-abb34f8ebb84', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Request Status: {'data': {'id': 'ee2c8e3d-bb42-4488-8cc6-abb34f8ebb84', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Task request successful.
+{'data': {'RequestId': 'dd9b003d-f068-484b-b053-329c2d643b3a', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'dd9b003d-f068-484b-b053-329c2d643b3a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'dd9b003d-f068-484b-b053-329c2d643b3a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'dd9b003d-f068-484b-b053-329c2d643b3a', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': 'NONE'}}}
+Task request successful.
+{'data': {'RequestId': 'ffe49e17-f548-418d-9888-9369bfd229eb', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'ffe49e17-f548-418d-9888-9369bfd229eb', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'ffe49e17-f548-418d-9888-9369bfd229eb', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'ffe49e17-f548-418d-9888-9369bfd229eb', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Request Status: {'data': {'id': 'ffe49e17-f548-418d-9888-9369bfd229eb', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Task request successful.
+{'data': {'RequestId': 'f78c1d19-2902-4847-b0eb-d13327d9c78a', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'f78c1d19-2902-4847-b0eb-d13327d9c78a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f78c1d19-2902-4847-b0eb-d13327d9c78a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f78c1d19-2902-4847-b0eb-d13327d9c78a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+Request Status: {'data': {'id': 'f78c1d19-2902-4847-b0eb-d13327d9c78a', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': ''}}}
+TREE: Status.RUNNING
+Task request successful.
+{'data': {'RequestId': '58cd1a53-8f5b-419a-a9d4-8cd8942749c1', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '58cd1a53-8f5b-419a-a9d4-8cd8942749c1', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '58cd1a53-8f5b-419a-a9d4-8cd8942749c1', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '58cd1a53-8f5b-419a-a9d4-8cd8942749c1', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '0', 'Results': 'Devices: (5-COMPLETE; 7-COMPLETE'}}}
+StateDriven planning blocked: no actionable step found. First blocked reason: No device available for process 'COAGULATION_ANALYSIS' (allowed_stations=ANY)
+TREE: Status.FAILURE
+Final blackboard: {'workflow_mode': 'GETTING_NEW_SAMPLES', 'centrifuge_mode': 'AUTO', 'final_plate_target': None, 'tree_profile': 'planner_getting_new_samples_v1', 'planned_steps': ['await_input_rack_present', 'nav_input', 'scan_input_landmark', 'transfer_input_rack', 'charge', 'camera_inspect_urg_for_new_samples', 'urg_sort_via_3fg_router', 'handoff_to_state_driven_planning'], 'dynamic_process_policies_file': 'C:\\Users\\GoceDimitrieskiUnite\\OneDrive - United Robotics Group GmbH\\Dokumente\\URSim_VIRTUAL-5.24.0.1219432\\VM Shared\\uGO\\uGO-Brain\\planning\\process_policies.json', 'scaffold_steps': ['await_input_rack_present', 'nav_input', 'scan_input_landmark', 'transfer_input_rack', 'charge', 'camera_inspect_urg_for_new_samples', 'urg_sort_via_3fg_router', 'handoff_to_state_driven_planning'], 'last_plan_step': 'handoff_to_state_driven_planning', 'workflow_context_message': 'Executing StateDriven.UpdateWorldState.loop1', 'workflow_context_ts': '2026-03-18T11:27:21.528+01:00', 'input_rack_id': 'RACK_INPUT_URG_01', 'input_landmark_scanned': True, 'detected_urg_positions': [1, 2], 'detected_sample_ids': ['CAM_0004', 'CAM_0005'], 'routed_sample_ids': ['03', 'CAM_0005'], 'state_driven_planning_requested': True, 'state_driven_planning_handoff_ts': '2026-03-18T11:27:21.519+01:00', 'state_driven_waiting_external_completion': False, 'state_driven_waiting_reason': '', 'device_status_update_raw': 'Devices: (5-COMPLETE; 7-COMPLETE', 'device_status_update_assignments': [{'itm_id': 5, 'packml_state': 'COMPLETE', 'station_id': 'CentrifugeStation', 'device_id': 'CENTRIFUGE_DEVICE_01'}, {'itm_id': 7, 'packml_state': 'COMPLETE', 'station_id': 'BioRadIH500Station', 'device_id': 'BIORAD_IH500_DEVICE_01'}], 'device_status_update_unmapped': [], 'state_driven_plan_next': {'status': 'BLOCKED', 'action': None, 'blocked': [{'sample_id': '03', 'process': 'COAGULATION_ANALYSIS', 'reason': "No device available for process 'COAGULATION_ANALYSIS' (allowed_stations=ANY)"}]}, 'state_driven_plan_status': 'BLOCKED', 'state_driven_loop_iterations': 1}
+Final sample states: {'DUMMY_0001': "RackLocation(station_id='uLMPlateStation', station_slot_id='TaraRacksSlot1', rack_id='RACK_ULM_TARA_01', slot_index=1)", 'DUMMY_0002': "RackLocation(station_id='uLMPlateStation', station_slot_id='TaraRacksSlot1', rack_id='RACK_ULM_TARA_01', slot_index=2)", 'DUMMY_0003': "RackLocation(station_id='uLMPlateStation', station_slot_id='TaraRacksSlot1', rack_id='RACK_ULM_TARA_01', slot_index=3)", 'CAM_0005': "RackLocation(station_id='uLMPlateStation', station_slot_id='IntermediateRackSlot1', rack_id='RACK_ULM_INTERMEDIATE_01', slot_index=2)", '03': "RackLocation(station_id='uLMPlateStation', station_slot_id='IntermediateRackSlot1', rack_id='RACK_ULM_INTERMEDIATE_01', slot_index=1)"}
+World config loaded from: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_config.json
+World file backup created: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\versions\world_snapshot.20260318_112723_720.jsonl.bak
+Workflow did not complete successfully; execution trace/state transition canonical files were not updated.
+WIP trace: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\tracing\tree_execution_trace.wip.csv
+WIP state transitions: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\tracing\tree_state_changes.wip.csv
+Occupancy trace written to C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.csv
+Occupancy events written to C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.jsonl
+World snapshot written to C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_snapshot.jsonl
+WIP occupancy trace mirror: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.wip.csv
+WIP occupancy events mirror: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.wip.jsonl
+WIP world snapshot mirror: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_snapshot.wip.jsonl
+
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Planner workflow process ended with rc=0
+State sent successfully.
+{'data': {'state': 0}, 'message': 'State received'}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False

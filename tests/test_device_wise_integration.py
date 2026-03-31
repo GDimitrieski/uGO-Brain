@@ -7,7 +7,7 @@ from world.lab_world import Device, ProcessType, RackType, build_default_world
 
 
 INPUT_STATION_ID = "InputStation"
-INPUT_SLOT_ID = "URGRackSlot"
+INPUT_SLOT_ID = "URGRackSlot2"
 PLATE_STATION_ID = "uLMPlateStation"
 PLATE_IH500_SLOT_ID = "BioRadIH500Slot1"
 IH500_STATION_ID = "BioRadIH500Station"

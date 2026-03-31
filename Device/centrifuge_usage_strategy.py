@@ -9,6 +9,7 @@ from world.jig_rack_strategy import (
     is_tara_probe_sample_id,
     plan_tara_balance_moves,
 )
+from world.lab_world import CapState
 
 
 DEVICE_ACTION_OPEN_HATCH = 1
@@ -193,7 +194,10 @@ def _sample_obj_type(world: Any, sample_id: str, fallback: int) -> int:
     sample = world.samples.get(sample_id)
     if sample is None:
         return int(fallback)
-    return int(getattr(sample, "obj_type", fallback))
+    obj_type = int(getattr(sample, "obj_type", fallback))
+    if getattr(sample, "cap_state", None) == CapState.DECAPPED:
+        obj_type += 1000
+    return obj_type
 
 
 def _sample_transfer_from_move(world: Any, move: PlannedSampleMove, *, name: str) -> SampleTransferStep:

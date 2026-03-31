@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -lt tracing/planner_web_interface_service_*.err.log)",
+      "Bash(ls -lt tracing/planner_web_interface_service_*.out.log)"
+    ]
+  }
+}

@@ -95,14 +95,16 @@
         "taskName": "ProcessAt3FingerStation",
         "ITM_ID": "{ITM_ID}",
         "JIG_ID": "{JIG_ID}",
-        "ACT": "{ACT}"
+        "ACT": "{ACT}",
+        "OBJ_Type": "{OBJ_Type}"
       },
       "parameters": {
         "ITM_ID": { "type": "integer", "default": 1 },
         "JIG_ID": { "type": "integer", "default": 10 },
-        "ACT": { "type": "integer", "default": 3, "enum": [1, 2, 3] }
+        "ACT": { "type": "integer", "default": 3, "enum": [1, 2, 3] },
+        "OBJ_Type": { "type": "integer", "default": 0 }
       },
-      "required": ["ITM_ID", "JIG_ID", "ACT"],
+      "required": ["ITM_ID", "JIG_ID", "ACT", "OBJ_Type"],
       "action_map": {
         "1": "Capping",
         "2": "Decapping",

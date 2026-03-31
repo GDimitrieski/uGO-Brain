@@ -208,6 +208,8 @@ class Device:
     name: str
     station_id: str
     capabilities: frozenset[ProcessType]
+    planner_role: str = "PROCESSOR"
+    exclude_station_racks_from_idle_return: bool = True
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -281,12 +283,22 @@ class WorldModel:
         jig_id: int,
         *,
         strategy: Optional[str] = None,
+        preferred_slot_indexes: Optional[Sequence[int]] = None,
     ) -> Tuple[str, int]:
         slot_cfgs = self.slots_for_jig(station_id, jig_id)
         if not slot_cfgs:
             raise ValueError(
                 f"No slots configured for station '{station_id}' with JIG_ID={int(jig_id)}"
             )
+
+        preferred_slots: Optional[Set[int]] = None
+        if preferred_slot_indexes is not None:
+            parsed_slots = {int(x) for x in preferred_slot_indexes if int(x) > 0}
+            if not parsed_slots:
+                raise ValueError(
+                    f"Invalid preferred_slot_indexes for station '{station_id}' JIG_ID={int(jig_id)}"
+                )
+            preferred_slots = parsed_slots
 
         normalized_override = self._normalize_loading_strategy(strategy)
         if normalized_override:
@@ -302,13 +314,23 @@ class WorldModel:
             rack = self.racks.get(rack_id)
             if rack is None:
                 continue
-            free_slots = [idx for idx in rack.available_slots() if idx not in rack.occupied_slots]
+            free_slots = [
+                idx
+                for idx in rack.available_slots()
+                if idx not in rack.occupied_slots and (preferred_slots is None or int(idx) in preferred_slots)
+            ]
             if free_slots:
                 free_by_slot[str(cfg.slot_id)] = free_slots
 
         if not free_by_slot:
+            preferred_msg = (
+                f" (preferred_slots={sorted(preferred_slots)})"
+                if preferred_slots is not None
+                else ""
+            )
             raise ValueError(
                 f"No free sample slots available for station '{station_id}' JIG_ID={int(jig_id)}"
+                f"{preferred_msg}"
             )
 
         if resolved_strategy == "SEQUENTIAL":
@@ -1161,6 +1183,19 @@ def _as_enum(enum_cls: type[Enum], value: Any) -> Enum:
         return enum_cls(raw.upper())
 
 
+def _as_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return bool(default)
+    txt = str(value).strip().lower()
+    if txt in {"1", "true", "yes", "on"}:
+        return True
+    if txt in {"0", "false", "no", "off"}:
+        return False
+    return bool(default)
+
+
 def _to_list(section: Any) -> List[Dict[str, Any]]:
     if section is None:
         return []
@@ -1234,7 +1269,7 @@ def default_world_config() -> Dict[str, Any]:
                 "landmark_id": "LM_INPUT_001",
                 "slot_configs": [
                     {
-                        "slot_id": "URGRackSlot",
+                        "slot_id": "URGRackSlot1",
                         "kind": "URG_RACK_SLOT",
                         "jig_id": 1,
                         "itm_id": 2,
@@ -1244,6 +1279,19 @@ def default_world_config() -> Dict[str, Any]:
                         "rack_cols": 1,
                         "rack_index": 1,
                         "obj_nbr_offset": 0,
+                        "accepted_rack_types": ["URG_RACK"],
+                    },
+                    {
+                        "slot_id": "URGRackSlot2",
+                        "kind": "URG_RACK_SLOT",
+                        "jig_id": 1,
+                        "itm_id": 2,
+                        "rack_capacity": 1,
+                        "rack_pattern": "1x1",
+                        "rack_rows": 1,
+                        "rack_cols": 1,
+                        "rack_index": 2,
+                        "obj_nbr_offset": 1,
                         "accepted_rack_types": ["URG_RACK"],
                     }
                 ],
@@ -1783,7 +1831,7 @@ def default_world_config() -> Dict[str, Any]:
                 "pin_obj_type": 520,
                 "rows": 1,
                 "cols": 13,
-                "blocked_slots": [4, 7, 11],
+                "blocked_slots": [3, 7, 10],
             },
             {
                 "id": "RACK_ULM_BIORAD_IH500_02",
@@ -1793,7 +1841,7 @@ def default_world_config() -> Dict[str, Any]:
                 "pin_obj_type": 520,
                 "rows": 1,
                 "cols": 13,
-                "blocked_slots": [4, 7, 11],
+                "blocked_slots": [3, 7, 10],
             },
             {
                 "id": "RACK_ULM_BIORAD_IH500_03",
@@ -1803,7 +1851,7 @@ def default_world_config() -> Dict[str, Any]:
                 "pin_obj_type": 520,
                 "rows": 1,
                 "cols": 13,
-                "blocked_slots": [4, 7, 11],
+                "blocked_slots": [3, 7, 10],
             },
             {
                 "id": "RACK_ULM_BIORAD_IH1000_01",
@@ -1843,7 +1891,7 @@ def default_world_config() -> Dict[str, Any]:
                 "pin_obj_type": 9015,
                 "rows": 11,
                 "cols": 4,
-                "blocked_slots": [2, 3],
+                "blocked_slots": [42, 43],
             },
             {
                 "id": "RACK_3FG_SAMPLE_HOLDER_01",
@@ -1884,6 +1932,8 @@ def default_world_config() -> Dict[str, Any]:
                 "model": "Rotina380R",
                 "device_class": "HettichRotina380RDevice",
                 "capabilities": ["CENTRIFUGATION"],
+                "planner_role": "PROCESSOR",
+                "exclude_station_racks_from_idle_return": True,
                 "device_capabilities": {
                     "supported_processes": ["CENTRIFUGATION"],
                     "refrigerated": True,
@@ -1939,6 +1989,35 @@ def default_world_config() -> Dict[str, Any]:
                 "name": "3-FingerGripper",
                 "station_id": "3-FingerGripperStation",
                 "capabilities": ["CAP", "DECAP", "SAMPLE_TYPE_DETECTION"],
+                "planner_role": "PROCESSOR",
+                "exclude_station_racks_from_idle_return": True,
+            },
+            {
+                "id": "INPUT_STATION_WISE_DEVICE_01",
+                "name": "InputStation Wise Module",
+                "station_id": "InputStation",
+                "capabilities": [],
+                "planner_role": "SENSOR",
+                "exclude_station_racks_from_idle_return": False,
+                "wise": {
+                    "enabled": True,
+                    "host": "192.168.137.101",
+                    "port": 80,
+                    "scheme": "http",
+                    "auth": {
+                        "username": "root",
+                        "password": "12345678",
+                    },
+                    "di_slot": 0,
+                    "di_endpoint_template": "/di_value/slot_{slot}",
+                    "timeout_s": 3.0,
+                    "poll_interval_s": 1.0,
+                    "stale_after_s": 6.0,
+                    "verify_tls": True,
+                    "slot_ready_channels": {
+                        "1": 0,
+                    },
+                },
             },
             {
                 "id": "BIORAD_IH500_DEVICE_01",
@@ -1947,6 +2026,8 @@ def default_world_config() -> Dict[str, Any]:
                 "model": "IH500",
                 "device_class": "BioradIh500Device",
                 "capabilities": ["IMMUNOHEMATOLOGY_ANALYSIS"],
+                "planner_role": "PROCESSOR",
+                "exclude_station_racks_from_idle_return": True,
                 "device_capabilities": {
                     "supported_processes": ["IMMUNOHEMATOLOGY_ANALYSIS"],
                     "continuous_loading": True,
@@ -2000,6 +2081,8 @@ def default_world_config() -> Dict[str, Any]:
                 "model": "IH1000",
                 "device_class": "BioradIh1000Device",
                 "capabilities": ["IMMUNOHEMATOLOGY_ANALYSIS"],
+                "planner_role": "PROCESSOR",
+                "exclude_station_racks_from_idle_return": True,
                 "device_capabilities": {
                     "supported_processes": ["IMMUNOHEMATOLOGY_ANALYSIS"],
                     "continuous_loading": True,
@@ -2024,7 +2107,7 @@ def default_world_config() -> Dict[str, Any]:
             },
         ],
         "rack_placements": [
-            {"station_id": "InputStation", "station_slot_id": "URGRackSlot", "rack_id": "RACK_INPUT_URG_01"},
+            {"station_id": "InputStation", "station_slot_id": "URGRackSlot2", "rack_id": "RACK_INPUT_URG_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "CentrifugeRacksSlot1", "rack_id": "RACK_ULM_CENTRIFUGE_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "CentrifugeRacksSlot2", "rack_id": "RACK_ULM_CENTRIFUGE_02"},
             {"station_id": "uLMPlateStation", "station_slot_id": "CentrifugeRacksSlot3", "rack_id": "RACK_ULM_CENTRIFUGE_03"},
@@ -2042,7 +2125,7 @@ def default_world_config() -> Dict[str, Any]:
             {"station_id": "3-FingerGripperStation", "station_slot_id": "RecapCapsSlot", "rack_id": "RACK_3FG_RECAP_CAPS_01"},
             {"station_id": "3-FingerGripperStation", "station_slot_id": "KreuzprobeRecapCapsSlot", "rack_id": "RACK_3FG_KREUZ_CAPS_01"},
         ],
-        "robot_current_station_id": "InputStation",
+        "robot_current_station_id": "CHARGE",
         "samples": [
             {
                 "id": "DUMMY_0001",
@@ -2206,16 +2289,36 @@ def world_from_config(config: Dict[str, Any]) -> WorldModel:
     devices: Dict[str, Device] = {}
     for raw_device in _to_list(config.get("devices")):
         caps = frozenset(_as_enum(ProcessType, c) for c in raw_device.get("capabilities", []))
+        planner_role_raw = str(raw_device.get("planner_role", "")).strip().upper()
+        planner_role = planner_role_raw if planner_role_raw else ("PROCESSOR" if caps else "SENSOR")
+        default_exclude = planner_role == "PROCESSOR"
+        if "exclude_station_racks_from_idle_return" in raw_device:
+            exclude_station_racks = _as_bool(
+                raw_device.get("exclude_station_racks_from_idle_return"),
+                default=default_exclude,
+            )
+        else:
+            exclude_station_racks = default_exclude
         metadata = {
             str(k): v
             for k, v in raw_device.items()
-            if str(k) not in {"id", "name", "station_id", "capabilities"}
+            if str(k)
+            not in {
+                "id",
+                "name",
+                "station_id",
+                "capabilities",
+                "planner_role",
+                "exclude_station_racks_from_idle_return",
+            }
         }
         device = Device(
             id=str(raw_device["id"]),
             name=str(raw_device.get("name", raw_device["id"])),
             station_id=str(raw_device["station_id"]),
             capabilities=caps,
+            planner_role=planner_role,
+            exclude_station_racks_from_idle_return=exclude_station_racks,
             metadata=metadata,
         )
         devices[device.id] = device
@@ -2446,13 +2549,22 @@ def world_to_config(world: WorldModel) -> Dict[str, Any]:
     devices_out = []
     for dev_id in sorted(world.devices.keys()):
         dev = world.devices[dev_id]
+        metadata_payload = {
+            str(k): v
+            for k, v in dict(dev.metadata).items()
+            if str(k) not in {"planner_role", "exclude_station_racks_from_idle_return"}
+        }
         payload: Dict[str, Any] = {
             "id": dev.id,
             "name": dev.name,
             "station_id": dev.station_id,
             "capabilities": sorted(p.value for p in dev.capabilities),
+            "planner_role": str(getattr(dev, "planner_role", "PROCESSOR")).strip().upper() or "PROCESSOR",
+            "exclude_station_racks_from_idle_return": bool(
+                getattr(dev, "exclude_station_racks_from_idle_return", True)
+            ),
         }
-        payload.update(dict(dev.metadata))
+        payload.update(metadata_payload)
         devices_out.append(payload)
 
     samples_out = []
@@ -2834,6 +2946,8 @@ class WorldConfigManager:
         name: str,
         station_id: str,
         capabilities: Iterable[Union[ProcessType, str]],
+        planner_role: str = "PROCESSOR",
+        exclude_station_racks_from_idle_return: bool = True,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
         devices = _to_list(self.data.get("devices"))
@@ -2842,6 +2956,8 @@ class WorldConfigManager:
             "name": name,
             "station_id": station_id,
             "capabilities": sorted(_as_enum(ProcessType, c).value for c in capabilities),
+            "planner_role": str(planner_role).strip().upper() or "PROCESSOR",
+            "exclude_station_racks_from_idle_return": bool(exclude_station_racks_from_idle_return),
         }
         if metadata:
             item.update(dict(metadata))
@@ -2878,3 +2994,4 @@ class WorldConfigManager:
 
     def set_robot_station(self, station_id: Optional[str]) -> None:
         self.data["robot_current_station_id"] = station_id
+

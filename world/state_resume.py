@@ -23,7 +23,8 @@ from world.lab_world import (
 from world.jig_rack_strategy import is_tara_probe_sample_id
 
 INPUT_STATION_ID = "InputStation"
-INPUT_SLOT_ID = "URGRackSlot"
+INPUT_SLOT_ID = "URGRackSlot1"
+INPUT_RETURN_SLOT_ID = "URGRackSlot2"
 PLATE_STATION_ID = "uLMPlateStation"
 PLATE_RACK_SLOT_ID = "URGRackSlot"
 OBJ_TYPE_PROBE = 810
@@ -113,10 +114,69 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
         rack.occupied_slots.clear()
         rack.reserved_slots.clear()
 
+    baseline_samples = dict(world.samples)
     world.samples.clear()
     world.sample_states.clear()
     world.caps.clear()
     world.cap_states.clear()
+
+    raw_samples = state.get("samples", [])
+    if isinstance(raw_samples, list):
+        for raw_sample in raw_samples:
+            if not isinstance(raw_sample, dict):
+                continue
+            sample_id = str(raw_sample.get("id") or raw_sample.get("sample_id") or "").strip()
+            if not sample_id:
+                continue
+            baseline = baseline_samples.get(sample_id)
+            try:
+                obj_type = int(raw_sample.get("obj_type"))
+            except Exception:
+                obj_type = int(getattr(baseline, "obj_type", OBJ_TYPE_PROBE)) if baseline else OBJ_TYPE_PROBE
+            try:
+                length_mm = float(raw_sample.get("length_mm"))
+            except Exception:
+                length_mm = float(getattr(baseline, "length_mm", 75.0)) if baseline else 75.0
+            try:
+                diameter_mm = float(raw_sample.get("diameter_mm"))
+            except Exception:
+                diameter_mm = float(getattr(baseline, "diameter_mm", 13.0)) if baseline else 13.0
+            cap_state_raw = raw_sample.get("cap_state")
+            if cap_state_raw is None and baseline is not None:
+                cap_state_raw = baseline.cap_state.value
+            try:
+                cap_state = CapState(str(cap_state_raw))
+            except Exception:
+                cap_state = CapState.CAPPED
+            raw_required = raw_sample.get("required_processes", None)
+            if isinstance(raw_required, list):
+                required_processes = tuple(
+                    ProcessType(str(proc))
+                    for proc in raw_required
+                    if isinstance(proc, str) and proc in ProcessType._value2member_map_
+                )
+            elif baseline is not None:
+                required_processes = baseline.required_processes
+            else:
+                required_processes = ()
+            world.samples[sample_id] = Sample(
+                id=sample_id,
+                barcode=str(raw_sample.get("barcode") or sample_id),
+                obj_type=obj_type,
+                length_mm=length_mm,
+                diameter_mm=diameter_mm,
+                cap_state=cap_state,
+                required_processes=required_processes,
+            )
+
+    def _ensure_sample_with_baseline(sample_id: str) -> None:
+        if sample_id in world.samples:
+            return
+        baseline = baseline_samples.get(sample_id)
+        if baseline is not None:
+            world.samples[sample_id] = baseline
+            return
+        _ensure_sample_exists(world, sample_id)
 
     robot_station = state.get("robot_current_station_id")
     if isinstance(robot_station, str) and robot_station in world.stations:
@@ -162,7 +222,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
     sample_ids: Set[str] = {sid for sid in occupant_ids if sid not in cap_like_ids}
 
     for sample_id in sorted(sample_ids):
-        _ensure_sample_exists(world, sample_id)
+        _ensure_sample_with_baseline(sample_id)
 
     rack_in_gripper_raw = state.get("rack_in_gripper_id")
     if isinstance(rack_in_gripper_raw, str) and rack_in_gripper_raw in world.racks:
@@ -182,7 +242,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                 continue
             if sample_id in cap_like_ids:
                 continue
-            _ensure_sample_exists(world, sample_id)
+            _ensure_sample_with_baseline(sample_id)
 
             location_type = str(raw_loc.get("location_type", "RACK")).upper()
             if location_type == "GRIPPER":
@@ -212,7 +272,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
         for slot_index, sample_id in sorted(rack.occupied_slots.items()):
             if sample_id in cap_like_ids:
                 continue
-            _ensure_sample_exists(world, sample_id)
+            _ensure_sample_with_baseline(sample_id)
             if sample_id not in world.sample_states:
                 world.sample_states[sample_id] = SampleState(
                     sample_id=sample_id,
@@ -233,7 +293,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                 continue
             assigned_sample_id = str(raw_cap_loc.get("assigned_sample_id", "")).strip()
             if assigned_sample_id and assigned_sample_id not in world.samples:
-                _ensure_sample_exists(world, assigned_sample_id)
+                _ensure_sample_with_baseline(assigned_sample_id)
             try:
                 cap_obj_type = int(raw_cap_loc.get("obj_type", 9014))
             except Exception:
@@ -269,7 +329,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                 if not sample_id and assigned_sample_id:
                     sample_id = assigned_sample_id
                 if sample_id and sample_id not in world.samples:
-                    _ensure_sample_exists(world, sample_id)
+                    _ensure_sample_with_baseline(sample_id)
                 world.cap_states[cap_id] = CapStateRecord(
                     cap_id=cap_id,
                     location=CapOnSampleLocation(sample_id=sample_id),
@@ -343,6 +403,8 @@ def _find_rack_location(world: WorldModel, rack_id: str) -> Optional[Tuple[str, 
 def prepare_input_rack_for_new_batch(world: WorldModel) -> None:
     rack_id = _rack_id_at(world, INPUT_STATION_ID, INPUT_SLOT_ID)
     if rack_id is None:
+        rack_id = _rack_id_at(world, INPUT_STATION_ID, INPUT_RETURN_SLOT_ID)
+    if rack_id is None:
         rack_id = _rack_id_at(world, PLATE_STATION_ID, PLATE_RACK_SLOT_ID)
 
     if rack_id is None and world.rack_in_gripper_id:
@@ -379,7 +441,7 @@ def prepare_input_rack_for_new_batch(world: WorldModel) -> None:
     if location != (INPUT_STATION_ID, INPUT_SLOT_ID):
         if _rack_id_at(world, INPUT_STATION_ID, INPUT_SLOT_ID) is not None:
             print(
-                "New-batch mode: InputStation.URGRackSlot already occupied; "
+                "New-batch mode: InputStation.URGRackSlot1 already occupied; "
                 "cannot relocate input rack automatically"
             )
             return
