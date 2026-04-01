@@ -125,6 +125,71 @@ class RetryNode(Node):
         self.child.reset()
 
 
+class UserInteractionRetryNode(Node):
+    """Retries child up to max_attempts. On final failure, posts a prompt to
+    the control-system UI and waits for the user to pick an action.
+    If the user picks "retry", attempts reset and the child is retried.
+    Any other response (abort, timeout, dismiss) returns FAILURE."""
+
+    def __init__(
+        self,
+        name: str,
+        child: Node,
+        prompt_fn: Callable[[str, str, list], Optional[str]],
+        max_attempts: int = 3,
+        prompt_title: Optional[str] = None,
+        prompt_body: Optional[str] = None,
+        actions: Optional[List[dict]] = None,
+    ) -> None:
+        super().__init__(name)
+        self.child = child
+        self.max_attempts = max(1, int(max_attempts))
+        self.prompt_fn = prompt_fn
+        self.prompt_title = prompt_title
+        self.prompt_body = prompt_body
+        self.actions = actions or [
+            {"id": "retry", "label": "Retry"},
+            {"id": "skip", "label": "Skip"},
+            {"id": "abort", "label": "Abort"},
+        ]
+        self._attempts = 0
+
+    def tick(self, bb: Blackboard) -> Status:
+        while True:
+            while self._attempts < self.max_attempts:
+                status = self.child.tick(bb)
+                if status == Status.SUCCESS:
+                    self.reset()
+                    return Status.SUCCESS
+                if status == Status.RUNNING:
+                    return Status.RUNNING
+                self._attempts += 1
+                self.child.reset()
+
+            title = self.prompt_title or f"{self.name} Failed"
+            body = (
+                self.prompt_body
+                or f"{self.name} failed after {self.max_attempts} attempt(s). Choose an action."
+            )
+            action_id = self.prompt_fn(title, body, self.actions)
+
+            if action_id == "retry":
+                self._attempts = 0
+                self.child.reset()
+                continue
+
+            if action_id == "skip":
+                self.reset()
+                return Status.SUCCESS
+
+            self.reset()
+            return Status.FAILURE
+
+    def reset(self) -> None:
+        self._attempts = 0
+        self.child.reset()
+
+
 class ForEachNode(Node):
     def __init__(self, name: str, list_key: str, build_child: Callable[[Any], Node]) -> None:
         super().__init__(name)

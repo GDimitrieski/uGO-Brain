@@ -1,33 +1,42 @@
 ﻿flowchart TD
-    A[RackAndProbeTransferFlow<br/>Sequence] --> B[ValidateScaffoldPrerequisites<br/>Retry x1 / Condition]
-    B --> C[await_input_rack_present<br/>Phase]
-    C --> D[nav_input<br/>Task: Navigate]
-    D --> E[scan_input_landmark<br/>Task: SingleDeviceAction ACT=30]
-    E --> F[transfer_input_rack<br/>Phase]
-    F --> F1[SingleTask ACTION=PICK<br/>InputStation.URGRackSlot]
-    F1 --> F2[SingleTask ACTION=PLACE<br/>uLMPlateStation.URGRackSlot]
-    F2 --> G[charge<br/>Task: Charge]
-    G --> H[camera_inspect_urg_for_new_samples<br/>Phase]
-    H --> H1[InspectRackAtStation<br/>WRIST camera]
-    H1 --> I[urg_sort_via_3fg_router<br/>Phase per sample]
-    I --> I1[Move to 3FG<br/>SingleTask pick/place]
-    I1 --> I2[ProcessAt3FingerStation<br/>ACTION=3]
-    I2 --> I3[Router decision]
-    I3 --> I4[Move to destination<br/>SingleTask pick/place]
-    I4 --> J[handoff_to_state_driven_planning<br/>Phase]
-    J --> K[StateDrivenPlanningLoop]
+    A["Sequence: RackAndProbeTransferFlow"]
+    A --> B["Retry(max=1): ValidateScaffoldPrerequisites"]
 
-    K --> K1[UpdateWorldState_From_uLM]
-    K1 --> K2{plan_next status}
-    K2 -->|IDLE| K3[Success / End]
-    K2 -->|BLOCKED| K4[Failure / Stop]
-    K2 -->|READY| K5[Execute action]
-    K5 --> K6{action_type}
-    K6 -->|STAGE_SAMPLE| K7[Stage sample<br/>pick/place + reference scan]
-    K6 -->|PROCESS_SAMPLE| K8[Process handler]
-    K8 --> K9[3FG or Centrifuge or IH500 or Archive]
-    K7 --> K10{waiting external completion?}
-    K9 --> K10
-    K10 -->|Yes| K11[Poll + wait]
-    K11 --> K1
-    K10 -->|No| K1
+    B --> S1["UserInteractionRetry(max=3): await_input_rack_present"]
+    S1 --> S2["Retry(max=3): nav_input"]
+    S2 --> S3["Retry(max=3): scan_input_landmark"]
+    S3 --> S4["UserInteractionRetry(max=3): transfer_input_rack"]
+    S4 --> S5["Retry(max=3): charge"]
+    S5 --> S6["UserInteractionRetry(max=3): camera_inspect_urg_for_new_samples"]
+    S6 --> S7["UserInteractionRetry(max=3): urg_sort_via_3fg_router"]
+    S7 --> S8["UserInteractionRetry(max=3): handoff_to_state_driven_planning"]
+
+    S8 --> L["State-driven loop"]
+    L --> M{"executed_actions < STATE_DRIVEN_MAX_ACTIONS?"}
+    M -->|Yes| U["UpdateWorldState_From_uLM"]
+    M -->|No| MAXF["FAILURE (STATE_DRIVEN_MAX_ACTIONS reached)"]
+
+    U --> CS["SyncActiveCentrifugeJobs"]
+    CS --> W{"waiting_external_completion?"}
+    W -->|Yes| WC{"external wait satisfied?"}
+    WC -->|No| WS["Sleep WAIT_POLL_S and continue"]
+    WS --> U
+    WC -->|Yes| P{"plan_next status"}
+    W -->|No| P
+
+    P -->|READY| X["Execute action: PROCESS_SAMPLE / STAGE_SAMPLE / PROVISION_RACK"]
+    X --> XW{"action set waiting flag?"}
+    XW -->|Yes| XWS["Sleep WAIT_POLL_S and continue"]
+    XWS --> U
+    XW -->|No| U
+
+    P -->|IDLE + return-candidate| R["Execute RETURN_RACK_HOME"]
+    R --> U
+
+    P -->|IDLE + no return-candidate + running jobs| IW["Sleep WAIT_POLL_S and continue"]
+    IW --> U
+    P -->|IDLE + no return-candidate + no running jobs| OK["SUCCESS"]
+
+    P -->|BLOCKED + running jobs| BW["Sleep WAIT_POLL_S and continue"]
+    BW --> U
+    P -->|BLOCKED + no running jobs| FAIL["FAILURE"]

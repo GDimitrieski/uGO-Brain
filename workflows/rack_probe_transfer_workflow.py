@@ -5,7 +5,7 @@ import re
 import shutil
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from engine.bt_nodes import ActionNode, Blackboard, ConditionNode, ForEachNode, Node, RetryNode, SequenceNode, Status
+from engine.bt_nodes import ActionNode, Blackboard, ConditionNode, ForEachNode, Node, RetryNode, SequenceNode, Status, UserInteractionRetryNode
 from engine.command_layer import CommandSender
 from planning.planner import DynamicPlanAction, DynamicStatePlanner, Goal, PlanStep, RulePlanner
 from routing.sample_routing import (
@@ -57,6 +57,17 @@ from world.lab_world import (
     load_world_config_file,
 )
 from world.update_world_mapper import map_update_world_devices_to_assigned_world_devices
+from workflows.rack_probe_transfer.sample_parsing import (
+    _classification_key_from_barcode,
+    _load_immuno_kreuzprobe_map,
+    _normalize_barcode_key,
+    _to_bool,
+    extract_positions,
+    extract_sample_barcode,
+    extract_sample_type,
+)
+from workflows.rack_probe_transfer.trace_context import enrich_occupancy_records_with_task_context
+from workflows.rack_probe_transfer.trace_csv import export_state_changes, export_trace
 
 ACTION_PICK = 1
 ACTION_PLACE = 2
@@ -205,296 +216,6 @@ STATE_CHANGE_FIELDNAMES = [
 ]
 
 
-def _normalize_barcode_key(value: Any) -> str:
-    return str(value or "").strip().upper()
-
-
-def _load_immuno_kreuzprobe_map(path: Path) -> Dict[str, str]:
-    """Load immuno barcode -> Kreuzprobe sample-id mapping from JSON."""
-    if not path.exists():
-        return {}
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-    except Exception:
-        return {}
-
-    mapping: Dict[str, str] = {}
-
-    if isinstance(raw, dict):
-        forward = raw.get("immuno_to_kreuzprobe")
-        reverse = raw.get("kreuzprobe_to_immuno")
-
-        if isinstance(forward, dict):
-            for barcode, kreuz_id in forward.items():
-                key = _normalize_barcode_key(barcode)
-                value = str(kreuz_id or "").strip()
-                if key and value:
-                    mapping[key] = value
-
-        if isinstance(reverse, dict):
-            for kreuz_id, barcode in reverse.items():
-                key = _normalize_barcode_key(barcode)
-                value = str(kreuz_id or "").strip()
-                if key and value:
-                    mapping[key] = value
-
-        # Backward-compatible flat object: {"<barcode>": "KREUZPROBE_0001"}
-        if not mapping:
-            for barcode, kreuz_id in raw.items():
-                if not isinstance(barcode, str):
-                    continue
-                if isinstance(kreuz_id, (str, int, float)):
-                    key = _normalize_barcode_key(barcode)
-                    value = str(kreuz_id).strip()
-                    if key and value:
-                        mapping[key] = value
-
-    return mapping
-
-
-def _try_parse_string_list(value: str) -> Optional[List[int]]:
-    txt = value.strip()
-    if not txt:
-        return []
-
-    # JSON-style list string, e.g. "[1,2,3]"
-    if txt.startswith("[") and txt.endswith("]"):
-        try:
-            parsed = json.loads(txt)
-            if isinstance(parsed, list):
-                out: List[int] = []
-                for item in parsed:
-                    out.append(int(item))
-                return out
-        except Exception:
-            pass
-
-    # Comma-separated string, e.g. "1,2,3"
-    try:
-        return [int(part.strip()) for part in txt.split(",") if part.strip()]
-    except Exception:
-        return None
-
-
-def _try_parse_presence_mask_positions(value: Any) -> Optional[List[int]]:
-    """Parse camera mask formats like "[P,F,P,...]" and return 1-based occupied positions.
-
-    Convention:
-    - F => sample present
-    - P => no sample
-    """
-    tokens: List[str] = []
-
-    if isinstance(value, list):
-        for item in value:
-            txt = str(item).strip().upper()
-            if txt:
-                tokens.append(txt)
-    elif isinstance(value, str):
-        txt = value.strip()
-        if not txt:
-            return []
-        parsed = None
-        if txt.startswith("[") and txt.endswith("]"):
-            try:
-                parsed = json.loads(txt)
-            except Exception:
-                parsed = None
-        if isinstance(parsed, list):
-            for item in parsed:
-                item_txt = str(item).strip().upper()
-                if item_txt:
-                    tokens.append(item_txt)
-        else:
-            core = txt[1:-1] if txt.startswith("[") and txt.endswith("]") else txt
-            parts = [part.strip().strip("'\"").upper() for part in core.split(",")]
-            tokens = [part for part in parts if part]
-    else:
-        return None
-
-    if not tokens:
-        return []
-
-    valid = {"F", "P"}
-    if any(token not in valid for token in tokens):
-        return None
-
-    # Camera mask is 1-based when mapped to rack slot positions.
-    return [idx for idx, token in enumerate(tokens, start=1) if token == "F"]
-
-
-def _to_bool(value: Any, default: bool = False) -> bool:
-    if value is None:
-        return bool(default)
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return bool(int(value))
-    txt = str(value).strip().lower()
-    if not txt:
-        return bool(default)
-    if txt in {"1", "true", "yes", "y", "on"}:
-        return True
-    if txt in {"0", "false", "no", "n", "off"}:
-        return False
-    return bool(default)
-
-
-def extract_positions(result: Dict[str, Any]) -> List[int]:
-    raw = result.get("raw", {})
-    data = raw.get("data", {}) if isinstance(raw, dict) else {}
-    outputs = data.get("outputs", {}) if isinstance(data, dict) else {}
-
-    candidates = [
-        data.get("positions"),
-        data.get("detectedPositions"),
-        data.get("samplePositions"),
-        data.get("samples"),
-        outputs.get("Results") if isinstance(outputs, dict) else None,
-        outputs.get("results") if isinstance(outputs, dict) else None,
-        outputs.get("Detected") if isinstance(outputs, dict) else None,
-        outputs.get("detected") if isinstance(outputs, dict) else None,
-        outputs.get("Positions") if isinstance(outputs, dict) else None,
-        outputs.get("positions") if isinstance(outputs, dict) else None,
-        raw.get("positions") if isinstance(raw, dict) else None,
-        raw.get("detectedPositions") if isinstance(raw, dict) else None,
-    ]
-
-    for candidate in candidates:
-        mask_positions = _try_parse_presence_mask_positions(candidate)
-        if mask_positions is not None:
-            return mask_positions
-
-        if isinstance(candidate, list):
-            out: List[int] = []
-            for item in candidate:
-                if isinstance(item, int):
-                    out.append(item)
-                elif isinstance(item, str):
-                    out.append(int(item))
-                elif isinstance(item, dict):
-                    value = item.get("position", item.get("slot", item.get("index")))
-                    if value is not None:
-                        out.append(int(value))
-            if out:
-                return out
-        elif isinstance(candidate, str):
-            parsed = _try_parse_string_list(candidate)
-            if parsed is not None:
-                return parsed
-
-    # Last resort: task may return list as plain message string
-    msg = str(result.get("message", "")).strip()
-    parsed_mask_msg = _try_parse_presence_mask_positions(msg)
-    if parsed_mask_msg is not None:
-        return parsed_mask_msg
-    parsed_msg = _try_parse_string_list(msg)
-    if parsed_msg is not None:
-        return parsed_msg
-
-    return []
-
-
-def extract_sample_type(result: Dict[str, Any]) -> Optional[int]:
-    raw = result.get("raw", {})
-    data = raw.get("data", {}) if isinstance(raw, dict) else {}
-    outputs = data.get("outputs", {}) if isinstance(data, dict) else {}
-
-    candidates = [
-        outputs.get("SampleType") if isinstance(outputs, dict) else None,
-        outputs.get("sampleType") if isinstance(outputs, dict) else None,
-        outputs.get("Type") if isinstance(outputs, dict) else None,
-        outputs.get("type") if isinstance(outputs, dict) else None,
-        outputs.get("Results") if isinstance(outputs, dict) else None,
-        outputs.get("results") if isinstance(outputs, dict) else None,
-        data.get("sampleType"),
-        data.get("type"),
-        result.get("message"),
-    ]
-
-    for candidate in candidates:
-        if candidate is None:
-            continue
-        if isinstance(candidate, int):
-            if 1 <= candidate <= 4:
-                return candidate
-            continue
-
-        txt = str(candidate).strip()
-        if not txt:
-            continue
-
-        if txt.isdigit():
-            value = int(txt)
-            if 1 <= value <= 4:
-                return value
-            continue
-
-        match = re.search(r"\b([1-4])\b", txt)
-        if match:
-            return int(match.group(1))
-
-    return None
-
-
-def extract_sample_barcode(result: Dict[str, Any]) -> Optional[str]:
-    raw = result.get("raw", {})
-    data = raw.get("data", {}) if isinstance(raw, dict) else {}
-    outputs = data.get("outputs", {}) if isinstance(data, dict) else {}
-
-    candidates: List[Tuple[Any, str]] = []
-    if isinstance(outputs, dict):
-        candidates.extend(
-            [
-                (outputs.get("Barcode"), "barcode_field"),
-                (outputs.get("barcode"), "barcode_field"),
-                (outputs.get("SampleBarcode"), "barcode_field"),
-                (outputs.get("sampleBarcode"), "barcode_field"),
-                (outputs.get("SampleId"), "barcode_field"),
-                (outputs.get("sampleId"), "barcode_field"),
-                (outputs.get("Results"), "barcode_field"),
-                (outputs.get("results"), "barcode_field"),
-            ]
-        )
-    if isinstance(data, dict):
-        candidates.extend(
-            [
-                (data.get("Barcode"), "barcode_field"),
-                (data.get("barcode"), "barcode_field"),
-                (data.get("SampleBarcode"), "barcode_field"),
-                (data.get("sampleBarcode"), "barcode_field"),
-            ]
-        )
-    candidates.append((result.get("message"), "message"))
-
-    for candidate, source_kind in candidates:
-        if candidate is None:
-            continue
-        txt = str(candidate).strip()
-        if not txt:
-            continue
-        if txt.lower() in {"none", "null", "n/a"}:
-            continue
-        if source_kind == "message" and txt.isdigit() and len(txt) <= 2:
-            continue
-        # Keep the full barcode as returned by 3FG.
-        return txt
-    return None
-
-
-def _classification_key_from_barcode(barcode: Optional[str]) -> Optional[str]:
-    txt = str(barcode or "").strip()
-    if not txt:
-        return None
-    if txt.lower() in {"none", "null", "n/a"}:
-        return None
-    if len(txt) < 2:
-        return txt
-    # Sample class routing is based on the last two characters.
-    return txt[-2:]
-
-
 def build_sample_router() -> ChainedSampleRouter:
     providers: List[Any] = []
     providers.append(
@@ -593,8 +314,26 @@ def _looks_like_cap_id(entity_id: str) -> bool:
     return str(entity_id).strip().upper().startswith("CAP_")
 
 
-def _ensure_sample_exists(world: WorldModel, sample_id: str) -> None:
+def _ensure_sample_exists(
+    world: WorldModel,
+    sample_id: str,
+    sample_templates: Optional[Dict[str, Sample]] = None,
+) -> None:
     if sample_id in world.samples:
+        return
+    seed = None
+    if isinstance(sample_templates, dict):
+        seed = sample_templates.get(sample_id)
+    if isinstance(seed, Sample):
+        world.samples[sample_id] = Sample(
+            id=sample_id,
+            barcode=str(seed.barcode or sample_id),
+            obj_type=int(seed.obj_type),
+            length_mm=float(seed.length_mm),
+            diameter_mm=float(seed.diameter_mm),
+            cap_state=seed.cap_state,
+            required_processes=tuple(seed.required_processes),
+        )
         return
     world.samples[sample_id] = Sample(
         id=sample_id,
@@ -639,6 +378,9 @@ def load_last_world_state(path: Path) -> Optional[Dict[str, Any]]:
 
 
 def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
+    sample_templates: Dict[str, Sample] = {
+        str(sample_id): sample for sample_id, sample in world.samples.items()
+    }
     world.rack_placements.clear()
     world.rack_in_gripper_id = None
     for rack in world.racks.values():
@@ -694,7 +436,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
     sample_ids: Set[str] = {sid for sid in occupant_ids if sid not in cap_like_ids}
 
     for sample_id in sorted(sample_ids):
-        _ensure_sample_exists(world, sample_id)
+        _ensure_sample_exists(world, sample_id, sample_templates)
 
     rack_in_gripper_raw = state.get("rack_in_gripper_id")
     if isinstance(rack_in_gripper_raw, str) and rack_in_gripper_raw in world.racks:
@@ -714,7 +456,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                 continue
             if sample_id in cap_like_ids:
                 continue
-            _ensure_sample_exists(world, sample_id)
+            _ensure_sample_exists(world, sample_id, sample_templates)
 
             location_type = str(raw_loc.get("location_type", "RACK")).upper()
             if location_type == "GRIPPER":
@@ -744,7 +486,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
         for slot_index, sample_id in sorted(rack.occupied_slots.items()):
             if sample_id in cap_like_ids:
                 continue
-            _ensure_sample_exists(world, sample_id)
+            _ensure_sample_exists(world, sample_id, sample_templates)
             if sample_id not in world.sample_states:
                 world.sample_states[sample_id] = SampleState(
                     sample_id=sample_id,
@@ -765,7 +507,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                 continue
             assigned_sample_id = str(raw_cap_loc.get("assigned_sample_id", "")).strip()
             if assigned_sample_id and assigned_sample_id not in world.samples:
-                _ensure_sample_exists(world, assigned_sample_id)
+                _ensure_sample_exists(world, assigned_sample_id, sample_templates)
             try:
                 cap_obj_type = int(raw_cap_loc.get("obj_type", 9014))
             except Exception:
@@ -801,7 +543,7 @@ def restore_world_from_state(world: WorldModel, state: Dict[str, Any]) -> None:
                 if not sample_id and assigned_sample_id:
                     sample_id = assigned_sample_id
                 if sample_id and sample_id not in world.samples:
-                    _ensure_sample_exists(world, sample_id)
+                    _ensure_sample_exists(world, sample_id, sample_templates)
                 world.cap_states[cap_id] = CapStateRecord(
                     cap_id=cap_id,
                     location=CapOnSampleLocation(sample_id=sample_id),
@@ -969,86 +711,6 @@ def prepare_input_rack_for_new_batch(world: WorldModel) -> None:
         "New-batch mode: input rack prepared at InputStation; "
         "previous samples on the input rack were cleared from world state"
     )
-
-
-def _read_csv_header(path: Path) -> List[str]:
-    if not path.exists():
-        return []
-    try:
-        with open(path, "r", newline="", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            row = next(reader, [])
-            if not isinstance(row, list):
-                return []
-            return [str(x) for x in row if str(x)]
-    except Exception:
-        return []
-
-
-def export_trace(records: List[Dict[str, Any]], path: Path, *, append: bool = False) -> None:
-    if not records:
-        return
-
-    param_keys = sorted(
-        {
-            k
-            for rec in records
-            for k in rec.keys()
-            if k
-            not in {
-                "timestamp_sent",
-                "command_sent",
-                "result",
-                "task_id",
-                "receiver",
-                "dispatch_path",
-                "message",
-                "state_path",
-                "state_timeline",
-                "timestamp_returned",
-            }
-        }
-    )
-    fieldnames = [
-        "timestamp_sent",
-        "command_sent",
-        *param_keys,
-        "result",
-        "task_id",
-        "receiver",
-        "dispatch_path",
-        "message",
-        "state_path",
-        "state_timeline",
-        "timestamp_returned",
-    ]
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    use_append = False
-    writer_fieldnames = list(fieldnames)
-    if append and path.exists() and path.stat().st_size > 0:
-        existing_header = _read_csv_header(path)
-        if existing_header:
-            writer_fieldnames = existing_header
-            use_append = True
-
-    with open(path, "a" if use_append else "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=writer_fieldnames, extrasaction="ignore")
-        if not use_append:
-            writer.writeheader()
-        for rec in records:
-            writer.writerow(rec)
-
-
-def export_state_changes(records: List[Dict[str, Any]], path: Path, *, append: bool = False) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    use_append = bool(append and path.exists() and path.stat().st_size > 0)
-    with open(path, "a" if use_append else "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=STATE_CHANGE_FIELDNAMES, extrasaction="ignore")
-        if not use_append:
-            writer.writeheader()
-        for rec in records:
-            writer.writerow(rec)
 
 
 def _trace_fieldnames_from_catalog(sender: CommandSender) -> List[str]:
@@ -1314,206 +976,6 @@ def _world_state_snapshot(world: WorldModel) -> Dict[str, Any]:
     }
 
 
-TRACE_RECORD_META_KEYS = {
-    "timestamp_sent",
-    "command_sent",
-    "result",
-    "task_id",
-    "receiver",
-    "dispatch_path",
-    "message",
-    "state_path",
-    "state_timeline",
-    "timestamp_returned",
-    "task_outputs",
-    "task_output_results",
-    "task_output_position",
-    "task_data",
-}
-
-
-def _parse_iso_datetime(value: Any) -> Optional[datetime]:
-    if value is None:
-        return None
-    txt = str(value).strip()
-    if not txt:
-        return None
-    if txt.endswith("Z"):
-        txt = txt[:-1] + "+00:00"
-    try:
-        return datetime.fromisoformat(txt)
-    except Exception:
-        return None
-
-
-def _parse_json_maybe(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, (dict, list, int, float, bool)):
-        return value
-    txt = str(value).strip()
-    if not txt:
-        return None
-    if txt.lower() in {"none", "null"}:
-        return None
-    if (txt.startswith("{") and txt.endswith("}")) or (txt.startswith("[") and txt.endswith("]")):
-        try:
-            return json.loads(txt)
-        except Exception:
-            return txt
-    return txt
-
-
-def _normalize_dispatch_path(value: Any) -> List[str]:
-    if isinstance(value, list):
-        return [str(part).strip() for part in value if str(part).strip()]
-    txt = str(value or "").strip()
-    if not txt:
-        return []
-    return [part.strip() for part in txt.split(">") if part.strip()]
-
-
-def _task_parameters_from_trace_record(record: Dict[str, Any]) -> Dict[str, Any]:
-    params: Dict[str, Any] = {}
-    for key in sorted(record.keys()):
-        if key in TRACE_RECORD_META_KEYS:
-            continue
-        parsed = _parse_json_maybe(record.get(key))
-        if parsed is None:
-            continue
-        params[key] = parsed
-    return params
-
-
-def _task_outputs_from_trace_record(record: Dict[str, Any]) -> Dict[str, Any]:
-    outputs: Dict[str, Any] = {}
-    parsed_outputs = _parse_json_maybe(record.get("task_outputs"))
-    if parsed_outputs is not None:
-        outputs["outputs"] = parsed_outputs
-
-    parsed_results = _parse_json_maybe(record.get("task_output_results"))
-    if parsed_results is not None:
-        outputs["results"] = parsed_results
-
-    parsed_position = _parse_json_maybe(record.get("task_output_position"))
-    if parsed_position is not None:
-        outputs["position"] = parsed_position
-
-    parsed_task_data = _parse_json_maybe(record.get("task_data"))
-    if parsed_task_data is not None:
-        outputs["task_data"] = parsed_task_data
-    return outputs
-
-
-def _task_context_from_trace_record(record: Dict[str, Any]) -> Dict[str, Any]:
-    context: Dict[str, Any] = {
-        "task_id": str(record.get("task_id") or ""),
-        "task_key": str(record.get("command_sent") or ""),
-        "status": str(record.get("result") or ""),
-        "receiver": str(record.get("receiver") or ""),
-        "dispatch_path": _normalize_dispatch_path(record.get("dispatch_path")),
-        "timestamps": {
-            "sent": str(record.get("timestamp_sent") or ""),
-            "returned": str(record.get("timestamp_returned") or ""),
-        },
-        "parameters": _task_parameters_from_trace_record(record),
-        "outputs": _task_outputs_from_trace_record(record),
-    }
-    message = str(record.get("message") or "").strip()
-    if message:
-        context["message"] = message
-
-    state_path = str(record.get("state_path") or "").strip()
-    if state_path:
-        context["state_path"] = state_path
-
-    state_timeline = str(record.get("state_timeline") or "").strip()
-    if state_timeline:
-        context["state_timeline"] = state_timeline
-    return context
-
-
-def _match_task_context_for_event(
-    event_ts: datetime, trace_rows: List[Dict[str, Any]], max_previous_gap_s: float = 5.0
-) -> Optional[Dict[str, Any]]:
-    covering: Optional[Dict[str, Any]] = None
-    covering_delta_s: Optional[float] = None
-    for row in trace_rows:
-        sent_ts = row.get("sent_ts")
-        returned_ts = row.get("returned_ts")
-        if sent_ts is None and returned_ts is None:
-            continue
-        if sent_ts is None:
-            sent_ts = returned_ts
-        if returned_ts is None:
-            returned_ts = sent_ts
-        if sent_ts is None or returned_ts is None:
-            continue
-        if sent_ts <= event_ts <= (returned_ts + timedelta(seconds=0.75)):
-            delta_s = abs((event_ts - returned_ts).total_seconds())
-            if covering is None or covering_delta_s is None or delta_s < covering_delta_s:
-                covering = row
-                covering_delta_s = delta_s
-    if covering is not None:
-        return dict(covering.get("context") or {})
-
-    best_previous: Optional[Dict[str, Any]] = None
-    best_gap_s: Optional[float] = None
-    for row in trace_rows:
-        anchor_ts = row.get("returned_ts") or row.get("sent_ts")
-        if anchor_ts is None or anchor_ts > event_ts:
-            continue
-        gap_s = (event_ts - anchor_ts).total_seconds()
-        if best_previous is None or best_gap_s is None or gap_s < best_gap_s:
-            best_previous = row
-            best_gap_s = gap_s
-
-    if best_previous is None or best_gap_s is None or best_gap_s > max_previous_gap_s:
-        return None
-    return dict(best_previous.get("context") or {})
-
-
-def enrich_occupancy_records_with_task_context(
-    occupancy_records: List[Dict[str, Any]],
-    trace_records: List[Dict[str, Any]],
-) -> None:
-    if not occupancy_records or not trace_records:
-        return
-
-    trace_rows: List[Dict[str, Any]] = []
-    for trace_record in trace_records:
-        if not isinstance(trace_record, dict):
-            continue
-        sent_ts = _parse_iso_datetime(trace_record.get("timestamp_sent"))
-        returned_ts = _parse_iso_datetime(trace_record.get("timestamp_returned"))
-        if sent_ts is None and returned_ts is None:
-            continue
-        trace_rows.append(
-            {
-                "sent_ts": sent_ts,
-                "returned_ts": returned_ts or sent_ts,
-                "context": _task_context_from_trace_record(trace_record),
-            }
-        )
-
-    if not trace_rows:
-        return
-
-    for event in occupancy_records:
-        if not isinstance(event, dict):
-            continue
-        if isinstance(event.get("task_context"), dict):
-            continue
-        if str(event.get("event_type") or "").upper() == "WORLD_SNAPSHOT":
-            continue
-        event_ts = _parse_iso_datetime(event.get("timestamp"))
-        if event_ts is None:
-            continue
-        context = _match_task_context_for_event(event_ts, trace_rows)
-        if context:
-            event["task_context"] = context
-
-
 def append_world_event(
     records: List[Dict[str, Any]],
     world: WorldModel,
@@ -1716,6 +1178,7 @@ def build_tree(
         baseline_rack_home_error = str(exc)
 
     def validate_scaffold_prerequisites(bb: Blackboard) -> bool:
+        _post_step_status_prompt("ValidateScaffoldPrerequisites")
         missing_stations = [sid for sid in sorted(required_station_ids) if sid not in world.stations]
         if missing_stations:
             print(
@@ -1820,6 +1283,82 @@ def build_tree(
         bb["workflow_context_message"] = msg
         bb["workflow_context_ts"] = _local_now_iso()
 
+    _step_status_messages = {
+        "ValidateScaffoldPrerequisites": "Validating prerequisites",
+        "await_input_rack_present": "Waiting for Input Rack at Input Station",
+        "nav_input": "Navigation to the Input Station",
+        "NavigateToStation": "Navigation to Station",
+        "scan_input_landmark": "Referencing robot coordinates at Input Station",
+        "ScanStationLandmark": "Scanning Station Landmark",
+        "transfer_input_rack": "Transferring Input Rack to uLM Plate",
+        "TransferRackBetweenStations": "Transferring Rack between Stations",
+        "charge": "Charging at Charge Station",
+        "ChargeAtStation": "Charging at Station",
+        "camera_inspect_urg_for_new_samples": "Identifying samples from the Input Rack",
+        "InspectRackAtStation": "Inspecting Rack at Station",
+        "urg_sort_via_3fg_router": "Routing identified samples",
+        "RouteUrgVia3Finger": "Routing via 3-Finger Gripper",
+        "CentrifugeCycle": "Preparing Centrifuge Cycle",
+        "handoff_to_state_driven_planning": "State-driven planning in progress",
+    }
+
+    def _build_step_body(step_name: str, step: Optional[PlanStep] = None, bb: Optional[Blackboard] = None) -> str:
+        """Build a rich context message for a workflow step."""
+        # Use PlanStep label if available and meaningful
+        if step is not None:
+            label = str(step.label).strip()
+            station = str(step.station_id or "").strip()
+            task_key = str(step.task_key or "").strip()
+            step_type = str(step.step_type).strip().upper()
+
+            if step_name == "handoff_to_state_driven_planning" and bb is not None:
+                last_action = bb.get("state_driven_last_action")
+                waiting = bb.get("state_driven_waiting_reason", "")
+                wait_device = bb.get("state_driven_wait_device_id", "")
+                wait_process = bb.get("state_driven_wait_process", "")
+                parts = ["State-driven planning"]
+                if isinstance(last_action, dict):
+                    action_type = str(last_action.get("action_type", "")).strip()
+                    sample_id = str(last_action.get("sample_id", "")).strip()
+                    process = str(last_action.get("process", "")).strip()
+                    if action_type and sample_id:
+                        parts = [f"{action_type} sample {sample_id}"]
+                        if process:
+                            parts[0] += f" ({process})"
+                if waiting:
+                    parts.append(f"Waiting: {waiting}")
+                    if wait_device:
+                        parts.append(f"Device: {wait_device}")
+                    if wait_process:
+                        parts.append(f"Process: {wait_process}")
+                return " | ".join(parts)
+
+            if step_type == "TASK" and task_key:
+                msg = label or task_key
+                if station:
+                    msg = f"{msg} at {station}"
+                return msg
+
+            if label:
+                if station:
+                    return f"{label} at {station}"
+                return label
+
+        return _step_status_messages.get(step_name, f"Executing {step_name}")
+
+    def _post_step_status_prompt(step_name: str, detail: str = "",
+                                 step: Optional[PlanStep] = None,
+                                 bb: Optional[Blackboard] = None) -> None:
+        """Post an info-only prompt to the control-system UI for real-time step status."""
+        title = _step_status_messages.get(step_name, step_name)
+        body = _build_step_body(step_name, step=step, bb=bb)
+        if detail:
+            body = f"{body} — {detail}"
+        try:
+            sender.robot.post_prompt(title, body, [])
+        except Exception as exc:
+            print(f"Step status prompt warning: {exc}")
+
     def _input_rack_wait_poll_interval_s() -> float:
         try:
             return max(0.2, float(STATE_DRIVEN_WAIT_POLL_S))
@@ -1844,6 +1383,9 @@ def build_tree(
 
         bb["last_plan_step"] = str(step.step_id)
         _post_workflow_context_message(bb, _context_message_for_plan_step(step))
+        if not bb.get("_await_input_rack_prompt_posted"):
+            _post_step_status_prompt("await_input_rack_present")
+            bb["_await_input_rack_prompt_posted"] = True
 
         rack_id = _rack_id_at(world, INPUT_STATION_ID, INPUT_SLOT_ID)
         if rack_id:
@@ -2995,8 +2537,63 @@ def build_tree(
         station = world.get_station(station_id)
         return station.kind != StationKind.ON_ROBOT_PLATE
 
+    def _is_on_robot_plate_station(station_id: str) -> bool:
+        station = world.get_station(station_id)
+        return station.kind == StationKind.ON_ROBOT_PLATE
+
+    def _reference_tracking_bb(provided_bb: Optional[Blackboard] = None) -> Optional[Blackboard]:
+        if provided_bb is not None:
+            return provided_bb
+        bb_ctx = active_context.get("bb")
+        if bb_ctx is None:
+            return None
+        return bb_ctx
+
+    def _reference_nav_epoch(provided_bb: Optional[Blackboard] = None) -> int:
+        bb_ctx = _reference_tracking_bb(provided_bb)
+        if bb_ctx is None:
+            return 0
+        try:
+            return int(bb_ctx.get("station_reference_nav_epoch", 0))
+        except Exception:
+            return 0
+
+    def _invalidate_station_reference_cache(provided_bb: Optional[Blackboard] = None) -> None:
+        bb_ctx = _reference_tracking_bb(provided_bb)
+        if bb_ctx is None:
+            return
+        next_epoch = int(_reference_nav_epoch(bb_ctx)) + 1
+        bb_ctx["station_reference_nav_epoch"] = int(next_epoch)
+        bb_ctx.pop("station_reference_station_id", None)
+        bb_ctx.pop("station_reference_station_epoch", None)
+
+    def _mark_station_referenced(station_id: str, provided_bb: Optional[Blackboard] = None) -> None:
+        bb_ctx = _reference_tracking_bb(provided_bb)
+        if bb_ctx is None:
+            return
+        bb_ctx["station_reference_station_id"] = str(station_id)
+        bb_ctx["station_reference_station_epoch"] = int(_reference_nav_epoch(bb_ctx))
+        bb_ctx["station_reference_ts"] = _local_now_iso()
+
+    def _has_valid_station_reference(station_id: str, provided_bb: Optional[Blackboard] = None) -> bool:
+        if not _requires_station_reference_scan(station_id):
+            return True
+        bb_ctx = _reference_tracking_bb(provided_bb)
+        if bb_ctx is None:
+            return False
+        cached_station_id = str(bb_ctx.get("station_reference_station_id", "")).strip()
+        if cached_station_id != str(station_id):
+            return False
+        try:
+            cached_epoch = int(bb_ctx.get("station_reference_station_epoch", -1))
+        except Exception:
+            cached_epoch = -1
+        return int(cached_epoch) == int(_reference_nav_epoch(bb_ctx))
+
     def _ensure_station_reference(station_id: str, task_prefix: str) -> bool:
         if not _requires_station_reference_scan(station_id):
+            return True
+        if _has_valid_station_reference(station_id):
             return True
 
         station = world.get_station(station_id)
@@ -3018,6 +2615,7 @@ def build_tree(
                 world.set_robot_station(station_id)
             except Exception:
                 pass
+            _invalidate_station_reference_cache()
 
         scan_overrides = {
             "ITM_ID": int(station.itm_id),
@@ -3028,10 +2626,96 @@ def build_tree(
             scan_overrides,
             f"{task_prefix}.ScanLandmark.{station_id}",
         )
+        if ok:
+            _mark_station_referenced(station_id)
         return ok
+
+    def _execute_rack_transfer_actions(
+        *,
+        source_station_id: str,
+        source_cfg: Any,
+        source_obj_nbr: int,
+        source_action: int,
+        source_task_suffix: str,
+        target_station_id: str,
+        target_cfg: Any,
+        target_obj_nbr: int,
+        target_action: int,
+        target_task_suffix: str,
+        obj_type: int,
+        task_prefix: str,
+        assume_source_referenced: bool = False,
+        assume_target_referenced: bool = False,
+    ) -> bool:
+        """Execute a rack transfer with consistent external-station landmark enforcement.
+
+        Rule:
+        - For any rack handling on external stations, reference must be ensured.
+        - If moving plate -> external, reference external station before first rack grip.
+        """
+        source_requires_reference = _requires_station_reference_scan(source_station_id) and (not bool(assume_source_referenced))
+        target_requires_reference = _requires_station_reference_scan(target_station_id) and (not bool(assume_target_referenced))
+        target_referenced_before_source_action = False
+
+        if (
+            _is_on_robot_plate_station(source_station_id)
+            and target_requires_reference
+            and source_station_id != target_station_id
+        ):
+            if not _ensure_station_reference(target_station_id, task_prefix):
+                return False
+            target_referenced_before_source_action = True
+
+        if source_requires_reference:
+            if not _ensure_station_reference(source_station_id, task_prefix):
+                return False
+
+        if not _run_single_task_action(
+            itm_id=int(source_cfg.itm_id),
+            jig_id=int(source_cfg.jig_id),
+            obj_nbr=int(source_obj_nbr),
+            action=int(source_action),
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.{source_task_suffix}",
+        ):
+            return False
+
+        if target_requires_reference and (not target_referenced_before_source_action):
+            if not _ensure_station_reference(target_station_id, task_prefix):
+                return False
+
+        if not _run_single_task_action(
+            itm_id=int(target_cfg.itm_id),
+            jig_id=int(target_cfg.jig_id),
+            obj_nbr=int(target_obj_nbr),
+            action=int(target_action),
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.{target_task_suffix}",
+        ):
+            return False
+
+        return True
 
     def _set_sample_cap_state(sample_id: str, cap_state: CapState) -> None:
         world.set_sample_cap_state(sample_id, cap_state)
+
+    def _effective_sample_obj_type(sample_id: str, *, fallback: int = OBJ_TYPE_PROBE) -> int:
+        sample_obj = world.samples.get(str(sample_id))
+        try:
+            value = int(getattr(sample_obj, "obj_type", int(fallback)))
+        except Exception:
+            value = int(fallback)
+        if int(value) <= 0:
+            value = int(fallback)
+        # Runtime robot contract: decapped samples use the decapped OBJ_Type variant.
+        # Convention: base sample OBJ type + 1000 (e.g., 810->1810, 811->1811).
+        try:
+            cap_state = getattr(sample_obj, "cap_state", None)
+            if cap_state == CapState.DECAPPED and 0 < int(value) < 1000:
+                return int(value) + 1000
+        except Exception:
+            pass
+        return int(value)
 
     def _resolve_recap_jig_id(sample_id: str, default_jig_id: int) -> int:
         """Resolve recap-cap JIG by sample role.
@@ -3145,29 +2829,19 @@ def build_tree(
         target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
         obj_type = int(rack.pin_obj_type)
 
-        if not _ensure_station_reference(source_station_id, task_prefix):
-            return False
-
-        if not _run_single_task_action(
-            itm_id=int(source_cfg.itm_id),
-            jig_id=int(source_cfg.jig_id),
-            obj_nbr=int(source_cfg.rack_index),
-            action=ACTION_PICK,
+        if not _execute_rack_transfer_actions(
+            source_station_id=source_station_id,
+            source_cfg=source_cfg,
+            source_obj_nbr=int(source_cfg.rack_index),
+            source_action=ACTION_PICK,
+            source_task_suffix="Pick",
+            target_station_id=target_station_id,
+            target_cfg=target_cfg,
+            target_obj_nbr=int(target_cfg.rack_index),
+            target_action=ACTION_PLACE,
+            target_task_suffix="Place",
             obj_type=int(obj_type),
-            task_name=f"{task_prefix}.Pick",
-        ):
-            return False
-
-        if not _ensure_station_reference(target_station_id, task_prefix):
-            return False
-
-        if not _run_single_task_action(
-            itm_id=int(target_cfg.itm_id),
-            jig_id=int(target_cfg.jig_id),
-            obj_nbr=int(target_cfg.rack_index),
-            action=ACTION_PLACE,
-            obj_type=int(obj_type),
-            task_name=f"{task_prefix}.Place",
+            task_prefix=task_prefix,
         ):
             return False
 
@@ -3303,27 +2977,20 @@ def build_tree(
                 print(f"{task_prefix} prerequisite failed: unknown rack '{rack_id}'")
                 return False
 
-            if not _ensure_station_reference(target_station_id, task_prefix):
-                return False
-            if not _run_single_task_action(
-                itm_id=int(target_cfg.itm_id),
-                jig_id=int(target_cfg.jig_id),
-                obj_nbr=int(target_cfg.rack_index),
-                action=ACTION_PICK,
+            # Rack currently sits at target_station_id slot; return to source_station_id slot.
+            if not _execute_rack_transfer_actions(
+                source_station_id=target_station_id,
+                source_cfg=target_cfg,
+                source_obj_nbr=int(target_cfg.rack_index),
+                source_action=ACTION_PICK,
+                source_task_suffix="Pick",
+                target_station_id=source_station_id,
+                target_cfg=source_cfg,
+                target_obj_nbr=int(source_cfg.rack_index),
+                target_action=ACTION_PLACE,
+                target_task_suffix="Place",
                 obj_type=int(rack.pin_obj_type),
-                task_name=f"{task_prefix}.Pick",
-            ):
-                return False
-
-            if not _ensure_station_reference(source_station_id, task_prefix):
-                return False
-            if not _run_single_task_action(
-                itm_id=int(source_cfg.itm_id),
-                jig_id=int(source_cfg.jig_id),
-                obj_nbr=int(source_cfg.rack_index),
-                action=ACTION_PLACE,
-                obj_type=int(rack.pin_obj_type),
-                task_name=f"{task_prefix}.Place",
+                task_prefix=task_prefix,
             ):
                 return False
 
@@ -3520,27 +3187,19 @@ def build_tree(
         target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
 
         task_prefix = f"StateDriven.RackReturn.{rack_id}"
-        if not _ensure_station_reference(source_station_id, task_prefix):
-            return False
-        if not _run_single_task_action(
-            itm_id=int(source_cfg.itm_id),
-            jig_id=int(source_cfg.jig_id),
-            obj_nbr=int(source_cfg.rack_index),
-            action=ACTION_PICK,
+        if not _execute_rack_transfer_actions(
+            source_station_id=source_station_id,
+            source_cfg=source_cfg,
+            source_obj_nbr=int(source_cfg.rack_index),
+            source_action=ACTION_PICK,
+            source_task_suffix="Pick",
+            target_station_id=target_station_id,
+            target_cfg=target_cfg,
+            target_obj_nbr=int(target_cfg.rack_index),
+            target_action=ACTION_PLACE,
+            target_task_suffix="Place",
             obj_type=int(rack.pin_obj_type),
-            task_name=f"{task_prefix}.Pick",
-        ):
-            return False
-
-        if not _ensure_station_reference(target_station_id, task_prefix):
-            return False
-        if not _run_single_task_action(
-            itm_id=int(target_cfg.itm_id),
-            jig_id=int(target_cfg.jig_id),
-            obj_nbr=int(target_cfg.rack_index),
-            action=ACTION_PLACE,
-            obj_type=int(rack.pin_obj_type),
-            task_name=f"{task_prefix}.Place",
+            task_prefix=task_prefix,
         ):
             return False
 
@@ -4169,24 +3828,20 @@ def build_tree(
                     print(f"{task_prefix} load failed: unknown rack '{source_rack_id}'")
                     return False
 
-                # Load transfer must explicitly pick from source jig before pushing into target jig.
-                if not _run_single_task_action(
-                    itm_id=int(source_cfg.itm_id),
-                    jig_id=int(source_cfg.jig_id),
-                    obj_nbr=int(source_cfg.rack_index),
-                    action=ACTION_PICK,
+                if not _execute_rack_transfer_actions(
+                    source_station_id=PLATE_STATION_ID,
+                    source_cfg=source_cfg,
+                    source_obj_nbr=int(source_cfg.rack_index),
+                    source_action=ACTION_PICK,
+                    source_task_suffix=f"LoadRack{int(idx)}.PickFromSource",
+                    target_station_id=IH500_STATION_ID,
+                    target_cfg=target_cfg,
+                    target_obj_nbr=int(target_cfg.rack_index),
+                    target_action=ACTION_PUSH_RACK_IN,
+                    target_task_suffix=f"LoadRack{int(idx)}.PushRackIn",
                     obj_type=int(rack.pin_obj_type),
-                    task_name=f"{task_prefix}.LoadRack{int(idx)}.PickFromSource",
-                ):
-                    return False
-
-                if not _run_single_task_action(
-                    itm_id=int(target_cfg.itm_id),
-                    jig_id=int(target_cfg.jig_id),
-                    obj_nbr=int(target_cfg.rack_index),
-                    action=ACTION_PUSH_RACK_IN,
-                    obj_type=int(rack.pin_obj_type),
-                    task_name=f"{task_prefix}.LoadRack{int(idx)}.PushRackIn",
+                    task_prefix=task_prefix,
+                    assume_target_referenced=True,
                 ):
                     return False
 
@@ -4285,23 +3940,20 @@ def build_tree(
                 print(f"{task_prefix} unload failed: unknown rack '{device_rack_id}'")
                 return False
 
-            if not _run_single_task_action(
-                itm_id=int(target_cfg.itm_id),
-                jig_id=int(target_cfg.jig_id),
-                obj_nbr=int(target_cfg.rack_index),
-                action=ACTION_PULL_RACK_OUT,
+            if not _execute_rack_transfer_actions(
+                source_station_id=IH500_STATION_ID,
+                source_cfg=target_cfg,
+                source_obj_nbr=int(target_cfg.rack_index),
+                source_action=ACTION_PULL_RACK_OUT,
+                source_task_suffix=f"UnloadRack{int(idx)}.PullRackOut",
+                target_station_id=PLATE_STATION_ID,
+                target_cfg=source_cfg,
+                target_obj_nbr=int(source_cfg.rack_index),
+                target_action=ACTION_PLACE,
+                target_task_suffix=f"UnloadRack{int(idx)}.PlaceOnPlate",
                 obj_type=int(rack.pin_obj_type),
-                task_name=f"{task_prefix}.UnloadRack{int(idx)}.PullRackOut",
-            ):
-                return False
-
-            if not _run_single_task_action(
-                itm_id=int(source_cfg.itm_id),
-                jig_id=int(source_cfg.jig_id),
-                obj_nbr=int(source_cfg.rack_index),
-                action=ACTION_PLACE,
-                obj_type=int(rack.pin_obj_type),
-                task_name=f"{task_prefix}.UnloadRack{int(idx)}.PlaceOnPlate",
+                task_prefix=task_prefix,
+                assume_source_referenced=True,
             ):
                 return False
 
@@ -4408,8 +4060,9 @@ def build_tree(
             )
             return False
 
-        sample = world.samples.get(sample_id)
-        obj_type = int(getattr(sample, "obj_type", OBJ_TYPE_PROBE))
+        # Keep sample payload consistent with physical transformation state.
+        # Decapped samples must be sent with the decapped OBJ_Type variant.
+        obj_type = _effective_sample_obj_type(sample_id)
         source_cfg = world.get_slot_config(source_station_id, source_station_slot_id)
         target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
 
@@ -4535,6 +4188,7 @@ def build_tree(
                 ProcessType.SAMPLE_TYPE_DETECTION: 3,
             }
             slot_cfg = world.get_slot_config(str(state.location.station_id), str(state.location.station_slot_id))
+            sample_obj_type = _effective_sample_obj_type(sample_id)
             sample_process_jig_id = int(slot_cfg.jig_id)
             recap_storage_jig_id = int(slot_cfg.jig_id)
             if process in {ProcessType.DECAP, ProcessType.CAP}:
@@ -4611,6 +4265,7 @@ def build_tree(
                 "ITM_ID": int(slot_cfg.itm_id),
                 "JIG_ID": int(sample_process_jig_id),
                 "ACT": int(action_code_by_process[process]),
+                "OBJ_Type": int(sample_obj_type),
             }
             ok, _ = _run_task("ProcessAt3FingerStation", overrides, task_prefix)
             if not ok:
@@ -4852,7 +4507,30 @@ def build_tree(
         print(f"StateDriven process failed: unsupported process '{process.value}'")
         return False
 
+    def _state_driven_action_message(action: DynamicPlanAction) -> str:
+        action_type = str(action.action_type).strip().upper()
+        sample = str(action.sample_id).strip()
+        process = str(action.process.value).strip()
+        target = str(action.target_station_id).strip()
+        device = str(action.selected_device_id or "").strip()
+        if action_type == "STAGE_SAMPLE":
+            return f"Staging sample {sample} for {process} at {target}"
+        if action_type == "PROCESS_SAMPLE":
+            msg = f"Processing sample {sample} ({process})"
+            if device:
+                msg += f" on {device}"
+            return msg
+        if action_type == "PROVISION_RACK":
+            source = str(action.source_station_id).strip()
+            return f"Provisioning rack from {source} to {target} for {process}"
+        return f"{action_type} sample {sample} ({process})"
+
     def _execute_state_driven_action(action: DynamicPlanAction, bb: Blackboard) -> bool:
+        _post_step_status_prompt(
+            "handoff_to_state_driven_planning",
+            detail=_state_driven_action_message(action),
+            bb=bb,
+        )
         action_type = str(action.action_type).strip().upper()
         if action_type == "STAGE_SAMPLE":
             return _execute_state_driven_stage_action(action, bb)
@@ -4886,6 +4564,12 @@ def build_tree(
                 return False
             if bool(bb.get("state_driven_waiting_external_completion", False)):
                 if not _is_external_wait_satisfied(bb, loop_index):
+                    wait_reason = str(bb.get("state_driven_waiting_reason", "")).strip()
+                    wait_device = str(bb.get("state_driven_wait_device_id", "")).strip()
+                    wait_detail = wait_reason or "Waiting for external completion"
+                    if wait_device:
+                        wait_detail += f" ({wait_device})"
+                    _post_step_status_prompt("handoff_to_state_driven_planning", detail=wait_detail, bb=bb)
                     if STATE_DRIVEN_WAIT_POLL_S > 0:
                         time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
                     continue
@@ -4928,6 +4612,7 @@ def build_tree(
             if status == "IDLE":
                 return_candidate = _next_idle_rack_return_candidate(bb)
                 if return_candidate is not None:
+                    _post_step_status_prompt("handoff_to_state_driven_planning", detail="Returning rack to home position", bb=bb)
                     if not _execute_return_rack_home(return_candidate, bb):
                         return False
                     executed_actions.append(_return_rack_action_payload(return_candidate))
@@ -4962,6 +4647,23 @@ def build_tree(
 
             bb["state_driven_plan_action"] = action.to_dict()
             if not _execute_state_driven_action(action, bb):
+                action_desc = _state_driven_action_message(action)
+                action_id = sender.robot.prompt_and_wait(
+                    "Action Failed",
+                    f"{action_desc}\nChoose an action.",
+                    [
+                        {"id": "retry", "label": "Retry"},
+                        {"id": "skip", "label": "Skip"},
+                        {"id": "abort", "label": "Abort"},
+                    ],
+                    timeout=300,
+                )
+                if action_id == "retry":
+                    continue
+                if action_id == "skip":
+                    executed_actions.append(action.to_dict())
+                    executed_action_count += 1
+                    continue
                 return False
             executed_actions.append(action.to_dict())
             executed_action_count += 1
@@ -5018,23 +4720,19 @@ def build_tree(
                 print(f"GettingNewSamples transfer failed: unknown source rack '{source_rack_id}'")
                 return False
             obj_type = int(rack.pin_obj_type)
-            if not _run_single_task_action(
-                itm_id=int(source_cfg.itm_id),
-                jig_id=int(source_cfg.jig_id),
-                obj_nbr=int(source_cfg.rack_index),
-                action=ACTION_PICK,
+            if not _execute_rack_transfer_actions(
+                source_station_id=INPUT_STATION_ID,
+                source_cfg=source_cfg,
+                source_obj_nbr=int(source_cfg.rack_index),
+                source_action=ACTION_PICK,
+                source_task_suffix="Pick",
+                target_station_id=PLATE_STATION_ID,
+                target_cfg=target_cfg,
+                target_obj_nbr=int(target_cfg.rack_index),
+                target_action=ACTION_PLACE,
+                target_task_suffix="Place",
                 obj_type=int(obj_type),
-                task_name="GettingNewSamples.TransferInputRack.Pick",
-            ):
-                return False
-
-            if not _run_single_task_action(
-                itm_id=int(target_cfg.itm_id),
-                jig_id=int(target_cfg.jig_id),
-                obj_nbr=int(target_cfg.rack_index),
-                action=ACTION_PLACE,
-                obj_type=int(obj_type),
-                task_name="GettingNewSamples.TransferInputRack.Place",
+                task_prefix="GettingNewSamples.TransferInputRack",
             ):
                 return False
 
@@ -5158,11 +4856,6 @@ def build_tree(
 
             routed_sample_ids: List[str] = []
             three_fg_cfg = world.get_slot_config(THREE_FINGER_STATION_ID, THREE_FINGER_SLOT_ID)
-            process_overrides = {
-                "ITM_ID": int(three_fg_cfg.itm_id),
-                "JIG_ID": int(three_fg_cfg.jig_id),
-                "ACT": 3,
-            }
             for sample_id in sample_ids:
                 state = world.sample_states.get(sample_id)
                 if state is None or not isinstance(state.location, RackLocation):
@@ -5190,6 +4883,13 @@ def build_tree(
                 if not ok or moved_sample_id is None:
                     return False
 
+                sample_obj_type = _effective_sample_obj_type(sample_id)
+                process_overrides = {
+                    "ITM_ID": int(three_fg_cfg.itm_id),
+                    "JIG_ID": int(three_fg_cfg.jig_id),
+                    "ACT": 3,
+                    "OBJ_Type": int(sample_obj_type),
+                }
                 ok, process_result = _run_task(
                     "ProcessAt3FingerStation",
                     process_overrides,
@@ -5383,8 +5083,11 @@ def build_tree(
                 world.set_robot_station(step.station_id)
             except Exception:
                 pass
+            _invalidate_station_reference_cache(bb)
         if step.step_id == "scan_input_landmark":
             bb["input_landmark_scanned"] = True
+            station_id = str(step.station_id or INPUT_STATION_ID)
+            _mark_station_referenced(station_id, bb)
         return True
 
     def _is_centrifuge_ready(device: Any) -> Tuple[bool, Dict[str, Any], str]:
@@ -5470,23 +5173,24 @@ def build_tree(
         op: RackTransferStep,
         runtime_device: Any,
     ) -> bool:
-        if not _run_single_task_action(
-            itm_id=int(op.source_itm_id),
-            jig_id=int(op.source_jig_id),
-            obj_nbr=int(op.source_obj_nbr),
-            action=ACTION_PICK,
-            obj_type=int(op.obj_type),
-            task_name=f"CentrifugeCycle.{op.name}.Pick",
-        ):
-            return False
+        source_station_id = str(op.source_station_id)
+        target_station_id = str(op.target_station_id)
+        source_cfg = world.get_slot_config(source_station_id, str(op.source_station_slot_id))
+        target_cfg = world.get_slot_config(target_station_id, str(op.target_station_slot_id))
 
-        if not _run_single_task_action(
-            itm_id=int(op.target_itm_id),
-            jig_id=int(op.target_jig_id),
-            obj_nbr=int(op.target_obj_nbr),
-            action=ACTION_PLACE,
+        if not _execute_rack_transfer_actions(
+            source_station_id=source_station_id,
+            source_cfg=source_cfg,
+            source_obj_nbr=int(op.source_obj_nbr),
+            source_action=ACTION_PICK,
+            source_task_suffix="Pick",
+            target_station_id=target_station_id,
+            target_cfg=target_cfg,
+            target_obj_nbr=int(op.target_obj_nbr),
+            target_action=ACTION_PLACE,
+            target_task_suffix="Place",
             obj_type=int(op.obj_type),
-            task_name=f"CentrifugeCycle.{op.name}.Place",
+            task_prefix=f"CentrifugeCycle.{op.name}",
         ):
             return False
 
@@ -5544,10 +5248,7 @@ def build_tree(
             return False
         bb["active_runtime_centrifuge_id"] = str(runtime_device.identity.device_id)
 
-        station = world.get_station(CENTRIFUGE_STATION_ID)
-        scan_overrides = {"ITM_ID": int(station.itm_id), "ACT": DEVICE_ACTION_SCAN_LANDMARK}
-        ok, _ = _run_task("SingleDeviceAction", scan_overrides, "CentrifugeCycle.ScanLandmark")
-        if not ok:
+        if not _ensure_station_reference(CENTRIFUGE_STATION_ID, "CentrifugeCycle"):
             return False
 
         try:
@@ -5670,8 +5371,10 @@ def build_tree(
             if workflow_mode == "GETTING_NEW_SAMPLES":
                 step = plan_step_by_id.get(step_name)
                 if step is None:
+                    _post_step_status_prompt(step_name, bb=bb)
                     print(f"GettingNewSamples failed: planner step '{step_name}' not found")
                     return False
+                _post_step_status_prompt(step_name, step=step, bb=bb)
                 bb["last_plan_step"] = str(step.step_id)
                 _post_workflow_context_message(bb, _context_message_for_plan_step(step))
                 if str(step.step_type).strip().upper() == "TASK":
@@ -5682,6 +5385,7 @@ def build_tree(
                 return False
 
             bb["last_blank_step"] = step_name
+            _post_step_status_prompt(step_name, bb=bb)
             if step_name == "CentrifugeCycle" and workflow_mode in centrifuge_modes:
                 _post_workflow_context_message(bb, "Preparing Centrifuge Cycle")
                 return _execute_centrifuge_cycle(bb)
@@ -5690,6 +5394,26 @@ def build_tree(
 
         return _run
 
+    # -- Step categories ------------------------------------------------
+    # Auto-retry: transient failures (navigation, scanning, charging)
+    auto_retry_steps = {
+        "nav_input", "NavigateToStation",
+        "scan_input_landmark", "ScanStationLandmark",
+        "charge", "ChargeAtStation",
+    }
+    # User-interaction (composite — modifies physical state, no silent retry)
+    user_interaction_steps = {
+        "transfer_input_rack", "TransferRackBetweenStations",
+        "camera_inspect_urg_for_new_samples", "InspectRackAtStation",
+        "urg_sort_via_3fg_router", "RouteUrgVia3Finger",
+        "CentrifugeCycle",
+        "handoff_to_state_driven_planning",
+    }
+
+    def _prompt_fn(title: str, body: str, actions: list) -> Optional[str]:
+        return sender.robot.prompt_and_wait(title, body, actions, timeout=300)
+
+    # -- Build nodes ----------------------------------------------------
     nodes = [
         RetryNode(
             "ValidateScaffoldPrerequisites",
@@ -5699,9 +5423,46 @@ def build_tree(
     ]
     for step_name in active_step_names:
         if step_name == "await_input_rack_present":
-            nodes.append(RetryNode(step_name, AwaitInputRackNode(step_name), max_attempts=1))
-            continue
-        nodes.append(RetryNode(step_name, ConditionNode(step_name, make_step(step_name)), max_attempts=1))
+            nodes.append(
+                UserInteractionRetryNode(
+                    step_name,
+                    AwaitInputRackNode(step_name),
+                    prompt_fn=_prompt_fn,
+                    max_attempts=3,
+                    prompt_title="Input Rack Not Detected",
+                    prompt_body="Input Station WISE module is offline or no rack detected. Choose an action.",
+                )
+            )
+        elif step_name in auto_retry_steps:
+            nodes.append(
+                RetryNode(step_name, ConditionNode(step_name, make_step(step_name)), max_attempts=3)
+            )
+        elif step_name == "handoff_to_state_driven_planning":
+            nodes.append(
+                UserInteractionRetryNode(
+                    step_name,
+                    ConditionNode(step_name, make_step(step_name)),
+                    prompt_fn=_prompt_fn,
+                    max_attempts=1,
+                    actions=[
+                        {"id": "retry", "label": "Replan"},
+                        {"id": "abort", "label": "Abort"},
+                    ],
+                )
+            )
+        elif step_name in user_interaction_steps:
+            nodes.append(
+                UserInteractionRetryNode(
+                    step_name,
+                    ConditionNode(step_name, make_step(step_name)),
+                    prompt_fn=_prompt_fn,
+                    max_attempts=1,
+                )
+            )
+        else:
+            nodes.append(
+                RetryNode(step_name, ConditionNode(step_name, make_step(step_name)), max_attempts=1)
+            )
 
     return SequenceNode("RackAndProbeTransferFlow", nodes)
 

@@ -28,6 +28,7 @@ from planner_get_event import planner_get_event
 from planner_get_state import get_planner_state
 from planner_post_event import planner_post_event
 from planner_post_state import planner_post_state
+from post_planner_message import dismiss_planner_prompt
 
 
 WORLD_DIR = PROJECT_ROOT / "world"
@@ -346,6 +347,15 @@ class PlannerWebInterfaceBridge:
             self._pause_ack_file.unlink(missing_ok=True)
         except Exception as exc:
             _safe_print(f"Failed clearing pause ack file: {exc}")
+
+    def _dismiss_active_prompt(self) -> None:
+        """Dismiss any active control-system prompt so the UI is clean after RESET."""
+        if not self._ensure_auth():
+            return
+        try:
+            dismiss_planner_prompt(self.url, self.token)
+        except Exception as exc:
+            _safe_print(f"Failed to dismiss active prompt on reset: {exc}")
 
     def _is_workflow_running(self) -> bool:
         return self._workflow_process is not None and self._workflow_process.poll() is None
@@ -776,6 +786,7 @@ class PlannerWebInterfaceBridge:
                 _safe_print("Ignoring RESET event while planner is running; stop first.")
                 return
             self._clear_workflow_pause_control()
+            self._dismiss_active_prompt()
             self._publish_transient_state_with_min_hold(self._state_resetting)
             self._reset_world_to_baseline()
             self._runtime_state = self._state_stopped

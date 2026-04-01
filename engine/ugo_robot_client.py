@@ -10,6 +10,12 @@ from Library.workflow_post_task_send import task_post_send
 from Library.workflow_get_request_status import get_request_status
 from Library.error_post_planner import post_planner_error
 from Library.error_post_planner_clear import clear_planner_error
+from Library.post_planner_message import (
+    post_planner_prompt,
+    dismiss_planner_prompt,
+    get_prompt_response,
+    wait_for_user_response,
+)
 
 
 @dataclass
@@ -29,6 +35,26 @@ class UgoRobotClient:
 
     def clear_error(self, error_id: str) -> None:
         clear_planner_error(self.base_url, self.token, error_id)
+
+    # ---- Control-system prompts ----
+    def post_prompt(self, title: str, body: str, actions=None) -> Optional[str]:
+        return post_planner_prompt(self.base_url, self.token, title, body, actions)
+
+    def dismiss_prompt(self, prompt_id: str = None) -> None:
+        dismiss_planner_prompt(self.base_url, self.token, prompt_id)
+
+    def get_prompt(self, prompt_id: str):
+        return get_prompt_response(self.base_url, self.token, prompt_id)
+
+    def wait_for_prompt_response(self, prompt_id: str, poll_interval: float = 2, timeout: float = 300) -> Optional[str]:
+        return wait_for_user_response(self.base_url, self.token, prompt_id, poll_interval, timeout)
+
+    def prompt_and_wait(self, title: str, body: str, actions=None, timeout: float = 300) -> Optional[str]:
+        """Post a prompt and block until the user responds. Returns chosen actionId or None."""
+        prompt_id = self.post_prompt(title, body, actions)
+        if not prompt_id:
+            return None
+        return self.wait_for_prompt_response(prompt_id, timeout=timeout)
 
     # ---- New: planner state ----
     def get_planner_state(self) -> Optional[int]:

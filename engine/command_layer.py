@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import uuid
 from dataclasses import dataclass
@@ -175,7 +176,7 @@ class CommandSender:
     robot: UgoRobotClient
     catalog: TaskCatalog
 
-    default_timeout_s: float = 120.0
+    default_timeout_s: float = float(os.getenv("UGO_STEP_TIMEOUT_S", "300.0"))
     poll_s: float = 1.0
     max_attempts: int = 3
 

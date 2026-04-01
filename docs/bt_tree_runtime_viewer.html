@@ -355,24 +355,44 @@ const DEFAULT_MMD = `flowchart TD
     A["Sequence: RackAndProbeTransferFlow"]
     A --> B["Retry(max=1): ValidateScaffoldPrerequisites"]
 
-    B --> S1["Retry(max=1): await_input_rack_present"]
-    S1 --> S2["Retry(max=1): nav_input"]
-    S2 --> S3["Retry(max=1): scan_input_landmark"]
-    S3 --> S4["Retry(max=1): transfer_input_rack"]
-    S4 --> S5["Retry(max=1): charge"]
-    S5 --> S6["Retry(max=1): camera_inspect_urg_for_new_samples"]
-    S6 --> S7["Retry(max=1): urg_sort_via_3fg_router"]
-    S7 --> S8["Retry(max=1): handoff_to_state_driven_planning"]
+    B --> S1["UserInteractionRetry(max=3): await_input_rack_present"]
+    S1 --> S2["Retry(max=3): nav_input"]
+    S2 --> S3["Retry(max=3): scan_input_landmark"]
+    S3 --> S4["UserInteractionRetry(max=3): transfer_input_rack"]
+    S4 --> S5["Retry(max=3): charge"]
+    S5 --> S6["UserInteractionRetry(max=3): camera_inspect_urg_for_new_samples"]
+    S6 --> S7["UserInteractionRetry(max=3): urg_sort_via_3fg_router"]
+    S7 --> S8["UserInteractionRetry(max=3): handoff_to_state_driven_planning"]
 
     S8 --> L["State-driven loop"]
-    L --> U["UpdateWorldState_From_uLM"]
-    U --> P{"plan_next status"}
+    L --> M{"executed_actions < STATE_DRIVEN_MAX_ACTIONS?"}
+    M -->|Yes| U["UpdateWorldState_From_uLM"]
+    M -->|No| MAXF["FAILURE (STATE_DRIVEN_MAX_ACTIONS reached)"]
+
+    U --> CS["SyncActiveCentrifugeJobs"]
+    CS --> W{"waiting_external_completion?"}
+    W -->|Yes| WC{"external wait satisfied?"}
+    WC -->|No| WS["Sleep WAIT_POLL_S and continue"]
+    WS --> U
+    WC -->|Yes| P{"plan_next status"}
+    W -->|No| P
+
     P -->|READY| X["Execute action: PROCESS_SAMPLE / STAGE_SAMPLE / PROVISION_RACK"]
-    X --> U
-    P -->|IDLE + non-device return-candidate| R["Execute RETURN_RACK_HOME"]
+    X --> XW{"action set waiting flag?"}
+    XW -->|Yes| XWS["Sleep WAIT_POLL_S and continue"]
+    XWS --> U
+    XW -->|No| U
+
+    P -->|IDLE + return-candidate| R["Execute RETURN_RACK_HOME"]
     R --> U
-    P -->|IDLE + no return-candidate| OK["SUCCESS"]
-    P -->|BLOCKED / action failure| FAIL["FAILURE"]`;
+
+    P -->|IDLE + no return-candidate + running jobs| IW["Sleep WAIT_POLL_S and continue"]
+    IW --> U
+    P -->|IDLE + no return-candidate + no running jobs| OK["SUCCESS"]
+
+    P -->|BLOCKED + running jobs| BW["Sleep WAIT_POLL_S and continue"]
+    BW --> U
+    P -->|BLOCKED + no running jobs| FAIL["FAILURE"]`;
 
 const DEFAULT_MMD_PATH = "./bt_tree_mermaid_current.mmd";
 const DEFAULT_TRACE_PATHS = [
@@ -548,7 +568,7 @@ function parseTopology(mmdText) {
 }
 
 function extractStepId(label) {
-  const m = String(label || "").match(/^Retry\(max=\d+\):\s*(.+)$/i);
+  const m = String(label || "").match(/^(?:Retry|UserInteractionRetry)\(max=\d+\):\s*(.+)$/i);
   return m ? normalizeText(m[1]) : "";
 }
 
