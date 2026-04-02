@@ -4670,11 +4670,12 @@ def build_tree(
             return f"Provisioning rack from {source} to {target} for {process}"
         return f"{action_type} sample {sample} ({process})"
 
-    def _resolve_gripper_state_on_skip(action: DynamicPlanAction) -> None:
+    def _resolve_gripper_state_on_skip(action: DynamicPlanAction, bb: Blackboard) -> None:
         """When the operator skips a failed action, resolve any gripper state.
 
         If a sample is on the gripper, assume the operator manually placed it
         at the intended target. If a rack is on the gripper, same assumption.
+        Also registers provisioned racks so they get returned later.
         """
         action_type = str(action.action_type).strip().upper()
 
@@ -4701,12 +4702,14 @@ def build_tree(
         # --- Rack on gripper ---
         if action_type == "PROVISION_RACK":
             gripped_rack_id = world.rack_in_gripper_id
+            resolved_rack_id = None
             if gripped_rack_id is not None:
                 try:
                     world.place_rack_from_gripper(
                         target_station_id=str(action.target_station_id),
                         target_station_slot_id=str(action.target_station_slot_id),
                     )
+                    resolved_rack_id = str(gripped_rack_id)
                     print(
                         f"Skip: rack '{gripped_rack_id}' moved from gripper to "
                         f"{action.target_station_id}.{action.target_station_slot_id} "
@@ -4726,6 +4729,44 @@ def build_tree(
                                 )
                 except Exception as exc:
                     print(f"Skip: failed to resolve rack gripper state: {exc}")
+            else:
+                # Rack wasn't on gripper — the entire action was skipped before pick.
+                # Assume operator manually placed it at target.
+                resolved_rack_id = _rack_id_at(
+                    world,
+                    str(action.target_station_id),
+                    str(action.target_station_slot_id),
+                )
+
+            # Register the rack as provisioned so it gets returned later.
+            if resolved_rack_id:
+                provisioned = bb.get("state_driven_provisioned_racks", {})
+                if not isinstance(provisioned, dict):
+                    provisioned = {}
+                provisioned[str(resolved_rack_id)] = {
+                    "process": action.process.value,
+                    "source_station_id": str(action.source_station_id),
+                    "source_station_slot_id": str(action.source_station_slot_id),
+                    "target_station_id": str(action.target_station_id),
+                    "target_station_slot_id": str(action.target_station_slot_id),
+                    "target_jig_id": int(action.target_jig_id),
+                    "provisioned_ts": _local_now_iso(),
+                }
+                bb["state_driven_provisioned_racks"] = provisioned
+                _set_rack_lock(
+                    bb,
+                    str(resolved_rack_id),
+                    {
+                        "lock_type": "PROCESS",
+                        "process": action.process.value,
+                        "reason": "provisioned_for_process_skip",
+                        "timestamp": _local_now_iso(),
+                    },
+                )
+                print(
+                    f"Skip: rack '{resolved_rack_id}' registered as provisioned for "
+                    f"{action.process.value} (will be returned after process completes)"
+                )
 
     def _execute_state_driven_action(action: DynamicPlanAction, bb: Blackboard) -> bool:
         _post_step_status_prompt(
@@ -4869,7 +4910,7 @@ def build_tree(
                     continue
                 if action_id == "skip":
                     # Resolve gripper state: assume operator manually completed the action.
-                    _resolve_gripper_state_on_skip(action)
+                    _resolve_gripper_state_on_skip(action, bb)
                     executed_actions.append(action.to_dict())
                     executed_action_count += 1
                     continue
