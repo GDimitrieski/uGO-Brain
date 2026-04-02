@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
-from world.lab_world import CapState, ProcessType, RackLocation, RackType, WorldModel
+from world.lab_world import CapState, GripperLocation, ProcessType, RackLocation, RackType, WorldModel
 
 INPUT_STATION_ID = "InputStation"
 INPUT_SLOT_ID = "URGRackSlot1"
@@ -1049,6 +1049,10 @@ class DynamicStatePlanner:
         state = world.sample_states.get(sample_id)
         if state is None:
             raise ValueError(f"Sample state missing for '{sample_id}'")
+        if isinstance(state.location, GripperLocation):
+            raise ValueError(
+                f"Sample '{sample_id}' is on the gripper (operator intervention required: retry place, skip, or abort)"
+            )
         if not isinstance(state.location, RackLocation):
             raise ValueError(
                 f"Sample '{sample_id}' is not rack-mounted; current location '{type(state.location).__name__}'"

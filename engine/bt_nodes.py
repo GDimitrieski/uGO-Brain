@@ -63,7 +63,10 @@ class ConditionNode(Node):
     def tick(self, bb: Blackboard) -> Status:
         try:
             return Status.SUCCESS if self.predicate(bb) else Status.FAILURE
-        except Exception:
+        except Exception as exc:
+            import traceback
+            print(f"[ConditionNode:{self.name}] EXCEPTION: {exc}", flush=True)
+            traceback.print_exc()
             return Status.FAILURE
 
 

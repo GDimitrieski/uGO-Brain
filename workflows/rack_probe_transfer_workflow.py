@@ -56,7 +56,6 @@ from world.lab_world import (
     ensure_world_config_file,
     load_world_config_file,
 )
-from world.update_world_mapper import map_update_world_devices_to_assigned_world_devices
 from workflows.rack_probe_transfer.sample_parsing import (
     _classification_key_from_barcode,
     _load_immuno_kreuzprobe_map,
@@ -1219,7 +1218,6 @@ def build_tree(
                     "Planner prerequisite warning: baseline rack-home map is empty in world config. "
                     "Rack auto-return will be skipped."
                 )
-            required_task_keys_local.add("UpdateWorldState_From_uLM")
             required_task_keys_local.update(RulePlanner.task_keys(planner_plan_steps))
         missing_task_keys = [key for key in sorted(required_task_keys_local) if key not in available_task_keys]
         if missing_task_keys:
@@ -1699,7 +1697,7 @@ def build_tree(
         device_id: str,
         packml_state: str,
         *,
-        source: str = "UpdateWorldState_From_uLM",
+        source: str = "RuntimeStateRefresh",
     ) -> None:
         dev = world.devices.get(str(device_id))
         if dev is None:
@@ -1707,7 +1705,7 @@ def build_tree(
         metadata = dict(dev.metadata) if isinstance(dev.metadata, dict) else {}
         metadata["packml_state"] = str(packml_state).strip().upper()
         metadata["packml_state_ts"] = _local_now_iso()
-        metadata["packml_state_source"] = str(source or "UpdateWorldState_From_uLM")
+        metadata["packml_state_source"] = str(source or "RuntimeStateRefresh")
         world.devices[str(device_id)] = Device(
             id=str(dev.id),
             name=str(dev.name),
@@ -1932,7 +1930,7 @@ def build_tree(
 
         if not wait_device_id:
             print(
-                "StateDriven waiting: no wait device id configured; continuing UpdateWorldState polling. "
+                "StateDriven waiting: no wait device id configured; continuing runtime state polling. "
                 f"reason='{wait_reason or 'unspecified'}'"
             )
             return False
@@ -2033,67 +2031,67 @@ def build_tree(
         )
         return False
 
-    def _refresh_world_device_states_from_ulm(bb: Blackboard, loop_index: int) -> bool:
-        task_key = "UpdateWorldState_From_uLM"
-        if task_key not in sender.catalog.raw.get("Available_Tasks", {}):
-            print(f"StateDriven prerequisite failed: missing task '{task_key}' in Available_Tasks.json")
-            return False
+    def _refresh_world_device_states_from_runtime_sources(bb: Blackboard, loop_index: int) -> bool:
+        task_key = "RuntimeStateRefresh"
 
-        task_name = f"StateDriven.UpdateWorldState.loop{int(loop_index)}"
-        ok, result = _run_task(task_key, {}, task_name)
-        if not ok:
-            return False
-
-        raw_devices = _extract_update_world_devices_payload(result)
-        if not raw_devices:
-            print(
-                f"{task_name} failed: no device status payload found in response outputs. "
-                "Expected e.g. 'Devices: (5-COMPLETE; 7-COMPLETE)'."
-            )
-            return False
-
-        try:
-            mapping_result = map_update_world_devices_to_assigned_world_devices(world, raw_devices)
-        except Exception as exc:
-            print(f"{task_name} failed: cannot map device payload to world devices ({exc})")
-            return False
-
-        for assignment in mapping_result.assignments:
-            try:
-                _set_world_device_packml_state(assignment.device_id, assignment.packml_state)
-                _sync_runtime_device_packml_state(assignment.device_id, assignment.packml_state)
-            except Exception as exc:
-                print(
-                    f"{task_name} failed: cannot update device '{assignment.device_id}' "
-                    f"PACKML state '{assignment.packml_state}' ({exc})"
-                )
-                return False
-
-        if mapping_result.unmapped:
-            print(
-                f"{task_name}: unmapped statuses detected: "
-                f"{[{'itm_id': x.itm_id, 'packml_state': x.packml_state, 'reason': x.reason} for x in mapping_result.unmapped]}"
-            )
-
-        bb["device_status_update_raw"] = str(raw_devices)
-        bb["device_status_update_assignments"] = [
-            {
-                "itm_id": int(x.itm_id),
-                "packml_state": str(x.packml_state),
-                "station_id": str(x.station_id),
-                "device_id": str(x.device_id),
-            }
-            for x in mapping_result.assignments
-        ]
-        bb["device_status_update_unmapped"] = [
-            {"itm_id": int(x.itm_id), "packml_state": str(x.packml_state), "reason": str(x.reason)}
-            for x in mapping_result.unmapped
-        ]
         if ENABLE_WISE_POLLING:
             if not _refresh_world_device_states_from_wise(bb, loop_index):
                 return False
         else:
             bb["wise_status_update_assignments"] = []
+
+        if not _sync_active_centrifuge_jobs(bb, loop_index):
+            return False
+
+        runtime_assignments: List[Dict[str, Any]] = []
+        try:
+            runtime_centrifuges = runtime_devices.get_centrifuges_at_station(CENTRIFUGE_STATION_ID)
+        except Exception as exc:
+            print(
+                "StateDriven refresh failed: cannot access centrifuge runtime registry "
+                f"(station='{CENTRIFUGE_STATION_ID}', loop={int(loop_index)}, error={exc})"
+            )
+            return False
+
+        for runtime_centrifuge in runtime_centrifuges:
+            device_id = str(runtime_centrifuge.identity.device_id)
+            try:
+                diag = dict(runtime_centrifuge.diagnose())
+            except Exception as exc:
+                print(
+                    "StateDriven refresh failed: centrifuge diagnose exception "
+                    f"(device='{device_id}', loop={int(loop_index)}, error={exc})"
+                )
+                return False
+
+            packml_state = str(diag.get("packml_state", "")).strip().upper()
+            if packml_state:
+                try:
+                    _set_world_device_packml_state(
+                        device_id,
+                        packml_state,
+                        source="RuntimeDeviceDiagnose",
+                    )
+                except Exception as exc:
+                    print(
+                        "StateDriven refresh failed: cannot update centrifuge PACKML state "
+                        f"(device='{device_id}', state='{packml_state}', error={exc})"
+                    )
+                    return False
+
+            runtime_assignments.append(
+                {
+                    "device_id": device_id,
+                    "station_id": str(runtime_centrifuge.identity.station_id),
+                    "packml_state": packml_state,
+                    "rotor_spinning": bool(diag.get("rotor_spinning", False)),
+                    "fault_code": str(diag.get("fault_code", "")).strip(),
+                }
+            )
+
+        bb["device_status_update_raw"] = "WISE+RUNTIME_DEVICE_DIAGNOSE"
+        bb["device_status_update_assignments"] = runtime_assignments
+        bb["device_status_update_unmapped"] = []
 
         append_world_event(
             occupancy_records,
@@ -2104,7 +2102,7 @@ def build_tree(
             details={
                 "phase": "StateDrivenPlanning",
                 "source_task": task_key,
-                "raw_devices": str(raw_devices),
+                "raw_devices": bb["device_status_update_raw"],
                 "assignments": bb["device_status_update_assignments"],
                 "unmapped": bb["device_status_update_unmapped"],
                 "wise_assignments": bb.get("wise_status_update_assignments", []),
@@ -2513,7 +2511,7 @@ def build_tree(
             world,
             event_type="SAMPLE_MOVED",
             entity_type="SAMPLE",
-            entity_id=str(moved_sample_id),
+            entity_id=str(sample_id),
             source={
                 "station_id": source_station_id,
                 "station_slot_id": source_station_slot_id,
@@ -2829,32 +2827,81 @@ def build_tree(
         target_cfg = world.get_slot_config(target_station_id, target_station_slot_id)
         obj_type = int(rack.pin_obj_type)
 
-        if not _execute_rack_transfer_actions(
-            source_station_id=source_station_id,
-            source_cfg=source_cfg,
-            source_obj_nbr=int(source_cfg.rack_index),
-            source_action=ACTION_PICK,
-            source_task_suffix="Pick",
-            target_station_id=target_station_id,
-            target_cfg=target_cfg,
-            target_obj_nbr=int(target_cfg.rack_index),
-            target_action=ACTION_PLACE,
-            target_task_suffix="Place",
+        # --- Pick rack ---
+        source_requires_reference = _requires_station_reference_scan(source_station_id)
+        target_requires_reference = _requires_station_reference_scan(target_station_id)
+
+        if (
+            _is_on_robot_plate_station(source_station_id)
+            and target_requires_reference
+            and source_station_id != target_station_id
+        ):
+            if not _ensure_station_reference(target_station_id, task_prefix):
+                return False
+            target_requires_reference = False
+
+        if source_requires_reference:
+            if not _ensure_station_reference(source_station_id, task_prefix):
+                return False
+
+        if not _run_single_task_action(
+            itm_id=int(source_cfg.itm_id),
+            jig_id=int(source_cfg.jig_id),
+            obj_nbr=int(source_cfg.rack_index),
+            action=ACTION_PICK,
             obj_type=int(obj_type),
-            task_prefix=task_prefix,
+            task_name=f"{task_prefix}.Pick",
         ):
             return False
 
+        # Progressive world update: rack is now on the gripper.
         try:
-            moved_rack_id = world.move_rack(
+            world.pick_rack_to_gripper(
                 source_station_id=source_station_id,
                 source_station_slot_id=source_station_slot_id,
+            )
+        except Exception as exc:
+            print(f"{task_prefix} world pick_rack_to_gripper failed: {exc}")
+            return False
+
+        # --- Place rack ---
+        if target_requires_reference:
+            if not _ensure_station_reference(target_station_id, task_prefix):
+                return False
+
+        if not _run_single_task_action(
+            itm_id=int(target_cfg.itm_id),
+            jig_id=int(target_cfg.jig_id),
+            obj_nbr=int(target_cfg.rack_index),
+            action=ACTION_PLACE,
+            obj_type=int(obj_type),
+            task_name=f"{task_prefix}.Place",
+        ):
+            return False
+
+        # Progressive world update: rack placed at target.
+        try:
+            world.place_rack_from_gripper(
                 target_station_id=target_station_id,
                 target_station_slot_id=target_station_slot_id,
             )
         except Exception as exc:
-            print(f"{task_prefix} world move failed: {exc}")
+            print(f"{task_prefix} world place_rack_from_gripper failed: {exc}")
             return False
+
+        # Keep sample locations in sync when a mounted rack changes station/slot.
+        moved_rack = world.racks.get(str(source_rack_id))
+        if moved_rack is not None:
+            for slot_idx, occupant_id in moved_rack.occupied_slots.items():
+                sample_state = world.sample_states.get(occupant_id)
+                if sample_state is not None:
+                    sample_state.location = RackLocation(
+                        station_id=target_station_id,
+                        station_slot_id=target_station_slot_id,
+                        rack_id=moved_rack.id,
+                        slot_index=int(slot_idx),
+                    )
+        moved_rack_id = str(source_rack_id)
 
         append_world_event(
             occupancy_records,
@@ -4082,6 +4129,17 @@ def build_tree(
         ):
             return False
 
+        # Progressive world update: sample is now on the gripper.
+        try:
+            world.pick_sample_to_gripper(
+                source_station_id=source_station_id,
+                source_station_slot_id=source_station_slot_id,
+                source_slot_index=int(source_slot_index),
+            )
+        except Exception as exc:
+            print(f"{task_prefix} world pick_sample_to_gripper failed: {exc}")
+            return False
+
         if target_station_id != source_station_id:
             if not _ensure_station_reference(target_station_id, task_prefix):
                 return False
@@ -4102,23 +4160,16 @@ def build_tree(
         ):
             return False
 
+        # Progressive world update: sample placed at target.
         try:
-            moved_sample_id = world.move_sample(
-                source_station_id=source_station_id,
-                source_station_slot_id=source_station_slot_id,
-                source_slot_index=int(source_slot_index),
+            world.place_sample_from_gripper(
                 target_station_id=target_station_id,
                 target_station_slot_id=target_station_slot_id,
                 target_slot_index=int(target_slot_index),
+                sample_id=sample_id,
             )
         except Exception as exc:
-            print(f"{task_prefix} world move failed: {exc}")
-            return False
-        if str(moved_sample_id) != sample_id:
-            print(
-                f"{task_prefix} sample identity mismatch: "
-                f"expected={sample_id}, moved={moved_sample_id}"
-            )
+            print(f"{task_prefix} world place_sample_from_gripper failed: {exc}")
             return False
 
         append_world_event(
@@ -4126,7 +4177,7 @@ def build_tree(
             world,
             event_type="SAMPLE_MOVED",
             entity_type="SAMPLE",
-            entity_id=str(moved_sample_id),
+            entity_id=str(sample_id),
             source={
                 "station_id": source_station_id,
                 "station_slot_id": source_station_slot_id,
@@ -4147,7 +4198,7 @@ def build_tree(
             world,
             event_type="STATE_DRIVEN_ACTION_EXECUTED",
             entity_type="SAMPLE",
-            entity_id=str(moved_sample_id),
+            entity_id=str(sample_id),
             details={
                 "phase": "StateDrivenPlanning",
                 "action_type": str(action.action_type),
@@ -4525,6 +4576,63 @@ def build_tree(
             return f"Provisioning rack from {source} to {target} for {process}"
         return f"{action_type} sample {sample} ({process})"
 
+    def _resolve_gripper_state_on_skip(action: DynamicPlanAction) -> None:
+        """When the operator skips a failed action, resolve any gripper state.
+
+        If a sample is on the gripper, assume the operator manually placed it
+        at the intended target. If a rack is on the gripper, same assumption.
+        """
+        action_type = str(action.action_type).strip().upper()
+
+        # --- Sample on gripper ---
+        if action_type == "STAGE_SAMPLE":
+            sample_id = str(action.sample_id)
+            state = world.sample_states.get(sample_id)
+            if state is not None and isinstance(state.location, GripperLocation):
+                try:
+                    world.place_sample_from_gripper(
+                        target_station_id=str(action.target_station_id),
+                        target_station_slot_id=str(action.target_station_slot_id),
+                        target_slot_index=int(action.target_slot_index),
+                        sample_id=sample_id,
+                    )
+                    print(
+                        f"Skip: sample '{sample_id}' moved from gripper to "
+                        f"{action.target_station_id}.{action.target_station_slot_id}[{action.target_slot_index}] "
+                        "(operator manual placement assumed)"
+                    )
+                except Exception as exc:
+                    print(f"Skip: failed to resolve sample gripper state: {exc}")
+
+        # --- Rack on gripper ---
+        if action_type == "PROVISION_RACK":
+            gripped_rack_id = world.rack_in_gripper_id
+            if gripped_rack_id is not None:
+                try:
+                    world.place_rack_from_gripper(
+                        target_station_id=str(action.target_station_id),
+                        target_station_slot_id=str(action.target_station_slot_id),
+                    )
+                    print(
+                        f"Skip: rack '{gripped_rack_id}' moved from gripper to "
+                        f"{action.target_station_id}.{action.target_station_slot_id} "
+                        "(operator manual placement assumed)"
+                    )
+                    # Sync sample locations on the moved rack.
+                    moved_rack = world.racks.get(str(gripped_rack_id))
+                    if moved_rack is not None:
+                        for slot_idx, occupant_id in moved_rack.occupied_slots.items():
+                            sample_state = world.sample_states.get(occupant_id)
+                            if sample_state is not None:
+                                sample_state.location = RackLocation(
+                                    station_id=str(action.target_station_id),
+                                    station_slot_id=str(action.target_station_slot_id),
+                                    rack_id=moved_rack.id,
+                                    slot_index=int(slot_idx),
+                                )
+                except Exception as exc:
+                    print(f"Skip: failed to resolve rack gripper state: {exc}")
+
     def _execute_state_driven_action(action: DynamicPlanAction, bb: Blackboard) -> bool:
         _post_step_status_prompt(
             "handoff_to_state_driven_planning",
@@ -4558,9 +4666,7 @@ def build_tree(
 
         while executed_action_count < max_actions:
             loop_index += 1
-            if not _refresh_world_device_states_from_ulm(bb, loop_index):
-                return False
-            if not _sync_active_centrifuge_jobs(bb, loop_index):
+            if not _refresh_world_device_states_from_runtime_sources(bb, loop_index):
                 return False
             if bool(bb.get("state_driven_waiting_external_completion", False)):
                 if not _is_external_wait_satisfied(bb, loop_index):
@@ -4609,28 +4715,35 @@ def build_tree(
                 },
             )
 
-            if status == "IDLE":
+            if status in ("IDLE", "BLOCKED"):
+                # Always try returning racks first — frees plate slots and may unblock.
                 return_candidate = _next_idle_rack_return_candidate(bb)
                 if return_candidate is not None:
-                    _post_step_status_prompt("handoff_to_state_driven_planning", detail="Returning rack to home position", bb=bb)
+                    detail = (
+                        "Blocked — returning rack to free plate slot"
+                        if status == "BLOCKED"
+                        else "Returning rack to home position"
+                    )
+                    _post_step_status_prompt("handoff_to_state_driven_planning", detail=detail, bb=bb)
                     if not _execute_return_rack_home(return_candidate, bb):
                         return False
                     executed_actions.append(_return_rack_action_payload(return_candidate))
                     executed_action_count += 1
                     bb["state_driven_actions_executed"] = list(executed_actions)
                     continue
-                if _has_running_centrifuge_jobs(bb):
-                    if STATE_DRIVEN_WAIT_POLL_S > 0:
-                        time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
-                    continue
-                bb["state_driven_actions_executed"] = list(executed_actions)
-                return True
 
-            if status == "BLOCKED":
+                # Nothing to return. Keep polling if centrifuge is running.
                 if _has_running_centrifuge_jobs(bb):
                     if STATE_DRIVEN_WAIT_POLL_S > 0:
                         time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
                     continue
+
+                # No rack returns, no centrifuge jobs.
+                if status == "IDLE":
+                    bb["state_driven_actions_executed"] = list(executed_actions)
+                    return True
+
+                # BLOCKED with nothing left to try.
                 blocked_reason = ""
                 if dynamic_result.blocked:
                     blocked_reason = str(dynamic_result.blocked[0].get("reason", ""))
@@ -4661,6 +4774,8 @@ def build_tree(
                 if action_id == "retry":
                     continue
                 if action_id == "skip":
+                    # Resolve gripper state: assume operator manually completed the action.
+                    _resolve_gripper_state_on_skip(action)
                     executed_actions.append(action.to_dict())
                     executed_action_count += 1
                     continue

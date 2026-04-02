@@ -464,7 +464,8 @@ class PlannerWebInterfaceBridge:
         if existing_py_path:
             py_paths.append(existing_py_path)
         env["PYTHONPATH"] = os.pathsep.join(py_paths)
-        cmd = [sys.executable, "-m", self._workflow_module]
+        env["PYTHONUNBUFFERED"] = "1"
+        cmd = [sys.executable, "-u", "-m", self._workflow_module]
         _safe_print(f"Starting planner workflow: {' '.join(cmd)}")
 
         try:
