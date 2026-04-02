@@ -2031,63 +2031,150 @@ def build_tree(
         )
         return False
 
+    # ---- Background device poller ----------------------------------------
+    import threading as _threading
+
+    class _DevicePollerThread(_threading.Thread):
+        """Background daemon thread that polls WISE modules and centrifuge
+        runtime at a configurable interval. Results are stored in thread-safe
+        shared state that the planning loop reads without blocking."""
+
+        def __init__(self, poll_interval_s: float = 1.0) -> None:
+            super().__init__(daemon=True, name="DevicePoller")
+            self._poll_interval_s = max(0.2, float(poll_interval_s))
+            self._lock = _threading.Lock()
+            self._stop_event = _threading.Event()
+            # Cached results (read by main thread under lock)
+            self._wise_assignments: List[Dict[str, Any]] = []
+            self._wise_error: str = ""
+            self._centrifuge_diagnostics: List[Dict[str, Any]] = []
+            self._centrifuge_error: str = ""
+            self._poll_count: int = 0
+
+        def run(self) -> None:
+            while not self._stop_event.is_set():
+                wise_assignments: List[Dict[str, Any]] = []
+                wise_error = ""
+                centrifuge_diagnostics: List[Dict[str, Any]] = []
+                centrifuge_error = ""
+
+                # --- Poll WISE modules ---
+                if ENABLE_WISE_POLLING:
+                    try:
+                        wise_modules = runtime_devices.get_wise_modules()
+                        for device_id in sorted(wise_modules.keys()):
+                            module = wise_modules[device_id]
+                            try:
+                                snapshot = module.poll_inputs()
+                                payload = wise_snapshot_to_metadata(snapshot)
+                                _set_world_device_wise_state(device_id, payload, source="WiseModulePoll")
+                                ready_details = _wise_ready_details_for_device(device_id)
+                                metadata = _get_world_device_metadata(device_id)
+                                metadata["wise_ready_slots"] = list(ready_details.get("ready_slots", []))
+                                metadata["wise_missing_ready_slots"] = list(ready_details.get("missing_slots", []))
+                                metadata["wise_all_ready"] = bool(ready_details.get("all_ready", False))
+                                _replace_world_device_metadata(device_id, metadata)
+                                wise_assignments.append({
+                                    "device_id": str(device_id),
+                                    "online": bool(payload.get("online", False)),
+                                    "stale": bool(payload.get("stale", True)),
+                                    "error": str(payload.get("error", "")),
+                                    "ready_slots": list(ready_details.get("ready_slots", [])),
+                                    "missing_slots": list(ready_details.get("missing_slots", [])),
+                                    "all_ready": bool(ready_details.get("all_ready", False)),
+                                })
+                            except Exception as exc:
+                                wise_error = f"WISE poll failed for {device_id}: {exc}"
+                    except Exception as exc:
+                        wise_error = f"WISE registry access failed: {exc}"
+
+                # --- Poll centrifuge runtime ---
+                try:
+                    runtime_centrifuges = runtime_devices.get_centrifuges_at_station(CENTRIFUGE_STATION_ID)
+                    for runtime_centrifuge in runtime_centrifuges:
+                        device_id = str(runtime_centrifuge.identity.device_id)
+                        try:
+                            diag = dict(runtime_centrifuge.diagnose())
+                            packml_state = str(diag.get("packml_state", "")).strip().upper()
+                            if packml_state:
+                                _set_world_device_packml_state(
+                                    device_id, packml_state, source="RuntimeDeviceDiagnose",
+                                )
+                            centrifuge_diagnostics.append({
+                                "device_id": device_id,
+                                "station_id": str(runtime_centrifuge.identity.station_id),
+                                "packml_state": packml_state,
+                                "rotor_spinning": bool(diag.get("rotor_spinning", False)),
+                                "fault_code": str(diag.get("fault_code", "")).strip(),
+                            })
+                        except Exception as exc:
+                            centrifuge_error = f"Centrifuge diagnose failed for {device_id}: {exc}"
+                except Exception:
+                    pass  # No centrifuge runtime available — not an error
+
+                # --- Update cached state ---
+                with self._lock:
+                    self._wise_assignments = wise_assignments
+                    self._wise_error = wise_error
+                    self._centrifuge_diagnostics = centrifuge_diagnostics
+                    self._centrifuge_error = centrifuge_error
+                    self._poll_count += 1
+
+                self._stop_event.wait(self._poll_interval_s)
+
+        def stop(self) -> None:
+            self._stop_event.set()
+
+        def get_latest(self) -> Dict[str, Any]:
+            """Read the latest cached device state (non-blocking)."""
+            with self._lock:
+                return {
+                    "wise_assignments": list(self._wise_assignments),
+                    "wise_error": str(self._wise_error),
+                    "centrifuge_diagnostics": list(self._centrifuge_diagnostics),
+                    "centrifuge_error": str(self._centrifuge_error),
+                    "poll_count": int(self._poll_count),
+                }
+
+    _device_poller: Optional[_DevicePollerThread] = None
+
+    def _start_device_poller() -> None:
+        nonlocal _device_poller
+        if _device_poller is not None and _device_poller.is_alive():
+            return
+        _device_poller = _DevicePollerThread(poll_interval_s=float(STATE_DRIVEN_WAIT_POLL_S))
+        _device_poller.start()
+        print(f"DevicePoller: background thread started (interval={float(STATE_DRIVEN_WAIT_POLL_S):.1f}s)")
+
+    def _stop_device_poller() -> None:
+        nonlocal _device_poller
+        if _device_poller is not None:
+            _device_poller.stop()
+            _device_poller.join(timeout=5.0)
+            _device_poller = None
+
     def _refresh_world_device_states_from_runtime_sources(bb: Blackboard, loop_index: int) -> bool:
+        """Read cached device state from background poller (non-blocking)."""
         task_key = "RuntimeStateRefresh"
 
-        if ENABLE_WISE_POLLING:
-            if not _refresh_world_device_states_from_wise(bb, loop_index):
-                return False
-        else:
-            bb["wise_status_update_assignments"] = []
+        if _device_poller is None or not _device_poller.is_alive():
+            _start_device_poller()
 
+        cached = _device_poller.get_latest()
+
+        # Apply WISE state
+        bb["wise_status_update_assignments"] = cached["wise_assignments"]
+        if cached["wise_error"]:
+            print(f"DevicePoller warning: {cached['wise_error']}")
+
+        # Sync centrifuge jobs from cached diagnostics (modifies bb — must stay in main thread)
         if not _sync_active_centrifuge_jobs(bb, loop_index):
             return False
 
-        runtime_assignments: List[Dict[str, Any]] = []
-        try:
-            runtime_centrifuges = runtime_devices.get_centrifuges_at_station(CENTRIFUGE_STATION_ID)
-        except Exception as exc:
-            print(
-                "StateDriven refresh failed: cannot access centrifuge runtime registry "
-                f"(station='{CENTRIFUGE_STATION_ID}', loop={int(loop_index)}, error={exc})"
-            )
-            return False
-
-        for runtime_centrifuge in runtime_centrifuges:
-            device_id = str(runtime_centrifuge.identity.device_id)
-            try:
-                diag = dict(runtime_centrifuge.diagnose())
-            except Exception as exc:
-                print(
-                    "StateDriven refresh failed: centrifuge diagnose exception "
-                    f"(device='{device_id}', loop={int(loop_index)}, error={exc})"
-                )
-                return False
-
-            packml_state = str(diag.get("packml_state", "")).strip().upper()
-            if packml_state:
-                try:
-                    _set_world_device_packml_state(
-                        device_id,
-                        packml_state,
-                        source="RuntimeDeviceDiagnose",
-                    )
-                except Exception as exc:
-                    print(
-                        "StateDriven refresh failed: cannot update centrifuge PACKML state "
-                        f"(device='{device_id}', state='{packml_state}', error={exc})"
-                    )
-                    return False
-
-            runtime_assignments.append(
-                {
-                    "device_id": device_id,
-                    "station_id": str(runtime_centrifuge.identity.station_id),
-                    "packml_state": packml_state,
-                    "rotor_spinning": bool(diag.get("rotor_spinning", False)),
-                    "fault_code": str(diag.get("fault_code", "")).strip(),
-                }
-            )
+        # Apply centrifuge state
+        runtime_assignments = cached["centrifuge_diagnostics"]
+        if cached["centrifuge_error"]:
+            print(f"DevicePoller warning: {cached['centrifuge_error']}")
 
         bb["device_status_update_raw"] = "WISE+RUNTIME_DEVICE_DIAGNOSE"
         bb["device_status_update_assignments"] = runtime_assignments
@@ -3107,14 +3194,21 @@ def build_tree(
         return rack_type.strip().upper()
 
     def _device_managed_rack_types() -> Set[str]:
+        """Rack types that belong to stations which actively process samples.
+
+        A station is considered a processing station only if it appears as a
+        candidate_device_station_id in a process policy.  Sensor-only stations
+        (e.g. InputStation with a WISE presence sensor) are excluded so their
+        racks can be freely returned when idle.
+        """
+        processing_station_ids: Set[str] = set()
+        if dynamic_state_planner is not None:
+            for policy in dynamic_state_planner.policies.values():
+                for sid in policy.candidate_device_station_ids:
+                    processing_station_ids.add(str(sid).strip())
+
         rack_types: Set[str] = set()
-        for station_id in sorted(world.stations.keys()):
-            try:
-                station_devices = world.get_station_devices(station_id)
-            except Exception:
-                station_devices = []
-            if not station_devices:
-                continue
+        for station_id in sorted(processing_station_ids):
             try:
                 station = world.get_station(station_id)
             except Exception:

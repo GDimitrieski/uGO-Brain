@@ -1,0 +1,56 @@
+# Recovery Options Guide (WISE Disconnect / Input Rack Wait)
+
+## Goal
+Prevent direct workflow failure when WISE is temporarily disconnected.
+Treat it as recoverable and hand control to operator decisions.
+
+## Core Principle
+Classify runtime issues into:
+- Recoverable: temporary communication/sensor availability issues.
+- Fatal: configuration/model issues that cannot self-recover.
+
+For `await_input_rack_present`:
+- WISE offline/stale/poll exception => Recoverable.
+- Missing WISE config/channel mapping => Fatal.
+
+## Recommended Runtime Behavior
+1. On recoverable WISE issue:
+- Post planner error (`error_post_planner.py`) with clear code/message.
+- Do not clear immediately.
+- Do not fail step; keep step waiting (`RUNNING`) or pause planner intentionally.
+
+2. On fatal issue:
+- Fail step and stop workflow with explicit reason.
+
+## Operator Decision Model (future API)
+Expose explicit choices:
+- `RETRY`: reattempt same step and WISE poll.
+- `SKIP`: continue only after operator confirms manual world correction.
+- `ABORT`: terminate workflow safely.
+
+## Error Posting Rules
+- Post one error per incident, not per tick.
+- Store active `error_id` in runtime context.
+- Repost only on state transition (online->offline again), not continuously.
+- Clear error only after successful recovery or explicit operator action.
+
+## State Strategy
+Choose one and keep it consistent:
+- Option A: stay in `EXECUTE` while blocked (continuous waiting).
+- Option B: move to paused/`STOPPED` while awaiting operator response.
+
+Preferred for operations clarity: Option B.
+
+## Timeout/Escalation Policy
+- Soft timeout: keep waiting + remind operator.
+- Hard timeout: escalate to abort only if no decision is provided.
+
+## Safety Constraints
+- Never auto-skip physical preconditions.
+- Any skip must require explicit operator acknowledgement.
+- World state must be reconciled before resuming execution.
+
+## Why This Helps
+- Avoids false negatives from transient connectivity.
+- Keeps operator in control of physical recovery.
+- Scales to other devices with the same recovery framework.

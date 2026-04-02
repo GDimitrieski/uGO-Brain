@@ -1,0 +1,488 @@
+# =============================================================================
+#  DKVM Protocol Library for UR5e (Polyscope 5.21+)
+#  Delimited Key-Value Message protocol — matches engine/ur5e_protocol.py
+#
+#  Message format:  <VER>|<TYPE>|<ID>|key1=val1|key2=val2|...\n
+#
+#  This file is meant to be integrated into the UR5e Polyscope program.
+#  It provides: receive_command(), send_ack(), send_status(), parse/build
+#  helpers, and a main dispatch loop.
+# =============================================================================
+
+# ---- Configuration ----------------------------------------------------------
+ORCHESTRATOR_IP = "192.168.13.120"
+TESTPC_IP = "192.168.12.221"
+ORCHESTRATOR_PORT = 30001
+SOCKETNAME = "LS-Socket"
+LS_INFO = "{LS ITF} "
+ULMStateRegister = 1
+
+uLMState = struct(UNKNOWN = 0, DISCONNECTED = 1, IDLE = 2, EXECUTING = 3, ERROR = 4)
+
+global Socket_Connected = False
+global WatchdogTime = 0
+global Test = False
+
+# DKVM protocol constants
+DKVM_VERSION = 1
+DKVM_FIELD_SEP = "|"
+DKVM_KV_SEP = "="
+DKVM_MSG_TERM = "\n"
+
+# Message types
+DKVM_CMD = "CMD"
+DKVM_ACK = "ACK"
+DKVM_STS = "STS"
+DKVM_HB  = "HB"
+
+
+# ---- PLC State Helpers (unchanged from original) ---------------------------
+
+def get_plc_state():
+  return read_output_integer_register(ULMStateRegister)
+end
+
+def set_plc_state(state):
+  local current = read_output_integer_register(ULMStateRegister)
+  if (current != state):
+    write_output_integer_register(ULMStateRegister, state)
+    if (state == uLMState.DISCONNECTED):
+      log_dev(LS_INFO + "set ulm state to DISCONNECTED")
+    elif (state == uLMState.IDLE):
+      log_dev(LS_INFO + "set ulm state to IDLE")
+    elif (state == uLMState.EXECUTING):
+      log_dev(LS_INFO + "set ulm state to EXECUTING")
+    elif (state == uLMState.ERROR):
+      log_dev(LS_INFO + "set ulm state to ERROR")
+    else:
+      log_dev(LS_INFO + "set ulm state to UNKNOWN")
+    end
+  end
+end
+
+
+# ---- Connection Management (unchanged from original) -----------------------
+
+def connectLS(ip = ORCHESTRATOR_IP, port = ORCHESTRATOR_PORT, socketname = SOCKETNAME):
+  if (Test == True):
+    ip = TESTPC_IP
+  end
+  if Socket_Connected == False and get_plc_state() != uLMState.DISCONNECTED:
+    log_process(LS_INFO + "trying to connect to LS: " + to_str(ip) + ":" + to_str(port))
+    set_plc_state(state = uLMState.DISCONNECTED)
+  end
+  while Socket_Connected == False:
+    sleep(1)
+    sync()
+    Socket_Connected = socket_open(ip, port, socketname)
+    sync()
+  end
+  if (get_plc_state() != uLMState.IDLE):
+    set_plc_state(state = uLMState.IDLE)
+  end
+  log_process(LS_INFO + "control system connection established: " + to_str(ip) + ":" + to_str(port))
+end
+
+def socket_alive(socketname):
+  local active = socket_send_string(" ", socket_name = socketname)
+  if (active == False):
+    socket_close(socketname)
+    sync()
+    Socket_Connected = active
+    sync()
+    log_process(LS_INFO + "heartbeat failed: " + to_str(socketname))
+  end
+  sync()
+  return active
+end
+
+
+# ---- DKVM String Helpers ---------------------------------------------------
+# URScript has no split() function, so we implement field extraction manually.
+
+# Find the N-th field in a "|"-delimited string (0-indexed).
+# Returns the field content, or "" if not found.
+def dkvm_get_field(msg, index):
+  local pos = 0
+  local field_idx = 0
+  local msg_len = str_len(msg)
+  local start = 0
+
+  while (pos <= msg_len):
+    local ch = ""
+    if (pos < msg_len):
+      ch = str_sub(msg, pos, 1)
+    end
+
+    if (ch == DKVM_FIELD_SEP or pos == msg_len):
+      if (field_idx == index):
+        local length = pos - start
+        if (length <= 0):
+          return ""
+        end
+        return str_sub(msg, start, length)
+      end
+      field_idx = field_idx + 1
+      start = pos + 1
+    end
+    pos = pos + 1
+  end
+  return ""
+end
+
+# Count the number of "|"-delimited fields in a message.
+def dkvm_field_count(msg):
+  local count = 1
+  local pos = 0
+  local msg_len = str_len(msg)
+  while (pos < msg_len):
+    if (str_sub(msg, pos, 1) == DKVM_FIELD_SEP):
+      count = count + 1
+    end
+    pos = pos + 1
+  end
+  return count
+end
+
+# Extract the value for a given key from a "|"-delimited key=value message.
+# Searches fields starting at index 3 (after VER|TYPE|ID).
+# Returns "" if key not found.
+def dkvm_get_value(msg, key):
+  local num_fields = dkvm_field_count(msg)
+  local i = 3
+  while (i < num_fields):
+    local fld = dkvm_get_field(msg, i)
+    local eq_pos = str_find(fld, DKVM_KV_SEP)
+    if (eq_pos >= 0):
+      local k = str_sub(fld, 0, eq_pos)
+      if (k == key):
+        local v_start = eq_pos + 1
+        local v_len = str_len(fld) - v_start
+        if (v_len > 0):
+          return str_sub(fld, v_start, v_len)
+        else:
+          return ""
+        end
+      end
+    end
+    i = i + 1
+  end
+  return ""
+end
+
+
+# ---- DKVM Message Builders -------------------------------------------------
+
+# Build an ACK response:  1|ACK|<msg_id>|state=RECEIVED\n
+def dkvm_build_ack(msg_id, state_val = "RECEIVED"):
+  return to_str(DKVM_VERSION) + DKVM_FIELD_SEP + DKVM_ACK + DKVM_FIELD_SEP + msg_id + DKVM_FIELD_SEP + "state" + DKVM_KV_SEP + state_val + DKVM_MSG_TERM
+end
+
+# Build a STS response:  1|STS|<msg_id>|state=<state>|key=val|...\n
+# extra_fields is a string of pre-formatted "|key=val" pairs (or "").
+def dkvm_build_sts(msg_id, state_val, extra_fields = ""):
+  local base = to_str(DKVM_VERSION) + DKVM_FIELD_SEP + DKVM_STS + DKVM_FIELD_SEP + msg_id + DKVM_FIELD_SEP + "state" + DKVM_KV_SEP + state_val
+  if (str_len(extra_fields) > 0):
+    base = base + DKVM_FIELD_SEP + extra_fields
+  end
+  return base + DKVM_MSG_TERM
+end
+
+# Build a HB response:  1|HB|0|ulm_state=<state>\n
+def dkvm_build_hb():
+  local st = get_plc_state()
+  return to_str(DKVM_VERSION) + DKVM_FIELD_SEP + DKVM_HB + DKVM_FIELD_SEP + "0" + DKVM_FIELD_SEP + "ulm_state" + DKVM_KV_SEP + to_str(st) + DKVM_MSG_TERM
+end
+
+
+# ---- DKVM Send / Receive ---------------------------------------------------
+
+def dkvm_send(msg_str, socketname = SOCKETNAME):
+  local ok = socket_send_string(msg_str, socket_name = socketname)
+  if (ok == False):
+    log_dev(LS_INFO + "DKVM send failed")
+    Socket_Connected = False
+  end
+  return ok
+end
+
+# Read one complete DKVM message (blocks until \n received or timeout).
+# Returns the raw message string, or "" on timeout/error.
+def dkvm_receive(socketname = SOCKETNAME, timeout_s = 2):
+  local raw = socket_read_string(socketname, suffix = DKVM_MSG_TERM, timeout = timeout_s)
+  if (str_len(raw) == 0):
+    return ""
+  end
+  return raw
+end
+
+# Send ACK for a received command.
+def send_command_ack(msg_id, socketname = SOCKETNAME):
+  local ack = dkvm_build_ack(msg_id)
+  dkvm_send(ack, socketname)
+  log_dev(LS_INFO + "ACK sent for " + msg_id)
+end
+
+# Send status update for a task.
+def send_command_status(msg_id, state_val, extra_fields = "", socketname = SOCKETNAME):
+  local sts = dkvm_build_sts(msg_id, state_val, extra_fields)
+  dkvm_send(sts, socketname)
+  log_dev(LS_INFO + "STS " + state_val + " sent for " + msg_id)
+end
+
+
+# ---- Task Dispatch ----------------------------------------------------------
+# This is where incoming CMD messages are routed to the appropriate handler.
+# Each handler receives the raw message and msg_id, executes the task,
+# and sends STS updates.
+
+def handle_single_task(msg, msg_id):
+  local itm_id = to_num(dkvm_get_value(msg, "ITM_ID"))
+  local jig_id = to_num(dkvm_get_value(msg, "JIG_ID"))
+  local obj_nbr = to_num(dkvm_get_value(msg, "OBJ_Nbr"))
+  local act = to_num(dkvm_get_value(msg, "ACT"))
+  local obj_type = to_num(dkvm_get_value(msg, "OBJ_Type"))
+
+  log_process(LS_INFO + "SingleTask: ITM=" + to_str(itm_id) + " JIG=" + to_str(jig_id) + " OBJ=" + to_str(obj_nbr) + " ACT=" + to_str(act) + " TYPE=" + to_str(obj_type))
+
+  send_command_status(msg_id, "EXECUTING")
+
+  # ===== INSERT ACTUAL ROBOT MOTION LOGIC HERE =====
+  # Example: call your existing SingleTask program/function
+  # single_task_execute(itm_id, jig_id, obj_nbr, act, obj_type)
+  # ==================================================
+
+  send_command_status(msg_id, "COMPLETE", "result=Success")
+end
+
+def handle_single_device_action(msg, msg_id):
+  local itm_id = to_num(dkvm_get_value(msg, "ITM_ID"))
+  local obj_nbr = to_num(dkvm_get_value(msg, "OBJ_Nbr"))
+  local act = to_num(dkvm_get_value(msg, "ACT"))
+
+  log_process(LS_INFO + "SingleDeviceAction: ITM=" + to_str(itm_id) + " OBJ=" + to_str(obj_nbr) + " ACT=" + to_str(act))
+
+  send_command_status(msg_id, "EXECUTING")
+
+  # ===== INSERT ACTUAL DEVICE ACTION LOGIC HERE =====
+  # Example: call landmark scan
+  # local result = scan_landmark(itm_id)
+  # ==================================================
+
+  send_command_status(msg_id, "COMPLETE", "result=Success")
+end
+
+def handle_process_at_3fg(msg, msg_id):
+  local itm_id = to_num(dkvm_get_value(msg, "ITM_ID"))
+  local jig_id = to_num(dkvm_get_value(msg, "JIG_ID"))
+  local act = to_num(dkvm_get_value(msg, "ACT"))
+  local obj_type = to_num(dkvm_get_value(msg, "OBJ_Type"))
+
+  log_process(LS_INFO + "ProcessAt3FG: ITM=" + to_str(itm_id) + " JIG=" + to_str(jig_id) + " ACT=" + to_str(act) + " TYPE=" + to_str(obj_type))
+
+  send_command_status(msg_id, "EXECUTING")
+
+  # ===== INSERT 3FG PROCESSING LOGIC HERE =====
+  # Example: capping / decapping / sample type detection
+  # local barcode = process_3fg(itm_id, jig_id, act, obj_type)
+  # ==================================================
+
+  # For action 3 (DetermineSampleType), include barcode in response:
+  if (act == 3):
+    send_command_status(msg_id, "COMPLETE", "result=Success" + DKVM_FIELD_SEP + "barcode=SAMPLE001")
+  else:
+    send_command_status(msg_id, "COMPLETE", "result=Success")
+  end
+end
+
+def handle_camera_inspect(msg, msg_id):
+  local station = dkvm_get_value(msg, "STATION")
+  local jig_id = to_num(dkvm_get_value(msg, "JIG_ID"))
+  local camera = dkvm_get_value(msg, "CAMERA")
+
+  log_process(LS_INFO + "CameraInspect: STATION=" + station + " JIG=" + to_str(jig_id) + " CAM=" + camera)
+
+  send_command_status(msg_id, "EXECUTING")
+
+  # ===== INSERT CAMERA INSPECT LOGIC HERE =====
+  # Example: trigger wrist camera inspection
+  # local positions = inspect_rack(station, jig_id)
+  # ==================================================
+
+  send_command_status(msg_id, "COMPLETE", "result=Success")
+end
+
+def handle_navigate(msg, msg_id):
+  local pos_target = dkvm_get_value(msg, "AMR_PosTarget")
+  local footprint = dkvm_get_value(msg, "AMR_Footprint")
+  local dock = dkvm_get_value(msg, "AMR_DOCK")
+
+  log_process(LS_INFO + "Navigate: target=" + pos_target + " footprint=" + footprint + " dock=" + dock)
+
+  send_command_status(msg_id, "EXECUTING")
+
+  # ===== INSERT AMR NAVIGATION LOGIC HERE =====
+  # Example: send navigation command to AMR subsystem
+  # navigate_amr(pos_target, footprint, dock)
+  # ==================================================
+
+  send_command_status(msg_id, "COMPLETE", "result=Success")
+end
+
+def handle_charge(msg, msg_id):
+  log_process(LS_INFO + "Charge: starting")
+
+  send_command_status(msg_id, "EXECUTING")
+
+  # ===== INSERT CHARGE LOGIC HERE =====
+  # charge_amr()
+  # ==================================================
+
+  send_command_status(msg_id, "COMPLETE", "result=Success")
+end
+
+def handle_update_world_state(msg, msg_id):
+  log_process(LS_INFO + "UpdateWorldState_From_uLM: querying devices")
+
+  send_command_status(msg_id, "EXECUTING")
+
+  # ===== INSERT DEVICE STATE QUERY LOGIC HERE =====
+  # local devices_str = query_all_device_states()
+  # ==================================================
+  local devices_str = "Devices: (5-COMPLETE; 7-COMPLETE)"
+
+  send_command_status(msg_id, "COMPLETE", "result=Success" + DKVM_FIELD_SEP + "Devices=" + devices_str)
+end
+
+# Dispatch incoming CMD to the correct handler based on taskName.
+def dispatch_command(msg, msg_id):
+  local task_name = dkvm_get_value(msg, "taskName")
+
+  if (task_name == "SingleTask"):
+    handle_single_task(msg, msg_id)
+  elif (task_name == "SingleDeviceAction"):
+    handle_single_device_action(msg, msg_id)
+  elif (task_name == "ProcessAt3FingerStation"):
+    handle_process_at_3fg(msg, msg_id)
+  elif (task_name == "CameraInspect"):
+    handle_camera_inspect(msg, msg_id)
+  elif (task_name == "Navigate"):
+    handle_navigate(msg, msg_id)
+  elif (task_name == "Charge"):
+    handle_charge(msg, msg_id)
+  elif (task_name == "UpdateWorldState_From_uLM"):
+    handle_update_world_state(msg, msg_id)
+  else:
+    log_dev(LS_INFO + "Unknown taskName: " + task_name)
+    send_command_status(msg_id, "ERROR", "error=UnknownTask")
+  end
+end
+
+
+# ---- Background Threads (unchanged from original) --------------------------
+
+thread WatchdogTimer():
+  WatchdogTime = 0
+  while (True):
+    WatchdogTime = WatchdogTime + 1
+    sleep(1)
+  end
+end
+
+thread Reconnect():
+  while (True):
+    if (Socket_Connected == False):
+      connectLS()
+      if (get_plc_state() != uLMState.IDLE):
+        set_plc_state(state = uLMState.IDLE)
+      end
+      log_process(LS_INFO + "Reconnected to LS")
+    end
+    sleep(0.25)
+  end
+end
+
+thread WatchdogEvent():
+  while (True):
+    if (WatchdogTime >= 10):
+      if (Socket_Connected == True):
+        local alive = socket_alive(SOCKETNAME)
+        if (alive == False):
+          set_plc_state(state = uLMState.DISCONNECTED)
+          sync()
+          Socket_Connected = False
+          sync()
+        end
+      end
+      WatchdogTime = 0
+    end
+    sleep(0.5)
+  end
+end
+
+# Heartbeat sender — responds to HB from planner and sends periodic HB.
+thread HeartbeatResponder():
+  while (True):
+    if (Socket_Connected == True):
+      local hb = dkvm_build_hb()
+      dkvm_send(hb, SOCKETNAME)
+    end
+    sleep(3)
+  end
+end
+
+
+# ---- Main Command Loop -----------------------------------------------------
+# This is the primary loop that receives commands from the planner,
+# dispatches them, and manages the uLM state machine.
+
+def main_command_loop():
+  # Start background threads
+  run Reconnect()
+  run WatchdogTimer()
+  run WatchdogEvent()
+  run HeartbeatResponder()
+
+  set_plc_state(state = uLMState.DISCONNECTED)
+
+  while (True):
+    # Wait for connection
+    if (Socket_Connected == False):
+      sleep(0.25)
+      continue
+    end
+
+    # Read next message
+    local raw = dkvm_receive(SOCKETNAME, timeout_s = 2)
+    if (str_len(raw) == 0):
+      # Timeout — no message, loop back
+      continue
+    end
+
+    # Parse message type
+    local msg_type = dkvm_get_field(raw, 1)
+    local msg_id = dkvm_get_field(raw, 2)
+
+    if (msg_type == DKVM_HB):
+      # Heartbeat from planner — reset watchdog
+      WatchdogTime = 0
+      continue
+    end
+
+    if (msg_type == DKVM_CMD):
+      # Command received — ACK immediately, then execute
+      send_command_ack(msg_id, SOCKETNAME)
+      set_plc_state(state = uLMState.EXECUTING)
+
+      dispatch_command(raw, msg_id)
+
+      set_plc_state(state = uLMState.IDLE)
+      continue
+    end
+
+    log_dev(LS_INFO + "Ignored message type: " + msg_type)
+  end
+end
+
+# ---- Entry Point ------------------------------------------------------------
+main_command_loop()
