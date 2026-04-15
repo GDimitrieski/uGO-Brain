@@ -1,0 +1,11 @@
+# uGO-Brain dependencies
+# ---------------------
+# Shared
+requests>=2.28
+
+# World Config GUI (server.py)
+fastapi>=0.100
+uvicorn>=0.23
+
+# Build / packaging
+pyinstaller>=6.0

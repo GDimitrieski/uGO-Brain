@@ -1,0 +1,45 @@
+%% uGO Brain vNext Behavior Tree Proposal
+%% Source of truth: docs/New Version/vNext_Architecture_Refactor_Guideline.md
+
+flowchart TD
+    ROOT["Sequence: RunLoop"]
+
+    PRE["Preflight Subtree<br/>config/tasks/policies/invariants"]
+    LOOP["State-Driven Loop Subtree"]
+
+    ROOT --> PRE --> LOOP
+
+    LOOP --> NEXT["GetNextIntent"]
+    NEXT --> STATUS{"Planner status"}
+
+    STATUS -->|READY| EXEC["ExecuteIntent Subtree"]
+    STATUS -->|IDLE| IDLE["SafeParkOrWait Subtree"]
+    STATUS -->|BLOCKED| BLOCK["Blocked Handling Subtree"]
+
+    IDLE --> NEXT
+    BLOCK --> NEXT
+
+    EXEC --> NAVREF["NavigateAndReference Subtree<br/>Navigate if needed + Landmark scan if required"]
+    NAVREF --> ACT["AtomicAction Subtree<br/>Pick/Place/Rack/Device"]
+    ACT --> VERIFY["PostActionVerify Subtree<br/>identity/location/device guards"]
+    VERIFY --> COMMIT["CommitWorldPatch Subtree<br/>event + deterministic patch"]
+    COMMIT --> NEXT
+
+    ACT --> FAULT{"Action fault?"}
+    VERIFY --> FAULT
+    NAVREF --> FAULT
+
+    FAULT -->|No| COMMIT
+    FAULT -->|Yes| CLASSIFY["FaultClassify<br/>fault_code + context"]
+    CLASSIFY --> POLICY["RecoveryPolicyLookup<br/>process+action+station/device+fault"]
+    POLICY --> RETRY{"Auto-retry allowed?"}
+
+    RETRY -->|Yes| ACT
+    RETRY -->|No| WAITREC["WAITING_RECOVERY"]
+    WAITREC --> OP["OperatorDecision<br/>retry/skip_action/skip_sample/replan/abort"]
+    OP --> PATCH["ApplyRecoveryWorldPatch<br/>auditable + deterministic"]
+    PATCH --> RESUME{"Resume mode"}
+    RESUME -->|retry| ACT
+    RESUME -->|replan| NEXT
+    RESUME -->|abort| END["Abort/Stop"]
+

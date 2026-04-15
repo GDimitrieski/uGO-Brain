@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uGO World Configuration</title>
+<style>
+:root {
+  --bg: #f4f6f8;
+  --panel: #ffffff;
+  --line: #d8dde4;
+  --text: #0f1720;
+  --muted: #536273;
+  --accent: #0f5bd8;
+  --ok: #1f9f47;
+  --bad: #cc1f1f;
+  --warn: #b27a00;
+  --station-ext: #2563eb;
+  --station-plate: #16a34a;
+  --rack-color: #ea580c;
+  --device-color: #7c3aed;
+  --sample-color: #0891b2;
+  --landmark-color: #64748b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: var(--text);
+  background: linear-gradient(180deg, #f9fbfd 0%, var(--bg) 100%);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+.header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(8,18,35,0.05);
+}
+.header h1 { font-size: 20px; font-weight: 700; }
+.header-actions { display: flex; gap: 8px; margin-left: auto; }
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-success { background: var(--ok); color: #fff; }
+.btn-danger { background: var(--bad); color: #fff; }
+.btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+.btn-outline:hover { background: #f0f4ff; }
+.btn .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); margin-left: 6px; }
+
+/* ── Main Layout ───────────────────────────────────────────────── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr 360px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Left Palette ──────────────────────────────────────────────── */
+.palette {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.palette-section { border-bottom: 1px solid var(--line); }
+.palette-section:last-child { border-bottom: none; }
+.palette-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.palette-section-header:hover { background: #f8fafc; }
+.palette-section-header .count {
+  font-size: 11px;
+  background: var(--line);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-weight: 600;
+}
+.palette-section-header .chevron { transition: transform 0.2s; font-size: 10px; }
+.palette-section.collapsed .chevron { transform: rotate(-90deg); }
+.palette-section.collapsed .palette-items { display: none; }
+.palette-items { padding: 2px 8px 6px; }
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.1s;
+  word-break: break-all;
+}
+.palette-item:hover { background: #f0f4ff; }
+.palette-item.selected { background: #dbeafe; }
+.palette-item .badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.palette-add {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 4px 8px 6px;
+  padding: 4px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+}
+.palette-add:hover { background: #f0f4ff; border-color: var(--accent); }
+
+/* ── Center Schematic ──────────────────────────────────────────── */
+.schematic {
+  overflow: auto;
+  padding: 20px;
+  background: var(--bg);
+}
+.schematic-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+.station-card {
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 200px;
+  max-width: 320px;
+  box-shadow: 0 4px 12px rgba(8,18,35,0.05);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.station-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(15,91,216,0.12); }
+.station-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(15,91,216,0.15); }
+.station-card.on-robot { border-color: var(--station-plate); }
+.station-card.on-robot.selected { border-color: var(--station-plate); box-shadow: 0 0 0 3px rgba(22,163,106,0.15); }
+.station-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.station-card-header .kind-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+}
+.kind-badge.external { background: var(--station-ext); }
+.kind-badge.on-robot { background: var(--station-plate); }
+.station-card-header .name { font-size: 13px; font-weight: 600; }
+.station-card-header .robot-indicator {
+  margin-left: auto;
+  font-size: 14px;
+  title: "Robot is here";
+}
+.station-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.slot-box {
+  border: 1.5px dashed var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  min-width: 60px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.slot-box:hover { border-color: var(--accent); background: #f0f4ff; }
+.slot-box.occupied {
+  border-style: solid;
+  border-color: var(--rack-color);
+  background: #fff7ed;
+  color: var(--text);
+}
+.slot-box.selected { border-color: var(--accent); background: #dbeafe; }
+.slot-box .rack-label { font-weight: 600; font-size: 10px; color: var(--rack-color); display: block; }
+.slot-box .slot-label { display: block; font-size: 9px; color: var(--muted); }
+.station-devices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.device-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f3e8ff;
+  color: var(--device-color);
+  font-weight: 600;
+  cursor: pointer;
+}
+.device-tag:hover { background: #e9d5ff; }
+.device-tag.selected { background: #c084fc; color: #fff; }
+.device-tag .wise-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  margin-left: 3px;
+  vertical-align: middle;
+  title: "WISE module attached";
+}
+
+/* ── WISE Config Section ───────────────────────────────────────── */
+.wise-section {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1.5px solid #f59e0b;
+  border-radius: 10px;
+  background: #fffbeb;
+}
+.wise-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #fde68a;
+}
+.wise-section-header .wise-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f59e0b;
+  color: #fff;
+}
+.wise-section-header .wise-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+.wise-section .form-group label { color: #92400e; }
+.wise-section .form-group input,
+.wise-section .form-group select {
+  border-color: #fde68a;
+}
+.wise-section .form-group input:focus,
+.wise-section .form-group select:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245,158,11,0.15);
+}
+.wise-channels { margin-top: 4px; }
+.wise-channel-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.wise-channel-row input {
+  width: 80px;
+  padding: 4px 8px;
+  border: 1px solid #fde68a;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.wise-channel-row .ch-label {
+  font-size: 11px;
+  color: #92400e;
+  min-width: 55px;
+}
+.wise-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ── Right Detail Panel ────────────────────────────────────────── */
+.detail-panel {
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 16px;
+}
+.detail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.detail-header .entity-type {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #fff;
+}
+.detail-header .entity-id { font-size: 15px; font-weight: 600; }
+.form-group { margin-bottom: 10px; }
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(15,91,216,0.1);
+}
+.form-group input.error { border-color: var(--bad); }
+.checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.checkbox-grid label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  user-select: none;
+}
+.checkbox-grid label:hover { background: #f0f4ff; }
+.checkbox-grid input[type="checkbox"] { width: auto; }
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.slot-list { margin-top: 10px; }
+.slot-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.slot-list-item .slot-name { font-weight: 600; }
+.slot-list-item .slot-kind { font-size: 10px; color: var(--muted); }
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: var(--muted);
+}
+.btn-icon:hover { background: #fee2e2; color: var(--bad); }
+
+/* ── Status Bar ────────────────────────────────────────────────── */
+.status-bar {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 6px 20px;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.status-bar .status-ok { color: var(--ok); }
+.status-bar .status-bad { color: var(--bad); }
+
+/* ── Toast ─────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: toastIn 0.3s ease;
+  max-width: 360px;
+}
+.toast.success { background: var(--ok); }
+.toast.error { background: var(--bad); }
+.toast.info { background: var(--accent); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Confirm Modal ────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.modal {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 400px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+}
+.modal h3 { margin-bottom: 10px; font-size: 16px; }
+.modal p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>uGO World Configuration</h1>
+  <div class="header-actions">
+    <a href="/live" style="font-size:12px;color:var(--accent);text-decoration:none;padding:6px 12px;border:1px solid var(--line);border-radius:8px">Live View</a>
+    <button class="btn btn-outline" onclick="reloadConfig()">Reload</button>
+    <button class="btn btn-outline" onclick="validateConfig()">Validate</button>
+    <button class="btn btn-success" id="saveBtn" onclick="saveConfig()">Save</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main-layout">
+  <!-- Left Palette -->
+  <div class="palette" id="palette"></div>
+
+  <!-- Center Schematic -->
+  <div class="schematic" id="schematic"></div>
+
+  <!-- Right Detail -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-empty">Select an entity from the palette or schematic to edit its properties.</div>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar" id="statusBar">
+  <span>Ready</span>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ======================================================================
+// State
+// ======================================================================
+let STATE = {
+  config: null,
+  enums: null,
+  policies: null,
+  placements: [],
+  selection: null,       // { type: 'station'|'rack'|'device'|'sample'|'landmark'|'slot', id: ..., parentId?: ... }
+  dirty: false,
+};
+
+// ======================================================================
+// API helpers
+// ======================================================================
+const API = {
+  async get(path) {
+    const r = await fetch(path);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  async post(path, body) {
+    const r = await fetch(path, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!r.ok) {
+      const text = await r.text();
+      let detail = text;
+      try { detail = JSON.parse(text).detail; if (Array.isArray(detail)) detail = detail.join('; '); } catch {}
+      throw new Error(detail);
+    }
+    return r.json();
+  },
+  async del(path) {
+    const r = await fetch(path, { method: 'DELETE' });
+    if (!r.ok) {
+      const text = await r.text();
+      let detail = text;
+      try { detail = JSON.parse(text).detail; } catch {}
+      throw new Error(detail);
+    }
+    return r.json();
+  }
+};
+
+// ======================================================================
+// Init
+// ======================================================================
+async function init() {
+  try {
+    const [config, enums, policies] = await Promise.all([
+      API.get('/api/config'),
+      API.get('/api/enums'),
+      API.get('/api/policies'),
+    ]);
+    STATE.config = config;
+    STATE.enums = enums;
+    STATE.policies = policies;
+    STATE.placements = config.rack_placements || [];
+    STATE.dirty = false;
+    render();
+    updateStatus('Loaded: ' + (config.stations||[]).length + ' stations, ' + (config.racks||[]).length + ' racks, ' + (config.devices||[]).length + ' devices');
+  } catch (e) {
+    toast('Failed to load: ' + e.message, 'error');
+  }
+}
+
+// ======================================================================
+// Render
+// ======================================================================
+function render() {
+  renderPalette();
+  renderSchematic();
+  renderDetail();
+  updateSaveBtn();
+}
+
+// ── Palette ───────────────────────────────────────────────────────────
+function renderPalette() {
+  const el = document.getElementById('palette');
+  const sections = [
+    { key: 'stations', label: 'Stations', items: STATE.config.stations || [], color: '--station-ext',
+      getId: s => s.id, getColor: s => s.kind === 'ON_ROBOT_PLATE' ? 'var(--station-plate)' : 'var(--station-ext)' },
+    { key: 'racks', label: 'Racks', items: STATE.config.racks || [], color: '--rack-color',
+      getId: r => r.id, getColor: () => 'var(--rack-color)' },
+    { key: 'devices', label: 'Devices', items: STATE.config.devices || [], color: '--device-color',
+      getId: d => d.id, getColor: () => 'var(--device-color)' },
+    { key: 'samples', label: 'Samples', items: STATE.config.samples || [], color: '--sample-color',
+      getId: s => s.id, getColor: () => 'var(--sample-color)' },
+    { key: 'landmarks', label: 'Landmarks', items: STATE.config.landmarks || [], color: '--landmark-color',
+      getId: l => l.id, getColor: () => 'var(--landmark-color)' },
+  ];
+
+  el.innerHTML = sections.map(sec => {
+    const isCollapsed = sec.key === 'samples' || sec.key === 'landmarks' ? ' collapsed' : '';
+    const itemsHtml = sec.items.map(item => {
+      const id = sec.getId(item);
+      const selected = STATE.selection && STATE.selection.type === sec.key.replace(/s$/, '') && STATE.selection.id === id;
+      return `<div class="palette-item${selected ? ' selected' : ''}" onclick="selectEntity('${sec.key.replace(/s$/,'')}', '${esc(id)}')">
+        <span class="badge" style="background:${sec.getColor(item)}"></span>
+        <span>${esc(id)}</span>
+      </div>`;
+    }).join('');
+    return `<div class="palette-section${isCollapsed}">
+      <div class="palette-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span>${sec.label} <span class="count">${sec.items.length}</span></span>
+        <span class="chevron">&#9660;</span>
+      </div>
+      <div class="palette-items">${itemsHtml}</div>
+      <button class="palette-add" onclick="event.stopPropagation(); addNew('${sec.key.replace(/s$/,'')}')">+ Add ${sec.label.replace(/s$/,'')}</button>
+    </div>`;
+  }).join('');
+}
+
+// ── Schematic ────────────────────────────────────────────────────────
+function renderSchematic() {
+  const el = document.getElementById('schematic');
+  const stations = STATE.config.stations || [];
+  const placements = STATE.config.rack_placements || [];
+  const devices = STATE.config.devices || [];
+  const robotStation = STATE.config.robot_current_station_id;
+
+  // Build placement lookup: { "stationId|slotId" -> rackId }
+  const placementMap = {};
+  placements.forEach(p => { placementMap[p.station_id + '|' + p.station_slot_id] = p.rack_id; });
+
+  // Build device-to-station lookup
+  const devicesByStation = {};
+  devices.forEach(d => {
+    if (!devicesByStation[d.station_id]) devicesByStation[d.station_id] = [];
+    devicesByStation[d.station_id].push(d);
+  });
+
+  const html = stations.map(st => {
+    const isOnRobot = st.kind === 'ON_ROBOT_PLATE';
+    const isRobotHere = st.id === robotStation;
+    const selected = STATE.selection && STATE.selection.type === 'station' && STATE.selection.id === st.id;
+
+    const slotsHtml = (st.slot_configs || []).map(slot => {
+      const rackId = placementMap[st.id + '|' + slot.slot_id];
+      const occupied = !!rackId;
+      const slotSelected = STATE.selection && STATE.selection.type === 'slot' && STATE.selection.id === slot.slot_id && STATE.selection.parentId === st.id;
+      return `<div class="slot-box${occupied ? ' occupied' : ''}${slotSelected ? ' selected' : ''}"
+                   onclick="event.stopPropagation(); selectSlot('${esc(st.id)}', '${esc(slot.slot_id)}')">
+        <span class="slot-label">${esc(slot.slot_id)}</span>
+        ${occupied ? `<span class="rack-label">${esc(rackId)}</span>` : '<span style="font-size:9px;color:var(--muted)">empty</span>'}
+      </div>`;
+    }).join('');
+
+    const stDevices = devicesByStation[st.id] || [];
+    const devicesHtml = stDevices.map(d => {
+      const devSelected = STATE.selection && STATE.selection.type === 'device' && STATE.selection.id === d.id;
+      const hasWise = !!d.wise;
+      return `<div class="device-tag${devSelected ? ' selected' : ''}" onclick="event.stopPropagation(); selectEntity('device', '${esc(d.id)}')">${esc(d.name || d.id)}${hasWise ? '<span class="wise-dot" title="WISE module"></span>' : ''}</div>`;
+    }).join('');
+
+    return `<div class="station-card${isOnRobot ? ' on-robot' : ''}${selected ? ' selected' : ''}"
+                 onclick="selectEntity('station', '${esc(st.id)}')">
+      <div class="station-card-header">
+        <span class="kind-badge ${isOnRobot ? 'on-robot' : 'external'}">${isOnRobot ? 'PLATE' : 'EXT'}</span>
+        <span class="name">${esc(st.name || st.id)}</span>
+        ${isRobotHere ? '<span class="robot-indicator" title="Robot is here">&#129302;</span>' : ''}
+      </div>
+      ${slotsHtml ? `<div class="station-slots">${slotsHtml}</div>` : ''}
+      ${devicesHtml ? `<div class="station-devices">${devicesHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="schematic-grid">${html}</div>`;
+}
+
+// ── Detail Panel ─────────────────────────────────────────────────────
+function renderDetail() {
+  const el = document.getElementById('detailPanel');
+  if (!STATE.selection) {
+    el.innerHTML = '<div class="detail-empty">Select an entity from the palette or schematic to edit its properties.</div>';
+    return;
+  }
+  const s = STATE.selection;
+  switch (s.type) {
+    case 'station': renderStationDetail(el, s.id); break;
+    case 'rack': renderRackDetail(el, s.id); break;
+    case 'device': renderDeviceDetail(el, s.id); break;
+    case 'sample': renderSampleDetail(el, s.id); break;
+    case 'landmark': renderLandmarkDetail(el, s.id); break;
+    case 'slot': renderSlotDetail(el, s.parentId, s.id); break;
+    default: el.innerHTML = '<div class="detail-empty">Unknown entity type</div>';
+  }
+}
+
+function renderStationDetail(el, stationId) {
+  const station = (STATE.config.stations || []).find(s => s.id === stationId);
+  const isNew = !station;
+  const data = station || { id: stationId, name: stationId, itm_id: 1, kind: 'EXTERNAL', amr_pos_target: null, landmark_id: null };
+  const slots = data.slot_configs || [];
+  const kindOptions = (STATE.enums?.StationKind || []).map(k => `<option value="${k}" ${data.kind===k?'selected':''}>${k}</option>`).join('');
+  const landmarkOptions = ['<option value="">(none)</option>'].concat(
+    (STATE.config.landmarks || []).map(l => `<option value="${l.id}" ${data.landmark_id===l.id?'selected':''}>${l.id}</option>`)
+  ).join('');
+
+  const slotsListHtml = slots.map(slot =>
+    `<div class="slot-list-item">
+      <div><span class="slot-name">${esc(slot.slot_id)}</span> <span class="slot-kind">${esc(slot.kind)}</span></div>
+      <div>
+        <button class="btn-icon" onclick="selectSlot('${esc(stationId)}','${esc(slot.slot_id)}')" title="Edit">&#9998;</button>
+        <button class="btn-icon" onclick="deleteSlot('${esc(stationId)}','${esc(slot.slot_id)}')" title="Delete">&times;</button>
+      </div>
+    </div>`
+  ).join('');
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <span class="entity-type" style="background:${data.kind==='ON_ROBOT_PLATE'?'var(--station-plate)':'var(--station-ext)'}">Station</span>
+      <span class="entity-id">${isNew ? 'New Station' : esc(stationId)}</span>
+    </div>
+    <div class="form-group"><label>ID</label><input id="f_id" value="${esc(data.id)}" ${isNew?'':'readonly'}></div>
+    <div class="form-group"><label>Name</label><input id="f_name" value="${esc(data.name||'')}"></div>
+    <div class="form-group"><label>ITM ID</label><input id="f_itm_id" type="number" value="${data.itm_id||1}"></div>
+    <div class="form-group"><label>Kind</label><select id="f_kind">${kindOptions}</select></div>
+    <div class="form-group"><label>AMR Pos Target</label><input id="f_amr" value="${esc(data.amr_pos_target||'')}"></div>
+    <div class="form-group"><label>Landmark</label><select id="f_landmark">${landmarkOptions}</select></div>
+    <div class="slot-list">
+      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;">Slots (${slots.length})</label>
+      ${slotsListHtml}
+      <button class="palette-add" onclick="addNewSlot('${esc(stationId)}')">+ Add Slot</button>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-primary" onclick="saveStation()">Save Station</button>
+      ${isNew ? '' : `<button class="btn btn-danger" onclick="deleteStation('${esc(stationId)}')">Delete</button>`}
+    </div>`;
+}
+
+function renderRackDetail(el, rackId) {
+  const rack = (STATE.config.racks || []).find(r => r.id === rackId);
+  const isNew = !rack;
+  const data = rack || { id: rackId, rack_type: 'URG_RACK', capacity: 1, pattern: '', pin_obj_type: 0, rows: 1, cols: 1, blocked_slots: [] };
+  const typeOptions = (STATE.enums?.RackType || []).map(t => `<option value="${t}" ${data.rack_type===t?'selected':''}>${t}</option>`).join('');
+
+  // Find placement for this rack
+  const placement = (STATE.config.rack_placements || []).find(p => p.rack_id === rackId);
+  const placementInfo = placement ? `Placed at ${placement.station_id} / ${placement.station_slot_id}` : 'Not placed';
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <span class="entity-type" style="background:var(--rack-color)">Rack</span>
+      <span class="entity-id">${isNew ? 'New Rack' : esc(rackId)}</span>
+    </div>
+    <div class="form-group"><label>ID</label><input id="f_id" value="${esc(data.id)}" ${isNew?'':'readonly'}></div>
+    <div class="form-group"><label>Rack Type</label><select id="f_rack_type">${typeOptions}</select></div>
+    <div class="form-group"><label>Capacity</label><input id="f_capacity" type="number" value="${data.capacity}"></div>
+    <div class="form-group"><label>Pattern</label><input id="f_pattern" value="${esc(data.pattern||'')}"></div>
+    <div class="form-group"><label>Pin Obj Type</label><input id="f_pin_obj_type" type="number" value="${data.pin_obj_type||0}"></div>
+    <div class="form-group"><label>Rows</label><input id="f_rows" type="number" value="${data.rows||''}"></div>
+    <div class="form-group"><label>Cols</label><input id="f_cols" type="number" value="${data.cols||''}"></div>
+    <div class="form-group"><label>Blocked Slots (comma-separated)</label><input id="f_blocked" value="${(data.blocked_slots||[]).join(', ')}"></div>
+    <div class="form-group"><label>Placement</label><input value="${placementInfo}" readonly style="color:var(--muted)"></div>
+    <div class="detail-actions">
+      <button class="btn btn-primary" onclick="saveRack()">Save Rack</button>
+      ${isNew ? '' : `<button class="btn btn-danger" onclick="deleteRack('${esc(rackId)}')">Delete</button>`}
+    </div>`;
+}
+
+function renderDeviceDetail(el, deviceId) {
+  const device = (STATE.config.devices || []).find(d => d.id === deviceId);
+  const isNew = !device;
+  const data = device || { id: deviceId, name: '', station_id: '', capabilities: [], planner_role: 'PROCESSOR', exclude_station_racks_from_idle_return: true };
+  const stationOptions = (STATE.config.stations || []).map(s => `<option value="${s.id}" ${data.station_id===s.id?'selected':''}>${s.id}</option>`).join('');
+  const capsHtml = (STATE.enums?.ProcessType || []).map(p => {
+    const checked = (data.capabilities || []).includes(p) ? 'checked' : '';
+    return `<label><input type="checkbox" value="${p}" ${checked}> ${p}</label>`;
+  }).join('');
+
+  const hasWise = !!data.wise;
+  const wise = data.wise || {};
+  const wiseAuth = wise.auth || {};
+
+  // Channel map: could be slot_ready_channels or rack_ready_channels
+  const channelMapKey = wise.rack_ready_channels ? 'rack_ready_channels' : 'slot_ready_channels';
+  const channelMap = wise[channelMapKey] || wise.slot_ready_channels || wise.rack_ready_channels || {};
+  const channelEntries = Object.entries(channelMap);
+
+  // Required-for-processes checkboxes
+  const wiseProcsHtml = (STATE.enums?.ProcessType || []).map(p => {
+    const checked = (wise.required_for_processes || []).includes(p) ? 'checked' : '';
+    return `<label><input type="checkbox" value="${p}" ${checked}> ${p}</label>`;
+  }).join('');
+
+  const channelsHtml = channelEntries.map(([key, ch], i) =>
+    `<div class="wise-channel-row">
+      <span class="ch-label">Slot/Rack ${esc(key)}</span>
+      <input class="wise-ch-key" value="${esc(key)}" placeholder="key">
+      <span style="font-size:11px;color:#92400e">&#8594; CH</span>
+      <input class="wise-ch-val" type="number" value="${ch}" placeholder="channel">
+      <button class="btn-icon" onclick="this.parentElement.remove()" title="Remove">&times;</button>
+    </div>`
+  ).join('');
+
+  const wiseSection = `
+    <div class="wise-section" id="wiseSection">
+      <div class="wise-section-header">
+        <span class="wise-badge">WISE</span>
+        <span class="wise-title">WISE Module Configuration</span>
+      </div>
+      <div class="form-group">
+        <label>Enabled</label>
+        <select id="fw_enabled">
+          <option value="true" ${wise.enabled !== false ? 'selected':''}>Yes</option>
+          <option value="false" ${wise.enabled === false ? 'selected':''}>No</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Host</label><input id="fw_host" value="${esc(wise.host||'')}"></div>
+      <div class="form-group"><label>Port</label><input id="fw_port" type="number" value="${wise.port||80}"></div>
+      <div class="form-group"><label>Scheme</label>
+        <select id="fw_scheme">
+          <option value="http" ${(wise.scheme||'http')==='http'?'selected':''}>http</option>
+          <option value="https" ${wise.scheme==='https'?'selected':''}>https</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Auth Username</label><input id="fw_auth_user" value="${esc(wiseAuth.username||'')}"></div>
+      <div class="form-group"><label>Auth Password</label><input id="fw_auth_pass" type="password" value="${esc(wiseAuth.password||'')}"></div>
+      <div class="form-group"><label>DI Slot</label><input id="fw_di_slot" type="number" value="${wise.di_slot!=null?wise.di_slot:0}"></div>
+      <div class="form-group"><label>DI Endpoint Template</label><input id="fw_di_endpoint" value="${esc(wise.di_endpoint_template||'/di_value/slot_{slot}')}"></div>
+      <div class="form-group"><label>Timeout (s)</label><input id="fw_timeout" type="number" step="0.1" value="${wise.timeout_s||3.0}"></div>
+      <div class="form-group"><label>Poll Interval (s)</label><input id="fw_poll_interval" type="number" step="0.1" value="${wise.poll_interval_s||1.0}"></div>
+      <div class="form-group"><label>Stale After (s)</label><input id="fw_stale_after" type="number" step="0.1" value="${wise.stale_after_s||5.0}"></div>
+      <div class="form-group"><label>Verify TLS</label>
+        <select id="fw_verify_tls">
+          <option value="true" ${wise.verify_tls !== false ? 'selected':''}>Yes</option>
+          <option value="false" ${wise.verify_tls === false ? 'selected':''}>No</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Enforce Ready for Unload</label>
+        <select id="fw_enforce_unload">
+          <option value="" ${wise.enforce_ready_for_unload==null?'selected':''}>(not set)</option>
+          <option value="true" ${wise.enforce_ready_for_unload===true?'selected':''}>Yes</option>
+          <option value="false" ${wise.enforce_ready_for_unload===false?'selected':''}>No</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Required for Selection</label>
+        <select id="fw_required_for_selection">
+          <option value="" ${wise.required_for_selection==null?'selected':''}>(not set)</option>
+          <option value="true" ${wise.required_for_selection===true?'selected':''}>Yes</option>
+          <option value="false" ${wise.required_for_selection===false?'selected':''}>No</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Required for Processes</label>
+        <div class="checkbox-grid" id="fw_required_processes">${wiseProcsHtml}</div>
+      </div>
+      <div class="form-group">
+        <label>Channel Map (${esc(channelMapKey)})</label>
+        <div class="wise-channels" id="fw_channels">${channelsHtml}</div>
+        <button class="palette-add" style="margin-top:4px" onclick="addWiseChannel()">+ Add Channel</button>
+      </div>
+      <div class="wise-actions">
+        <button class="btn btn-primary" onclick="saveWise('${esc(deviceId)}')">Save WISE Config</button>
+        <button class="btn btn-danger" onclick="removeWise('${esc(deviceId)}')">Remove WISE</button>
+      </div>
+    </div>`;
+
+  const addWiseBtn = !hasWise ? `<button class="btn btn-outline" style="margin-top:10px;width:100%;border-color:#f59e0b;color:#92400e" onclick="attachWise('${esc(deviceId)}')">+ Attach WISE Module</button>` : '';
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <span class="entity-type" style="background:var(--device-color)">Device</span>
+      <span class="entity-id">${isNew ? 'New Device' : esc(deviceId)}</span>
+      ${hasWise ? '<span class="wise-badge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:#f59e0b;color:#fff;margin-left:auto">WISE</span>' : ''}
+    </div>
+    <div class="form-group"><label>ID</label><input id="f_id" value="${esc(data.id)}" ${isNew?'':'readonly'}></div>
+    <div class="form-group"><label>Name</label><input id="f_name" value="${esc(data.name||'')}"></div>
+    <div class="form-group"><label>Station</label><select id="f_station_id">${stationOptions}</select></div>
+    <div class="form-group"><label>Planner Role</label><input id="f_planner_role" value="${esc(data.planner_role||'PROCESSOR')}"></div>
+    <div class="form-group">
+      <label>Capabilities</label>
+      <div class="checkbox-grid" id="f_capabilities">${capsHtml}</div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
+      ${isNew ? '' : `<button class="btn btn-danger" onclick="deleteDevice('${esc(deviceId)}')">Delete</button>`}
+    </div>
+    ${hasWise ? wiseSection : addWiseBtn}`;
+}
+
+function renderSampleDetail(el, sampleId) {
+  const sample = (STATE.config.samples || []).find(s => s.id === sampleId);
+  const isNew = !sample;
+  const data = sample || { id: sampleId, barcode: sampleId, obj_type: 811, length_mm: 75.0, diameter_mm: 13.0, cap_state: 'CAPPED', required_processes: [] };
+  const capOptions = (STATE.enums?.CapState || []).map(c => `<option value="${c}" ${data.cap_state===c?'selected':''}>${c}</option>`).join('');
+  const procHtml = (STATE.enums?.ProcessType || []).map(p => {
+    const checked = (data.required_processes || []).includes(p) ? 'checked' : '';
+    return `<label><input type="checkbox" value="${p}" ${checked}> ${p}</label>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <span class="entity-type" style="background:var(--sample-color)">Sample</span>
+      <span class="entity-id">${isNew ? 'New Sample' : esc(sampleId)}</span>
+    </div>
+    <div class="form-group"><label>ID</label><input id="f_id" value="${esc(data.id)}" ${isNew?'':'readonly'}></div>
+    <div class="form-group"><label>Barcode</label><input id="f_barcode" value="${esc(data.barcode||'')}"></div>
+    <div class="form-group"><label>Obj Type</label><input id="f_obj_type" type="number" value="${data.obj_type||811}"></div>
+    <div class="form-group"><label>Length (mm)</label><input id="f_length" type="number" step="0.1" value="${data.length_mm||75}"></div>
+    <div class="form-group"><label>Diameter (mm)</label><input id="f_diameter" type="number" step="0.1" value="${data.diameter_mm||13}"></div>
+    <div class="form-group"><label>Cap State</label><select id="f_cap_state">${capOptions}</select></div>
+    <div class="form-group">
+      <label>Required Processes</label>
+      <div class="checkbox-grid" id="f_processes">${procHtml}</div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-primary" onclick="saveSample()">Save Sample</button>
+      ${isNew ? '' : `<button class="btn btn-danger" onclick="deleteSample('${esc(sampleId)}')">Delete</button>`}
+    </div>`;
+}
+
+function renderLandmarkDetail(el, landmarkId) {
+  const landmark = (STATE.config.landmarks || []).find(l => l.id === landmarkId);
+  const isNew = !landmark;
+  const data = landmark || { id: landmarkId, code: '', station_id: '' };
+  const stationOptions = (STATE.config.stations || []).map(s => `<option value="${s.id}" ${data.station_id===s.id?'selected':''}>${s.id}</option>`).join('');
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <span class="entity-type" style="background:var(--landmark-color)">Landmark</span>
+      <span class="entity-id">${isNew ? 'New Landmark' : esc(landmarkId)}</span>
+    </div>
+    <div class="form-group"><label>ID</label><input id="f_id" value="${esc(data.id)}" ${isNew?'':'readonly'}></div>
+    <div class="form-group"><label>Code</label><input id="f_code" value="${esc(data.code||'')}"></div>
+    <div class="form-group"><label>Station</label><select id="f_station_id">${stationOptions}</select></div>
+    <div class="detail-actions">
+      <button class="btn btn-primary" onclick="saveLandmark()">Save Landmark</button>
+      ${isNew ? '' : `<button class="btn btn-danger" onclick="deleteLandmark('${esc(landmarkId)}')">Delete</button>`}
+    </div>`;
+}
+
+function renderSlotDetail(el, stationId, slotId) {
+  const station = (STATE.config.stations || []).find(s => s.id === stationId);
+  const slot = station ? (station.slot_configs || []).find(s => s.slot_id === slotId) : null;
+  const isNew = !slot;
+  const data = slot || { slot_id: slotId, kind: 'URG_RACK_SLOT', jig_id: 1, itm_id: 1, rack_capacity: 1, rack_pattern: '', rack_rows: 1, rack_cols: 1, rack_index: 1, obj_nbr_offset: 0, loading_strategy: '', accepted_rack_types: [] };
+  const kindOptions = (STATE.enums?.SlotKind || []).map(k => `<option value="${k}" ${data.kind===k?'selected':''}>${k}</option>`).join('');
+  const rackTypesHtml = (STATE.enums?.RackType || []).map(rt => {
+    const checked = (data.accepted_rack_types || []).includes(rt) ? 'checked' : '';
+    return `<label><input type="checkbox" value="${rt}" ${checked}> ${rt}</label>`;
+  }).join('');
+
+  // Show current placement
+  const placement = (STATE.config.rack_placements || []).find(p => p.station_id === stationId && p.station_slot_id === slotId);
+  const placedRack = placement ? placement.rack_id : null;
+
+  // Available racks for placement (unplaced + currently placed here)
+  const placedRackIds = new Set((STATE.config.rack_placements || []).map(p => p.rack_id));
+  const availableRacks = (STATE.config.racks || []).filter(r => !placedRackIds.has(r.id) || r.id === placedRack);
+  const rackOptions = ['<option value="">(empty / unplace)</option>'].concat(
+    availableRacks.map(r => `<option value="${r.id}" ${r.id===placedRack?'selected':''}>${r.id} (${r.rack_type})</option>`)
+  ).join('');
+
+  el.innerHTML = `
+    <div class="detail-header">
+      <span class="entity-type" style="background:var(--accent)">Slot</span>
+      <span class="entity-id">${esc(stationId)} / ${isNew ? 'New Slot' : esc(slotId)}</span>
+    </div>
+    <div class="form-group"><label>Slot ID</label><input id="f_slot_id" value="${esc(data.slot_id)}" ${isNew?'':'readonly'}></div>
+    <div class="form-group"><label>Kind</label><select id="f_kind">${kindOptions}</select></div>
+    <div class="form-group"><label>Jig ID</label><input id="f_jig_id" type="number" value="${data.jig_id}"></div>
+    <div class="form-group"><label>ITM ID</label><input id="f_itm_id" type="number" value="${data.itm_id||1}"></div>
+    <div class="form-group"><label>Rack Capacity</label><input id="f_rack_capacity" type="number" value="${data.rack_capacity||1}"></div>
+    <div class="form-group"><label>Rack Pattern</label><input id="f_rack_pattern" value="${esc(data.rack_pattern||'')}"></div>
+    <div class="form-group"><label>Rack Rows</label><input id="f_rack_rows" type="number" value="${data.rack_rows||''}"></div>
+    <div class="form-group"><label>Rack Cols</label><input id="f_rack_cols" type="number" value="${data.rack_cols||''}"></div>
+    <div class="form-group"><label>Rack Index</label><input id="f_rack_index" type="number" value="${data.rack_index||1}"></div>
+    <div class="form-group"><label>OBJ Nbr Offset</label><input id="f_obj_nbr_offset" type="number" value="${data.obj_nbr_offset||0}"></div>
+    <div class="form-group"><label>Loading Strategy</label><input id="f_loading_strategy" value="${esc(data.loading_strategy||'')}" placeholder="(default)"></div>
+    <div class="form-group">
+      <label>Accepted Rack Types</label>
+      <div class="checkbox-grid" id="f_accepted_rack_types">${rackTypesHtml}</div>
+    </div>
+    <div class="form-group" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+      <label>Placed Rack</label>
+      <select id="f_placed_rack">${rackOptions}</select>
+      <button class="btn btn-outline" style="margin-top:6px;width:100%" onclick="savePlacement('${esc(stationId)}')">Update Placement</button>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-primary" onclick="saveSlot('${esc(stationId)}')">Save Slot</button>
+      ${isNew ? '' : `<button class="btn btn-danger" onclick="deleteSlot('${esc(stationId)}','${esc(slotId)}')">Delete</button>`}
+      <button class="btn btn-outline" onclick="selectEntity('station','${esc(stationId)}')">Back to Station</button>
+    </div>`;
+}
+
+// ======================================================================
+// Selection
+// ======================================================================
+function selectEntity(type, id) {
+  STATE.selection = { type, id };
+  render();
+}
+
+function selectSlot(stationId, slotId) {
+  STATE.selection = { type: 'slot', id: slotId, parentId: stationId };
+  render();
+}
+
+function addNew(type) {
+  const id = prompt(`Enter new ${type} ID:`);
+  if (!id || !id.trim()) return;
+  STATE.selection = { type, id: id.trim() };
+  render();
+}
+
+function addNewSlot(stationId) {
+  const slotId = prompt('Enter new slot ID:');
+  if (!slotId || !slotId.trim()) return;
+  STATE.selection = { type: 'slot', id: slotId.trim(), parentId: stationId };
+  render();
+}
+
+// ======================================================================
+// Save operations
+// ======================================================================
+async function saveStation() {
+  const data = {
+    id: document.getElementById('f_id').value,
+    name: document.getElementById('f_name').value || undefined,
+    itm_id: parseInt(document.getElementById('f_itm_id').value) || undefined,
+    kind: document.getElementById('f_kind').value,
+    amr_pos_target: document.getElementById('f_amr').value || null,
+    landmark_id: document.getElementById('f_landmark').value || null,
+  };
+  try {
+    await API.post('/api/stations', data);
+    STATE.dirty = true;
+    await refreshConfig();
+    STATE.selection = { type: 'station', id: data.id };
+    render();
+    toast('Station saved', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function saveRack() {
+  const blockedStr = document.getElementById('f_blocked').value;
+  const blocked = blockedStr.trim() ? blockedStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n)) : [];
+  const data = {
+    id: document.getElementById('f_id').value,
+    rack_type: document.getElementById('f_rack_type').value,
+    capacity: parseInt(document.getElementById('f_capacity').value),
+    pattern: document.getElementById('f_pattern').value,
+    pin_obj_type: parseInt(document.getElementById('f_pin_obj_type').value),
+    rows: parseInt(document.getElementById('f_rows').value) || null,
+    cols: parseInt(document.getElementById('f_cols').value) || null,
+    blocked_slots: blocked,
+  };
+  try {
+    await API.post('/api/racks', data);
+    STATE.dirty = true;
+    await refreshConfig();
+    STATE.selection = { type: 'rack', id: data.id };
+    render();
+    toast('Rack saved', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function saveDevice() {
+  const caps = Array.from(document.querySelectorAll('#f_capabilities input:checked')).map(cb => cb.value);
+  const data = {
+    id: document.getElementById('f_id').value,
+    name: document.getElementById('f_name').value,
+    station_id: document.getElementById('f_station_id').value,
+    planner_role: document.getElementById('f_planner_role').value,
+    capabilities: caps,
+    exclude_station_racks_from_idle_return: true,
+  };
+  try {
+    await API.post('/api/devices', data);
+    STATE.dirty = true;
+    await refreshConfig();
+    STATE.selection = { type: 'device', id: data.id };
+    render();
+    toast('Device saved', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function saveSample() {
+  const procs = Array.from(document.querySelectorAll('#f_processes input:checked')).map(cb => cb.value);
+  const data = {
+    id: document.getElementById('f_id').value,
+    barcode: document.getElementById('f_barcode').value,
+    obj_type: parseInt(document.getElementById('f_obj_type').value),
+    length_mm: parseFloat(document.getElementById('f_length').value),
+    diameter_mm: parseFloat(document.getElementById('f_diameter').value),
+    cap_state: document.getElementById('f_cap_state').value,
+    required_processes: procs,
+  };
+  try {
+    await API.post('/api/samples', data);
+    STATE.dirty = true;
+    await refreshConfig();
+    STATE.selection = { type: 'sample', id: data.id };
+    render();
+    toast('Sample saved', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function saveLandmark() {
+  const data = {
+    id: document.getElementById('f_id').value,
+    code: document.getElementById('f_code').value,
+    station_id: document.getElementById('f_station_id').value,
+  };
+  try {
+    await API.post('/api/landmarks', data);
+    STATE.dirty = true;
+    await refreshConfig();
+    STATE.selection = { type: 'landmark', id: data.id };
+    render();
+    toast('Landmark saved', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function saveSlot(stationId) {
+  const accepted = Array.from(document.querySelectorAll('#f_accepted_rack_types input:checked')).map(cb => cb.value);
+  const data = {
+    slot_id: document.getElementById('f_slot_id').value,
+    kind: document.getElementById('f_kind').value,
+    jig_id: parseInt(document.getElementById('f_jig_id').value),
+    itm_id: parseInt(document.getElementById('f_itm_id').value) || 1,
+    rack_capacity: parseInt(document.getElementById('f_rack_capacity').value) || 1,
+    rack_pattern: document.getElementById('f_rack_pattern').value || null,
+    rack_rows: parseInt(document.getElementById('f_rack_rows').value) || null,
+    rack_cols: parseInt(document.getElementById('f_rack_cols').value) || null,
+    rack_index: parseInt(document.getElementById('f_rack_index').value) || 1,
+    obj_nbr_offset: parseInt(document.getElementById('f_obj_nbr_offset').value) || 0,
+    loading_strategy: document.getElementById('f_loading_strategy').value || '',
+    accepted_rack_types: accepted,
+  };
+  try {
+    await API.post(`/api/stations/${encodeURIComponent(stationId)}/slots`, data);
+    STATE.dirty = true;
+    await refreshConfig();
+    STATE.selection = { type: 'slot', id: data.slot_id, parentId: stationId };
+    render();
+    toast('Slot saved', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function savePlacement(stationId) {
+  const slotId = document.getElementById('f_slot_id').value;
+  const rackId = document.getElementById('f_placed_rack').value;
+  try {
+    if (rackId) {
+      await API.post('/api/placements', { station_id: stationId, station_slot_id: slotId, rack_id: rackId });
+    } else {
+      await API.del(`/api/placements/${encodeURIComponent(stationId)}/${encodeURIComponent(slotId)}`);
+    }
+    STATE.dirty = true;
+    await refreshConfig();
+    render();
+    toast('Placement updated', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ======================================================================
+// WISE operations
+// ======================================================================
+async function saveWise(deviceId) {
+  // Build channel map from rows
+  const channelRows = document.querySelectorAll('#fw_channels .wise-channel-row');
+  const channels = {};
+  channelRows.forEach(row => {
+    const key = row.querySelector('.wise-ch-key').value.trim();
+    const val = parseInt(row.querySelector('.wise-ch-val').value);
+    if (key && !isNaN(val)) channels[key] = val;
+  });
+
+  // Determine channel map key name based on existing config
+  const device = (STATE.config.devices || []).find(d => d.id === deviceId);
+  const existingWise = device?.wise || {};
+  const channelMapKey = existingWise.rack_ready_channels ? 'rack_ready_channels' : 'slot_ready_channels';
+
+  const enforceVal = document.getElementById('fw_enforce_unload').value;
+  const reqSelVal = document.getElementById('fw_required_for_selection').value;
+  const reqProcs = Array.from(document.querySelectorAll('#fw_required_processes input:checked')).map(cb => cb.value);
+
+  const wise = {
+    enabled: document.getElementById('fw_enabled').value === 'true',
+    host: document.getElementById('fw_host').value,
+    port: parseInt(document.getElementById('fw_port').value) || 80,
+    scheme: document.getElementById('fw_scheme').value,
+    auth: {
+      username: document.getElementById('fw_auth_user').value,
+      password: document.getElementById('fw_auth_pass').value,
+    },
+    di_slot: parseInt(document.getElementById('fw_di_slot').value) || 0,
+    di_endpoint_template: document.getElementById('fw_di_endpoint').value,
+    timeout_s: parseFloat(document.getElementById('fw_timeout').value) || 3.0,
+    poll_interval_s: parseFloat(document.getElementById('fw_poll_interval').value) || 1.0,
+    stale_after_s: parseFloat(document.getElementById('fw_stale_after').value) || 5.0,
+    verify_tls: document.getElementById('fw_verify_tls').value === 'true',
+  };
+
+  // Only include optional fields if they are set
+  if (enforceVal !== '') wise.enforce_ready_for_unload = enforceVal === 'true';
+  if (reqSelVal !== '') wise.required_for_selection = reqSelVal === 'true';
+  if (reqProcs.length > 0) wise.required_for_processes = reqProcs;
+  if (Object.keys(channels).length > 0) wise[channelMapKey] = channels;
+
+  try {
+    const r = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/wise`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ wise })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    STATE.dirty = true;
+    await refreshConfig();
+    STATE.selection = { type: 'device', id: deviceId };
+    render();
+    toast('WISE config saved', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function removeWise(deviceId) {
+  if (!await confirmDialog('Remove WISE', `Remove WISE configuration from device "${deviceId}"?`)) return;
+  try {
+    const r = await fetch(`/api/devices/${encodeURIComponent(deviceId)}/wise`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ wise: null })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    STATE.dirty = true;
+    await refreshConfig();
+    STATE.selection = { type: 'device', id: deviceId };
+    render();
+    toast('WISE removed', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function attachWise(deviceId) {
+  // Create a default WISE config and re-render with the editor open
+  const devices = STATE.config.devices || [];
+  const device = devices.find(d => d.id === deviceId);
+  if (device) {
+    device.wise = {
+      enabled: true,
+      host: '',
+      port: 80,
+      scheme: 'http',
+      auth: { username: 'root', password: '' },
+      di_slot: 0,
+      di_endpoint_template: '/di_value/slot_{slot}',
+      timeout_s: 3.0,
+      poll_interval_s: 1.0,
+      stale_after_s: 5.0,
+      verify_tls: true,
+      slot_ready_channels: {}
+    };
+    STATE.selection = { type: 'device', id: deviceId };
+    render();
+    toast('WISE config attached -- fill in the details and click Save WISE Config', 'info');
+  }
+}
+
+function addWiseChannel() {
+  const container = document.getElementById('fw_channels');
+  const row = document.createElement('div');
+  row.className = 'wise-channel-row';
+  row.innerHTML = `
+    <span class="ch-label">Slot/Rack</span>
+    <input class="wise-ch-key" value="" placeholder="key">
+    <span style="font-size:11px;color:#92400e">&#8594; CH</span>
+    <input class="wise-ch-val" type="number" value="0" placeholder="channel">
+    <button class="btn-icon" onclick="this.parentElement.remove()" title="Remove">&times;</button>
+  `;
+  container.appendChild(row);
+}
+
+// ======================================================================
+// Delete operations
+// ======================================================================
+async function deleteStation(id) {
+  if (!await confirmDialog('Delete Station', `Delete station "${id}" and all its slots, placements, landmarks, and devices?`)) return;
+  try {
+    await API.del(`/api/stations/${encodeURIComponent(id)}`);
+    STATE.dirty = true;
+    STATE.selection = null;
+    await refreshConfig();
+    render();
+    toast('Station deleted', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteRack(id) {
+  if (!await confirmDialog('Delete Rack', `Delete rack "${id}" and its placement?`)) return;
+  try {
+    await API.del(`/api/racks/${encodeURIComponent(id)}`);
+    STATE.dirty = true;
+    STATE.selection = null;
+    await refreshConfig();
+    render();
+    toast('Rack deleted', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteDevice(id) {
+  if (!await confirmDialog('Delete Device', `Delete device "${id}"?`)) return;
+  try {
+    await API.del(`/api/devices/${encodeURIComponent(id)}`);
+    STATE.dirty = true;
+    STATE.selection = null;
+    await refreshConfig();
+    render();
+    toast('Device deleted', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteSample(id) {
+  if (!await confirmDialog('Delete Sample', `Delete sample "${id}"?`)) return;
+  try {
+    await API.del(`/api/samples/${encodeURIComponent(id)}`);
+    STATE.dirty = true;
+    STATE.selection = null;
+    await refreshConfig();
+    render();
+    toast('Sample deleted', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteLandmark(id) {
+  if (!await confirmDialog('Delete Landmark', `Delete landmark "${id}"?`)) return;
+  try {
+    await API.del(`/api/landmarks/${encodeURIComponent(id)}`);
+    STATE.dirty = true;
+    STATE.selection = null;
+    await refreshConfig();
+    render();
+    toast('Landmark deleted', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteSlot(stationId, slotId) {
+  if (!await confirmDialog('Delete Slot', `Delete slot "${slotId}" from station "${stationId}"?`)) return;
+  try {
+    await API.del(`/api/stations/${encodeURIComponent(stationId)}/slots/${encodeURIComponent(slotId)}`);
+    STATE.dirty = true;
+    STATE.selection = { type: 'station', id: stationId };
+    await refreshConfig();
+    render();
+    toast('Slot deleted', 'success');
+  } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ======================================================================
+// Config-level actions
+// ======================================================================
+async function saveConfig() {
+  try {
+    await API.post('/api/config/save', {});
+    STATE.dirty = false;
+    updateSaveBtn();
+    toast('Config saved to disk', 'success');
+    updateStatus('Saved successfully');
+  } catch (e) { toast('Save failed: ' + e.message, 'error'); }
+}
+
+async function reloadConfig() {
+  if (STATE.dirty && !await confirmDialog('Reload', 'You have unsaved changes. Reload from disk and lose them?')) return;
+  try {
+    await API.post('/api/config/reload', {});
+    await refreshConfig();
+    STATE.dirty = false;
+    STATE.selection = null;
+    render();
+    toast('Reloaded from disk', 'info');
+  } catch (e) { toast('Reload failed: ' + e.message, 'error'); }
+}
+
+async function validateConfig() {
+  try {
+    const result = await API.post('/api/config/validate', {});
+    if (result.valid) {
+      toast('Config is valid', 'success');
+      updateStatus('<span class="status-ok">Valid</span>');
+    } else {
+      toast('Validation errors: ' + result.errors.join('; '), 'error');
+      updateStatus('<span class="status-bad">Invalid: ' + esc(result.errors[0]) + '</span>');
+    }
+  } catch (e) { toast('Validation error: ' + e.message, 'error'); }
+}
+
+async function refreshConfig() {
+  try {
+    STATE.config = await API.get('/api/config');
+  } catch (e) { toast('Failed to refresh: ' + e.message, 'error'); }
+}
+
+// ======================================================================
+// UI helpers
+// ======================================================================
+function esc(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+
+function updateSaveBtn() {
+  const btn = document.getElementById('saveBtn');
+  if (STATE.dirty) {
+    btn.innerHTML = 'Save <span class="dot"></span>';
+  } else {
+    btn.textContent = 'Save';
+  }
+}
+
+function updateStatus(html) {
+  document.getElementById('statusBar').innerHTML = '<span>' + html + '</span>';
+}
+
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
+}
+
+function confirmDialog(title, message) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `<div class="modal">
+      <h3>${esc(title)}</h3>
+      <p>${esc(message)}</p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="modalCancel">Cancel</button>
+        <button class="btn btn-danger" id="modalConfirm">Delete</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#modalCancel').onclick = () => { overlay.remove(); resolve(false); };
+    overlay.querySelector('#modalConfirm').onclick = () => { overlay.remove(); resolve(true); };
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+  });
+}
+
+// ======================================================================
+// Boot
+// ======================================================================
+init();
+</script>
+</body>
+</html>

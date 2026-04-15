@@ -944,7 +944,7 @@
             "exclude_station_racks_from_idle_return": false,
             "wise": {
                 "enabled": true,
-                "host": "192.168.137.101",
+                "host": "192.168.14.171",
                 "port": 80,
                 "scheme": "http",
                 "auth": {
@@ -998,7 +998,7 @@
             },
             "wise": {
                 "enabled": true,
-                "host": "192.168.137.101",
+                "host": "192.168.14.171",
                 "port": 80,
                 "scheme": "http",
                 "auth": {

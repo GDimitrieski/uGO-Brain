@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
@@ -13,7 +15,12 @@ INPUT_RETURN_SLOT_ID = "URGRackSlot2"
 PLATE_STATION_ID = "uLMPlateStation"
 CHARGE_STATION_ID = "CHARGE"
 SCAN_LANDMARK_ACT = 30
-DEFAULT_PROCESS_POLICIES_PATH = Path(__file__).resolve().with_name("process_policies.json")
+if os.environ.get("UGO_PROJECT_ROOT"):
+    DEFAULT_PROCESS_POLICIES_PATH = Path(os.environ["UGO_PROJECT_ROOT"]).resolve() / "planning" / "process_policies.json"
+elif getattr(sys, "frozen", False):
+    DEFAULT_PROCESS_POLICIES_PATH = Path(sys.executable).resolve().parent.parent / "planning" / "process_policies.json"
+else:
+    DEFAULT_PROCESS_POLICIES_PATH = Path(__file__).resolve().with_name("process_policies.json")
 READY_PACKML_STATES = {"IDLE", "COMPLETE", "STOPPED"}
 
 

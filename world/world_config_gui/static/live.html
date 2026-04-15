@@ -1,0 +1,2468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uGO World Live View</title>
+<style>
+:root {
+  /* ── Brand palette (from colors.css) ─── */
+  --brand-lighter: #e4eded;
+  --brand-light: #b9d4d5;
+  --brand: #3b8789;
+  --brand-dark: #236f71;
+  --brand-darker: #075255;
+
+  --positive-lighter: #ddf3ee;
+  --positive-light: #afe3d4;
+  --positive: #17a889;
+  --positive-dark: #2b917b;
+  --positive-darker: #206b5b;
+
+  --warning-lighter: #f9e9d8;
+  --warning-light: #f2b77d;
+  --warning: #e77612;
+  --warning-dark: #c86619;
+  --warning-darker: #7a4a1f;
+
+  --negative-lighter: #f5c1c7;
+  --negative-light: #f098a3;
+  --negative: #d50c4d;
+  --negative-dark: #9d0f3c;
+  --negative-darker: #730b2c;
+
+  --surface-primary: #ffffff;
+  --surface-secondary: #efefef;
+  --surface-tertiary: #d9d9d9;
+
+  --text-primary: #003138;
+  --text-secondary: #6d6d6d;
+
+  --blue-neutral: #257ba4;
+  --lights-maintenance: #b65d92;
+
+  /* ── Semantic aliases ─── */
+  --bg: var(--surface-secondary);
+  --panel: var(--surface-primary);
+  --line: var(--surface-tertiary);
+  --text: var(--text-primary);
+  --muted: var(--text-secondary);
+  --accent: var(--brand);
+  --ok: var(--positive);
+  --bad: var(--negative);
+  --warn: var(--warning);
+  --robot: var(--positive-dark);
+  --robot-bg: var(--positive-lighter);
+  --rack-border: var(--warning);
+  --rack-bg: var(--warning-lighter);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ───────────────────────────────────────── */
+.header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(8,18,35,0.05);
+}
+.header h1 { font-size: 18px; font-weight: 700; }
+.header .live-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--bad);
+  animation: pulse 1.5s infinite;
+}
+.header .live-dot.connected { background: var(--ok); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.header-right { display: flex; gap: 10px; margin-left: auto; align-items: center; }
+.header-right a {
+  font-size: 11px; color: var(--accent); text-decoration: none;
+  padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px;
+}
+.poll-rate {
+  font-size: 11px; color: var(--muted);
+  display: flex; align-items: center; gap: 4px;
+}
+.poll-rate select {
+  border: 1px solid var(--line); border-radius: 4px;
+  padding: 2px 4px; font-size: 11px; font-family: inherit;
+}
+.legend {
+  display: flex; gap: 8px; font-size: 10px; color: var(--muted); align-items: center;
+}
+.legend-item { display: flex; align-items: center; gap: 3px; }
+.legend-swatch {
+  width: 12px; height: 12px; border-radius: 2px; border: 1px solid var(--line);
+}
+
+/* ── Main Layout ──────────────────────────────────── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  flex: 1;
+  overflow: hidden;
+}
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.view-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.view-tab {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+  background: var(--surface-secondary);
+}
+.view-tab.active {
+  background: var(--brand-lighter);
+  color: var(--brand-darker);
+  border-color: var(--brand);
+}
+.view-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.view-pane {
+  position: absolute;
+  inset: 0;
+}
+.view-pane.hidden {
+  display: none !important;
+}
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+}
+
+/* ── Inspector Panel ─────────────────────────────── */
+.inspector {
+  flex-shrink: 0;
+  max-height: 45%;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--line);
+}
+.inspector-header {
+  padding: 8px 12px;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  position: sticky; top: 0; background: var(--panel); z-index: 1;
+}
+.inspector-body { padding: 10px 12px; }
+.inspector-empty {
+  padding: 20px 12px;
+  color: var(--muted); font-size: 11px; text-align: center;
+}
+.insp-type-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 6px;
+  border-radius: 3px; color: #fff; text-transform: uppercase;
+}
+.insp-type-badge.rack-pos { background: var(--blue-neutral); }
+.insp-type-badge.slot { background: var(--warning-dark); }
+.insp-type-badge.rack { background: var(--lights-maintenance); }
+.insp-type-badge.station { background: var(--brand-dark); }
+.insp-type-badge.gripper { background: var(--positive-dark); }
+.insp-id {
+  font-size: 14px; font-weight: 700; margin: 6px 0 10px;
+  word-break: break-all;
+}
+.insp-table {
+  width: 100%; font-size: 11px; border-collapse: collapse;
+}
+.insp-table td {
+  padding: 3px 0; vertical-align: top;
+}
+.insp-table td:first-child {
+  color: var(--muted); font-weight: 600;
+  white-space: nowrap; padding-right: 10px; width: 90px;
+  text-transform: uppercase; font-size: 10px;
+}
+.insp-table td:last-child { word-break: break-all; }
+.insp-state {
+  display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: 10px; font-weight: 700;
+}
+.insp-state.free { background: var(--surface-secondary); color: var(--muted); }
+.insp-state.occupied { background: var(--brand-lighter); color: var(--brand-darker); }
+.insp-state.pin { background: var(--surface-tertiary); color: var(--muted); }
+.insp-state.empty { background: var(--surface-secondary); color: var(--muted); }
+
+/* ── Floor Plan ──────────────────────────────────── */
+.floor-plan-wrap {
+  overflow: auto;
+  padding: 0;
+  position: relative;
+  height: 100%;
+}
+.floor-plan {
+  position: relative;
+  min-width: 1100px;
+  min-height: 750px;
+  width: 100%;
+  height: 100%;
+}
+
+/* -- MiR map tab ----------------------------------------------------- */
+.mir-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--panel);
+}
+.mir-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mir-toolbar label {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.mir-toolbar select,
+.mir-toolbar input {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  min-width: 180px;
+}
+.mir-toolbar button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--surface-secondary);
+  color: var(--text);
+}
+.mir-toolbar button:hover {
+  background: var(--brand-lighter);
+}
+.mir-connection {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 3px 9px;
+  margin-left: auto;
+}
+.mir-connection.online {
+  color: var(--positive-darker);
+  background: var(--positive-lighter);
+  border: 1px solid var(--positive-light);
+}
+.mir-connection.offline {
+  color: var(--negative-darker);
+  background: #fde7ea;
+  border: 1px solid var(--negative-light);
+}
+.mir-map-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8fbfb, #eef4f4);
+  overflow: hidden;
+  cursor: grab;
+}
+.mir-map-stage.dragging {
+  cursor: grabbing;
+}
+.mir-map-stage.shift-mode {
+  cursor: default;
+}
+.mir-viewport {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+.mir-map-stage img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+  pointer-events: none;
+}
+#mirPositionsLayer {
+  position: absolute;
+  inset: 0;
+}
+.mir-pos-marker {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--blue-neutral);
+  background: rgba(37, 123, 164, 0.25);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.8);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.mir-pos-marker.charger {
+  border-color: var(--warning-dark);
+  background: rgba(231, 118, 18, 0.25);
+  z-index: 3;
+}
+.mir-pos-marker .mir-pos-heading {
+  position: absolute;
+  left: 50%;
+  top: -7px;
+  width: 0;
+  height: 0;
+  margin-left: -4px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 8px solid var(--blue-neutral);
+}
+.mir-pos-marker.charger .mir-pos-heading {
+  border-bottom-color: var(--warning-dark);
+}
+.mir-pos-marker.shiftable {
+  cursor: move;
+}
+.mir-pos-marker.selected {
+  border-color: var(--warning-dark);
+  background: rgba(231, 118, 18, 0.35);
+}
+.mir-pos-label {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 4px;
+  white-space: nowrap;
+}
+.mir-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(255,255,255,0.45);
+  pointer-events: none;
+}
+#mirRobotMarker {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--positive-darker);
+  background: rgba(23, 168, 137, 0.25);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.75);
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  display: none;
+  pointer-events: none;
+}
+#mirRobotMarker .mir-arrow {
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  width: 0;
+  height: 0;
+  margin-left: -5px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 10px solid var(--positive-darker);
+}
+.mir-meta {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  padding: 6px 8px;
+}
+.mir-subtools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--muted);
+  align-items: center;
+}
+.mir-subtools label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mir-subtools button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 10px;
+  cursor: pointer;
+  background: var(--surface-secondary);
+}
+.mir-subtools .active {
+  background: var(--warning-lighter);
+  border-color: var(--warning-light);
+  color: var(--warning-darker);
+}
+.mir-position-editor {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  padding: 8px;
+}
+.mir-position-editor .title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.mir-position-empty {
+  font-size: 10px;
+  color: var(--muted);
+}
+.mir-position-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.mir-position-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.mir-position-form input {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--panel);
+}
+.mir-position-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.mir-position-actions button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 10px;
+  cursor: pointer;
+  background: var(--panel);
+}
+.mir-position-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.mir-position-current label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  text-transform: none;
+}
+.mir-position-current button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 10px;
+  cursor: pointer;
+  background: var(--panel);
+}
+
+/* ── Station Anchors (absolute, draggable) ───────── */
+.station-anchor {
+  position: absolute;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  cursor: grab;
+  z-index: 1;
+}
+.station-anchor:active { cursor: grabbing; }
+.station-anchor.dragging {
+  opacity: 0.85;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.station-anchor.dock-row { flex-direction: row; }
+
+/* ── Station Cards ───────────────────────────────── */
+.st-card {
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 130px;
+  box-shadow: 0 2px 8px rgba(8,18,35,0.05);
+  flex-shrink: 0;
+}
+.st-card.robot-here {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15,91,216,0.15), 0 4px 14px rgba(15,91,216,0.1);
+}
+.st-header {
+  display: flex; align-items: center; gap: 5px;
+  margin-bottom: 5px;
+  font-size: 12px; font-weight: 700;
+}
+.st-header .kind-tag {
+  font-size: 8px; font-weight: 700; padding: 1px 4px;
+  border-radius: 3px; color: #fff; text-transform: uppercase;
+  flex-shrink: 0;
+}
+.kind-tag.ext { background: var(--brand-dark); }
+.st-header .robot-icon { margin-left: auto; font-size: 14px; }
+.st-card .itm-label {
+  font-size: 9px; color: var(--muted); margin-bottom: 4px;
+}
+
+/* ── Dock arrow (connector between station & robot) ─ */
+.dock-arrow {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--robot); font-size: 18px; font-weight: 700;
+  opacity: 0.5; flex-shrink: 0;
+  min-width: 20px;
+}
+
+/* ── Robot Card (the uLM plate) ──────────────────── */
+.robot-card {
+  background: linear-gradient(135deg, var(--positive-lighter) 0%, var(--positive-light) 100%);
+  border: 2.5px solid var(--robot);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.10), 0 4px 16px rgba(22,163,74,0.08);
+  animation: robotIn 0.5s ease;
+  min-width: 280px;
+}
+.robot-card-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 700;
+  color: var(--robot);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px solid rgba(22,163,74,0.2);
+}
+.robot-card-header .robot-emoji { font-size: 18px; }
+@keyframes robotIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Robot gripper section */
+.gripper-section {
+  background: rgba(255,255,255,0.7);
+  border: 1.5px solid rgba(22,163,74,0.25);
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+.gripper-section .grip-label {
+  font-size: 9px; font-weight: 700; color: var(--robot);
+  text-transform: uppercase; margin-bottom: 2px;
+}
+.gripper-section .grip-item {
+  font-weight: 600; color: var(--accent);
+}
+.gripper-section .grip-empty {
+  color: var(--muted); font-style: italic;
+}
+
+/* Plate sections (one per ON_ROBOT_PLATE station) */
+.plate-section {
+  margin-top: 6px;
+}
+.plate-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--robot);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 3px;
+  opacity: 0.7;
+}
+
+/* ── Slots & Racks (shared) ──────────────────────── */
+.slot-card {
+  border: 1.5px dashed var(--line);
+  border-radius: 6px;
+  padding: 4px 6px;
+  min-width: 55px;
+  font-size: 10px;
+  color: var(--muted);
+  background: rgba(255,255,255,0.5);
+  cursor: pointer;
+}
+.slot-card:hover { border-color: var(--accent); }
+.slot-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(15,91,216,0.15); }
+.slot-card.has-rack {
+  border-style: solid;
+  border-color: var(--rack-border);
+  background: var(--rack-bg);
+}
+.slot-card .slot-name {
+  display: block; font-size: 8px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100px;
+}
+.slot-card .rack-name {
+  display: block; font-weight: 700; color: var(--rack-border); font-size: 9px;
+  margin-bottom: 2px;
+}
+.st-slots { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ── Rack Grid (sample positions) ────────────────── */
+.rack-grid {
+  display: grid;
+  gap: 2px;
+  margin-top: 2px;
+}
+.rack-cell {
+  width: 18px; height: 18px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--surface-primary);
+  font-size: 7px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.4s, border-color 0.4s, transform 0.3s;
+  cursor: pointer;
+  user-select: none;
+}
+.rack-cell:hover { opacity: 0.8; transform: scale(1.15); z-index: 1; }
+.rack-cell.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+.rack-cell.free { background: var(--surface-primary); border-color: var(--surface-tertiary); }
+.rack-cell.pin { background: var(--surface-tertiary); border-color: var(--surface-tertiary); color: var(--text-secondary); }
+.rack-cell.occupied.sample {
+  background: var(--brand-lighter); border-color: var(--brand);
+  color: var(--brand-darker); font-weight: 700;
+}
+.rack-cell.occupied.cap {
+  background: var(--warning-lighter); border-color: var(--warning-light);
+  color: var(--warning-darker); font-weight: 700;
+}
+.rack-cell.flash { animation: cellFlash 0.8s ease; }
+@keyframes cellFlash {
+  0% { transform: scale(1.5); background: var(--warning-light); }
+  100% { transform: scale(1); }
+}
+
+/* ── Event Feed ──────────────────────────────────── */
+.event-feed {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+.feed-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.feed-header .event-count {
+  font-size: 10px; font-weight: 600;
+  background: var(--line); border-radius: 10px;
+  padding: 1px 7px;
+}
+.feed-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.feed-item {
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--surface-secondary);
+  font-size: 10px;
+  animation: feedIn 0.3s ease;
+}
+@keyframes feedIn { from { opacity:0; transform:translateX(16px); } }
+.feed-item .feed-time {
+  color: var(--muted); font-size: 9px; font-family: Consolas, monospace;
+}
+.feed-item .feed-type { font-weight: 700; margin: 0 3px; }
+.feed-type.RACK_PICKED, .feed-type.RACK_PLACED { color: var(--warning-dark); }
+.feed-type.SAMPLE_PICKED, .feed-type.SAMPLE_PLACED, .feed-type.SAMPLE_MOVED { color: var(--brand-dark); }
+.feed-type.SAMPLES_DETECTED { color: var(--lights-maintenance); }
+.feed-type.NAVIGATION, .feed-type.ROBOT_AT_STATION { color: var(--robot); }
+.feed-type.WORLD_SNAPSHOT { color: var(--muted); }
+.feed-item .feed-entity { color: var(--text); }
+.feed-item .feed-detail { color: var(--muted); font-size: 9px; display: block; margin-top: 1px; }
+
+/* ── Status Bar ──────────────────────────────────── */
+.status-bar {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  padding: 4px 20px;
+  font-size: 10px;
+  color: var(--muted);
+  display: flex; gap: 16px;
+  flex-shrink: 0;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="live-dot" id="liveDot"></span>
+  <h1>uGO World Live View</h1>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--brand-lighter);border-color:var(--brand)"></div>Sample</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--warning-lighter);border-color:var(--warning-light)"></div>Cap</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--surface-tertiary);border-color:var(--surface-tertiary)"></div>Pin</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--surface-primary);border-color:var(--surface-tertiary)"></div>Free</div>
+  </div>
+  <div class="header-right">
+    <div class="poll-rate">
+      Poll:
+      <select id="pollRate" onchange="setPollRate(this.value)">
+        <option value="1000">1s</option>
+        <option value="2000" selected>2s</option>
+        <option value="5000">5s</option>
+        <option value="10000">10s</option>
+      </select>
+    </div>
+    <a href="/" style="cursor:pointer">Config Editor</a>
+    <a style="cursor:pointer" onclick="resetLayout()">Reset Layout</a>
+  </div>
+</div>
+
+<div class="main-layout">
+  <div class="left-panel">
+    <div class="view-tabs">
+      <button class="view-tab active" id="tabLab" onclick="setViewTab('lab')">Lab View</button>
+      <button class="view-tab" id="tabMir" onclick="setViewTab('mir')">MiR Map</button>
+    </div>
+    <div class="view-body">
+      <div class="floor-plan-wrap view-pane" id="labViewPane">
+        <div class="floor-plan" id="floorPlan"></div>
+      </div>
+      <div class="mir-pane view-pane hidden" id="mirViewPane">
+        <div class="mir-toolbar">
+          <label for="mirMapSelect">Map ID</label>
+          <select id="mirMapSelect" onchange="onMirMapSelectionChanged()">
+            <option value="">Auto (status.map_id)</option>
+          </select>
+          <input id="mirMapIdInput" placeholder="Override map_id (optional)" onkeydown="if (event.key === 'Enter') loadMirMap(true)">
+          <button onclick="loadMirMap(true)">Load Map</button>
+          <button onclick="refreshMirNow()">Refresh</button>
+          <span class="mir-connection offline" id="mirConnectionBadge">MiR offline</span>
+        </div>
+        <div class="mir-subtools">
+          <label><input type="checkbox" id="mirShowLabels" checked onchange="renderMirMarkers()">Show labels</label>
+          <button id="mirShiftBtn" onclick="toggleMirShiftMode()">Shift mode</button>
+          <button onclick="resetMirShiftOverrides()">Reset shifted positions</button>
+          <span id="mirZoomText">Zoom 100%</span>
+          <span style="opacity:0.75">Mouse wheel: zoom, drag: pan, shift mode: drag marker move + Alt+wheel/right-drag rotate</span>
+        </div>
+        <div class="mir-map-stage" id="mirMapStage">
+          <div class="mir-viewport" id="mirViewport">
+            <img id="mirMapImage" alt="MiR map" onload="onMirMapImageLoaded()" onerror="onMirMapImageError()">
+            <div id="mirPositionsLayer"></div>
+            <div id="mirRobotMarker"><div class="mir-arrow"></div></div>
+          </div>
+          <div class="mir-empty" id="mirMapEmpty">No MiR map loaded</div>
+        </div>
+        <div class="mir-meta" id="mirMeta">Map: - | Pose: -</div>
+        <div class="mir-position-editor" id="mirPositionEditor">
+          <div class="title">Position Properties</div>
+          <div class="mir-position-empty" id="mirPositionEmpty">Click a map position marker to inspect/edit.</div>
+          <div class="mir-position-form" id="mirPositionForm" style="display:none;">
+            <label>GUID <input id="mirPosGuid" readonly></label>
+            <label>Name <input id="mirPosName"></label>
+            <label>X (m) <input id="mirPosX" type="number" step="0.001"></label>
+            <label>Y (m) <input id="mirPosY" type="number" step="0.001"></label>
+            <label>Orientation (deg) <input id="mirPosOrientation" type="number" step="0.1"></label>
+            <label>Type ID <input id="mirPosTypeId" type="number" step="1"></label>
+            <label>Parent ID <input id="mirPosParentId"></label>
+            <label>Map ID <input id="mirPosMapId"></label>
+          </div>
+          <div class="mir-position-current" id="mirPositionCurrentControls" style="display:none;">
+            <label><input id="mirPosUseCurrentPose" type="checkbox"> Place at robot's current position on save</label>
+            <button onclick="copyCurrentRobotPoseToPositionForm()">Use current pose now</button>
+          </div>
+          <div class="mir-position-actions" id="mirPositionActions" style="display:none;">
+            <button onclick="saveMirPositionProperties()">Save Position</button>
+            <button onclick="reloadSelectedMirPosition()">Reload</button>
+            <button onclick="clearMirPositionSelection()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="right-sidebar">
+    <div class="inspector" id="inspector">
+      <div class="inspector-header">Inspector</div>
+      <div class="inspector-empty" id="inspectorBody">Click a cell, slot, or station to inspect</div>
+    </div>
+    <div class="event-feed">
+      <div class="feed-header">
+        Events <span class="event-count" id="eventCount">0</span>
+      </div>
+      <div class="feed-list" id="feedList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar"><span>Connecting...</span></div>
+
+<script>
+// ======================================================================
+// State
+// ======================================================================
+let POLL_MS = 2000;
+let pollTimer = null;
+let eventCursor = 0;
+let totalEvents = 0;
+let lastSnapshot = null;
+let prevPositions = {};
+
+// Indexed world data (rebuilt on each render for inspector lookups)
+let W = {
+  stations: {},    // station_id -> station record
+  slots: {},       // "station_id::slot_id" -> slot record
+  racks: {},       // rack_id -> rack record
+  positions: {},   // "rack_id::pos_index" -> position record
+  samples: {},     // sample_id -> { barcode, obj_type, cap_state, ... }
+  robotStationId: null,
+};
+
+// MiR tab state
+let ACTIVE_VIEW_TAB = 'lab';
+let MIR_POLL_MS = 1000;
+let mirPollTimer = null;
+let mirMapMeta = null;
+let mirMapId = null;
+let mirLastPose = null;
+let mirMapPositions = [];
+let mirShiftMode = false;
+let mirShiftOverrides = {};
+let mirSelectedPositionGuid = null;
+let mirSelectedPosition = null;
+const MIR_SHIFT_STORAGE_KEY = 'ugo_mir_shift_v1';
+const mirInteraction = {
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  draggingMap: false,
+  dragStartX: 0,
+  dragStartY: 0,
+  dragOriginX: 0,
+  dragOriginY: 0,
+  draggingPosGuid: null,
+  rotatingPosGuid: null,
+  rotateStartX: 0,
+  rotateOriginTheta: 0,
+};
+
+// ======================================================================
+// Floor plan layout: default positions (px) + dock arrow per station
+// Positions are persisted to localStorage when dragged.
+// ======================================================================
+const LAYOUT_STORAGE_KEY = 'ugo_live_layout_v1';
+
+const DEFAULT_POSITIONS = {
+  'BioRadIH1000Station': { x: 340, y: 20 },
+  'CentrifugeStation':   { x: 300, y: 170 },
+  'InputStation':        { x: 20,  y: 320 },
+  'CHARGE':              { x: 880, y: 320 },
+  'BioRadIH500Station':  { x: 300, y: 560 },
+  'FridgeStation':       { x: 760, y: 490 },
+  'ArchiveStation':      { x: 880, y: 630 },
+  '_robot_standalone':   { x: 380, y: 300 },
+};
+
+const DOCK_ARROWS = {
+  'BioRadIH1000Station': '\u2192',
+  'CentrifugeStation':   '\u2192',
+  'InputStation':        '\u2192',
+  'CHARGE':              '\u2190',
+  'BioRadIH500Station':  '\u2192',
+  'FridgeStation':       '\u2190',
+  'ArchiveStation':      '\u2190',
+};
+
+// Load saved positions or use defaults
+let stationPositions = {};
+function loadPositions() {
+  try {
+    const saved = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    stationPositions = saved ? JSON.parse(saved) : {};
+  } catch { stationPositions = {}; }
+}
+function savePositions() {
+  localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(stationPositions));
+}
+function getPos(key) {
+  return stationPositions[key] || DEFAULT_POSITIONS[key] || { x: 20, y: 20 };
+}
+function resetLayout() {
+  localStorage.removeItem(LAYOUT_STORAGE_KEY);
+  stationPositions = {};
+  if (lastSnapshot) renderWorld(lastSnapshot);
+}
+loadPositions();
+
+function loadMirShiftOverrides() {
+  try {
+    const raw = localStorage.getItem(MIR_SHIFT_STORAGE_KEY);
+    mirShiftOverrides = raw ? JSON.parse(raw) : {};
+  } catch {
+    mirShiftOverrides = {};
+  }
+}
+
+function saveMirShiftOverrides() {
+  localStorage.setItem(MIR_SHIFT_STORAGE_KEY, JSON.stringify(mirShiftOverrides));
+}
+
+loadMirShiftOverrides();
+
+// ======================================================================
+// Init
+// ======================================================================
+async function init() {
+  await loadSnapshot();
+  startPolling();
+  wireMirInteractions();
+  updateMirZoomText();
+  await loadMirMaps();
+  await loadMirMap(false);
+  startMirPolling();
+  setViewTab('lab');
+  window.addEventListener('resize', () => renderMirScene());
+}
+
+// ======================================================================
+// Data Loading
+// ======================================================================
+async function loadSnapshot() {
+  try {
+    const r = await fetch('/api/live/snapshot');
+    const data = await r.json();
+    if (data.records && data.records.length > 0) {
+      lastSnapshot = data.records;
+      renderWorld(data.records);
+      setConnected(true);
+      setStatus(`Snapshot: ${data.source} | ${data.records.length} records`);
+    } else {
+      setStatus('No snapshot available \u2014 is the workflow running?');
+      setConnected(false);
+    }
+  } catch (e) {
+    setStatus('Snapshot failed: ' + e.message);
+    setConnected(false);
+  }
+}
+
+async function pollEvents() {
+  try {
+    const r = await fetch(`/api/live/events?after=${eventCursor}`);
+    const data = await r.json();
+    if (data.events.length > 0) {
+      totalEvents += data.events.length;
+      eventCursor = data.cursor;
+      document.getElementById('eventCount').textContent = totalEvents;
+
+      const feedList = document.getElementById('feedList');
+      data.events.forEach(evt => {
+        feedList.insertBefore(buildFeedItem(evt), feedList.firstChild);
+      });
+      while (feedList.children.length > 200) {
+        feedList.removeChild(feedList.lastChild);
+      }
+
+      const lastEvent = data.events[data.events.length - 1];
+      if (lastEvent.state_after) renderWorldFromStateAfter(lastEvent.state_after);
+      setConnected(true);
+    }
+  } catch (e) { setConnected(false); }
+}
+
+// ======================================================================
+// Tabs: Lab view / MiR map view
+// ======================================================================
+function setViewTab(tab) {
+  ACTIVE_VIEW_TAB = tab === 'mir' ? 'mir' : 'lab';
+  const labPane = document.getElementById('labViewPane');
+  const mirPane = document.getElementById('mirViewPane');
+  const tabLab = document.getElementById('tabLab');
+  const tabMir = document.getElementById('tabMir');
+  const showMir = ACTIVE_VIEW_TAB === 'mir';
+
+  labPane.classList.toggle('hidden', showMir);
+  mirPane.classList.toggle('hidden', !showMir);
+  tabLab.classList.toggle('active', !showMir);
+  tabMir.classList.toggle('active', showMir);
+
+  if (showMir) {
+    refreshMirNow();
+  }
+}
+
+// ======================================================================
+// MiR API integration
+// ======================================================================
+function getMirRequestedMapId() {
+  const manual = document.getElementById('mirMapIdInput')?.value?.trim() || '';
+  if (manual) return manual;
+  return document.getElementById('mirMapSelect')?.value?.trim() || '';
+}
+
+function onMirMapSelectionChanged() {
+  const select = document.getElementById('mirMapSelect');
+  if (select && select.value.trim()) {
+    const override = document.getElementById('mirMapIdInput');
+    if (override) override.value = '';
+  }
+  loadMirMap(true);
+}
+
+function setMirConnection(online, hint = '') {
+  const badge = document.getElementById('mirConnectionBadge');
+  if (!badge) return;
+  badge.className = `mir-connection ${online ? 'online' : 'offline'}`;
+  const suffix = hint ? ` (${hint})` : '';
+  badge.textContent = online ? `MiR online${suffix}` : `MiR offline${suffix}`;
+}
+
+function setMirMeta(text) {
+  const el = document.getElementById('mirMeta');
+  if (el) el.textContent = text;
+}
+
+async function loadMirMaps() {
+  const select = document.getElementById('mirMapSelect');
+  if (!select) return;
+  const current = select.value;
+  try {
+    const r = await fetch('/api/mir/maps');
+    if (!r.ok) throw new Error(await readErrorResponse(r));
+    const data = await r.json();
+    const maps = Array.isArray(data.maps) ? data.maps : [];
+    let html = '<option value="">Auto (status.map_id)</option>';
+    maps.forEach(m => {
+      const mapId = String(m?.guid || m?.id || m?.map_id || '').trim();
+      if (!mapId) return;
+      const name = String(m?.name || mapId);
+      html += `<option value="${esc(mapId)}">${esc(name)} (${esc(mapId)})</option>`;
+    });
+    select.innerHTML = html;
+    if (current) {
+      for (const opt of select.options) {
+        if (opt.value === current) {
+          opt.selected = true;
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    setMirConnection(false, e.message || 'maps failed');
+  }
+}
+
+async function loadMirMap(forceReload = false) {
+  const requestedMapId = getMirRequestedMapId();
+  const query = requestedMapId ? `?map_id=${encodeURIComponent(requestedMapId)}` : '';
+  try {
+    const r = await fetch(`/api/mir/map${query}`);
+    if (!r.ok) throw new Error(await readErrorResponse(r));
+    const data = await r.json();
+    const previousMapId = mirMapId;
+    mirMapMeta = data.map || null;
+    mirMapId = data.map_id || requestedMapId || null;
+
+    const img = document.getElementById('mirMapImage');
+    const empty = document.getElementById('mirMapEmpty');
+    const src = data.image_data_url || data.proxy_image_url || '';
+    if (!src) {
+      img.removeAttribute('src');
+      empty.textContent = 'Map loaded, but no image content is available';
+      empty.style.display = 'flex';
+      mirMapPositions = [];
+    } else {
+      const previousImgMapId = img.dataset.mapId || '';
+      const shouldReload = forceReload || previousImgMapId !== String(mirMapId || '');
+      img.dataset.mapId = String(mirMapId || '');
+      if (shouldReload) img.src = src;
+      if (img.complete && img.naturalWidth > 0) {
+        empty.style.display = 'none';
+      }
+      await loadMirPositions();
+    }
+    if (previousMapId !== mirMapId) {
+      mirInteraction.zoom = 1;
+      mirInteraction.panX = 0;
+      mirInteraction.panY = 0;
+      updateMirZoomText();
+    }
+    setMirConnection(true);
+    setMirMeta(`Map: ${mirMapId || '-'} | Pose: ${formatMirPose(mirLastPose)}`);
+    renderMirScene();
+  } catch (e) {
+    const empty = document.getElementById('mirMapEmpty');
+    empty.textContent = 'Map load failed: ' + (e.message || 'unknown error');
+    empty.style.display = 'flex';
+    setMirConnection(false, e.message || 'map failed');
+  }
+}
+
+function onMirMapImageLoaded() {
+  const empty = document.getElementById('mirMapEmpty');
+  if (empty) empty.style.display = 'none';
+  renderMirScene();
+}
+
+function onMirMapImageError() {
+  const marker = document.getElementById('mirRobotMarker');
+  const layer = document.getElementById('mirPositionsLayer');
+  const empty = document.getElementById('mirMapEmpty');
+  if (marker) marker.style.display = 'none';
+  if (layer) layer.innerHTML = '';
+  if (empty) {
+    empty.textContent = 'Failed to render map image';
+    empty.style.display = 'flex';
+  }
+}
+
+async function pollMirPose() {
+  const requestedMapId = getMirRequestedMapId();
+  const query = requestedMapId ? `?map_id=${encodeURIComponent(requestedMapId)}` : '';
+  try {
+    const r = await fetch(`/api/mir/pose${query}`);
+    if (!r.ok) throw new Error(await readErrorResponse(r));
+    const data = await r.json();
+    mirLastPose = data.pose || null;
+    const statusMapId = data.status_map_id || null;
+
+    if (!requestedMapId && statusMapId && statusMapId !== mirMapId) {
+      await loadMirMap(false);
+    }
+    setMirConnection(true, data.map_match ? '' : 'map mismatch');
+    setMirMeta(`Map: ${statusMapId || mirMapId || '-'} | Pose: ${formatMirPose(mirLastPose)}`);
+    renderMirScene();
+  } catch (e) {
+    setMirConnection(false, e.message || 'pose failed');
+  }
+}
+
+function startMirPolling() {
+  if (mirPollTimer) clearInterval(mirPollTimer);
+  mirPollTimer = setInterval(() => pollMirPose(), MIR_POLL_MS);
+  pollMirPose();
+}
+
+async function refreshMirNow() {
+  await loadMirMaps();
+  await loadMirMap(true);
+  await pollMirPose();
+}
+
+async function loadMirPositions() {
+  if (!mirMapId) {
+    mirMapPositions = [];
+    clearMirPositionSelection();
+    renderMirMarkers();
+    return;
+  }
+  try {
+    const r = await fetch(`/api/mir/map-positions?map_id=${encodeURIComponent(mirMapId)}`);
+    if (!r.ok) throw new Error(await readErrorResponse(r));
+    const data = await r.json();
+    mirMapPositions = Array.isArray(data.positions) ? data.positions : [];
+    if (mirSelectedPositionGuid) {
+      mirSelectedPosition = getMirPositionByGuid(mirSelectedPositionGuid);
+      if (!mirSelectedPosition) {
+        clearMirPositionSelection();
+      } else {
+        renderMirPositionEditor();
+      }
+    }
+    renderMirMarkers();
+  } catch (e) {
+    mirMapPositions = [];
+    setMirConnection(false, 'positions failed');
+  }
+}
+
+function wireMirInteractions() {
+  const stage = document.getElementById('mirMapStage');
+  if (!stage || stage.dataset.wired === '1') return;
+  stage.dataset.wired = '1';
+
+  stage.addEventListener('contextmenu', (e) => {
+    if (mirShiftMode) e.preventDefault();
+  });
+
+  stage.addEventListener('wheel', (e) => {
+    const posMarker = e.target.closest('.mir-pos-marker');
+    if (mirShiftMode && e.altKey && posMarker && posMarker.dataset.guid) {
+      e.preventDefault();
+      const guid = String(posMarker.dataset.guid || '');
+      const shift = getMirShiftForGuid(guid);
+      const stepDeg = e.deltaY < 0 ? 2 : -2;
+      setMirShiftForGuid(guid, shift.dx, shift.dy, shift.dtheta + stepDeg);
+      saveMirShiftOverrides();
+      updateMirPositionEditorFromShift(guid);
+      renderMirMarkers();
+      return;
+    }
+
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1.1 : 0.9;
+    mirInteraction.zoom = Math.max(0.4, Math.min(6.0, mirInteraction.zoom * delta));
+    updateMirZoomText();
+    renderMirScene();
+  }, { passive: false });
+
+  stage.addEventListener('mousedown', (e) => {
+    const posMarker = e.target.closest('.mir-pos-marker');
+    if (mirShiftMode && posMarker && posMarker.dataset.guid) {
+      const guid = String(posMarker.dataset.guid || '');
+      const current = getMirShiftForGuid(guid);
+      if (e.button === 2) {
+        mirInteraction.rotatingPosGuid = guid;
+        mirInteraction.rotateStartX = e.clientX;
+        mirInteraction.rotateOriginTheta = current.dtheta;
+      } else if (e.button === 0) {
+        mirInteraction.draggingPosGuid = guid;
+        mirInteraction.dragStartX = e.clientX;
+        mirInteraction.dragStartY = e.clientY;
+        mirInteraction.dragOriginX = current.dx;
+        mirInteraction.dragOriginY = current.dy;
+      } else {
+        return;
+      }
+      e.preventDefault();
+      return;
+    }
+
+    if (e.button !== 0) return;
+    if (mirShiftMode) return;
+    mirInteraction.draggingMap = true;
+    mirInteraction.dragStartX = e.clientX;
+    mirInteraction.dragStartY = e.clientY;
+    mirInteraction.dragOriginX = mirInteraction.panX;
+    mirInteraction.dragOriginY = mirInteraction.panY;
+    stage.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (mirInteraction.draggingMap) {
+      const dx = e.clientX - mirInteraction.dragStartX;
+      const dy = e.clientY - mirInteraction.dragStartY;
+      mirInteraction.panX = mirInteraction.dragOriginX + dx;
+      mirInteraction.panY = mirInteraction.dragOriginY + dy;
+      renderMirScene();
+      return;
+    }
+    if (mirInteraction.draggingPosGuid) {
+      const box = getMirViewportBox();
+      const res = mapNumber('resolution');
+      if (!box || !Number.isFinite(res) || res <= 0) return;
+      const dxPx = e.clientX - mirInteraction.dragStartX;
+      const dyPx = e.clientY - mirInteraction.dragStartY;
+      const dxMeters = (dxPx / box.scale) * res;
+      const dyMeters = -(dyPx / box.scale) * res;
+      setMirShiftForGuid(
+        mirInteraction.draggingPosGuid,
+        mirInteraction.dragOriginX + dxMeters,
+        mirInteraction.dragOriginY + dyMeters,
+      );
+      updateMirPositionEditorFromShift(mirInteraction.draggingPosGuid);
+      renderMirMarkers();
+      return;
+    }
+    if (mirInteraction.rotatingPosGuid) {
+      const dxPx = e.clientX - mirInteraction.rotateStartX;
+      const deltaTheta = dxPx * 0.35;
+      const current = getMirShiftForGuid(mirInteraction.rotatingPosGuid);
+      setMirShiftForGuid(
+        mirInteraction.rotatingPosGuid,
+        current.dx,
+        current.dy,
+        mirInteraction.rotateOriginTheta + deltaTheta,
+      );
+      updateMirPositionEditorFromShift(mirInteraction.rotatingPosGuid);
+      renderMirMarkers();
+      return;
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (mirInteraction.draggingMap) {
+      mirInteraction.draggingMap = false;
+      stage.classList.remove('dragging');
+    }
+    if (mirInteraction.draggingPosGuid) {
+      mirInteraction.draggingPosGuid = null;
+      saveMirShiftOverrides();
+    }
+    if (mirInteraction.rotatingPosGuid) {
+      mirInteraction.rotatingPosGuid = null;
+      saveMirShiftOverrides();
+    }
+  });
+}
+
+function toggleMirShiftMode() {
+  mirShiftMode = !mirShiftMode;
+  const btn = document.getElementById('mirShiftBtn');
+  const stage = document.getElementById('mirMapStage');
+  if (btn) btn.classList.toggle('active', mirShiftMode);
+  if (stage) stage.classList.toggle('shift-mode', mirShiftMode);
+  renderMirMarkers();
+}
+
+function resetMirShiftOverrides() {
+  if (!mirMapId) return;
+  delete mirShiftOverrides[mirMapId];
+  saveMirShiftOverrides();
+  renderMirMarkers();
+}
+
+function updateMirZoomText() {
+  const el = document.getElementById('mirZoomText');
+  if (el) el.textContent = `Zoom ${Math.round(mirInteraction.zoom * 100)}%`;
+}
+
+function getMirShiftForGuid(guid) {
+  if (!mirMapId || !guid) return { dx: 0, dy: 0, dtheta: 0 };
+  const byMap = mirShiftOverrides[mirMapId] || {};
+  const row = byMap[guid];
+  if (!row || typeof row !== 'object') return { dx: 0, dy: 0, dtheta: 0 };
+  const dx = Number(row.dx);
+  const dy = Number(row.dy);
+  const dtheta = Number(row.dtheta);
+  return {
+    dx: Number.isFinite(dx) ? dx : 0,
+    dy: Number.isFinite(dy) ? dy : 0,
+    dtheta: Number.isFinite(dtheta) ? dtheta : 0,
+  };
+}
+
+function setMirShiftForGuid(guid, dx, dy, dtheta = null) {
+  if (!mirMapId || !guid) return;
+  const byMap = mirShiftOverrides[mirMapId] || {};
+  const prev = byMap[guid] || {};
+  const prevTheta = Number(prev.dtheta);
+  byMap[guid] = {
+    dx,
+    dy,
+    dtheta: dtheta == null ? (Number.isFinite(prevTheta) ? prevTheta : 0) : dtheta,
+  };
+  mirShiftOverrides[mirMapId] = byMap;
+}
+
+function getMirRenderShiftForGuid(guid) {
+  if (!mirShiftMode) return { dx: 0, dy: 0, dtheta: 0 };
+  return getMirShiftForGuid(guid);
+}
+
+function clearMirShiftForGuid(guid) {
+  if (!mirMapId || !guid) return;
+  const byMap = mirShiftOverrides[mirMapId];
+  if (!byMap || typeof byMap !== 'object' || !byMap[guid]) return;
+  delete byMap[guid];
+  if (Object.keys(byMap).length === 0) {
+    delete mirShiftOverrides[mirMapId];
+  } else {
+    mirShiftOverrides[mirMapId] = byMap;
+  }
+  saveMirShiftOverrides();
+}
+
+function renderMirScene() {
+  applyMirViewport();
+  renderMirMarkers();
+  renderMirMarker();
+}
+
+function applyMirViewport() {
+  const viewport = document.getElementById('mirViewport');
+  const box = getMirViewportBox();
+  if (!viewport || !box) return;
+  viewport.style.left = `${box.left}px`;
+  viewport.style.top = `${box.top}px`;
+  viewport.style.width = `${box.width}px`;
+  viewport.style.height = `${box.height}px`;
+}
+
+function renderMirMarkers() {
+  const layer = document.getElementById('mirPositionsLayer');
+  const showLabels = !!document.getElementById('mirShowLabels')?.checked;
+  const box = getMirViewportBox();
+  if (!layer) return;
+  layer.innerHTML = '';
+  if (!box || !Array.isArray(mirMapPositions) || mirMapPositions.length === 0) return;
+
+  mirMapPositions.forEach(p => {
+    const guid = String(p.guid || '');
+    const baseX = Number(p.pos_x);
+    const baseY = Number(p.pos_y);
+    if (!Number.isFinite(baseX) || !Number.isFinite(baseY)) return;
+
+    const shift = getMirRenderShiftForGuid(guid);
+    const worldX = baseX + shift.dx;
+    const worldY = baseY + shift.dy;
+    const pt = worldToImagePixels(worldX, worldY);
+    if (!pt) return;
+
+    const marker = document.createElement('div');
+    marker.className = 'mir-pos-marker' + (mirShiftMode ? ' shiftable' : '');
+    const typeId = Number(p.type_id);
+    if (typeId === 20 || typeId === 21) marker.classList.add('charger');
+    marker.dataset.guid = guid;
+    if (guid && guid === mirSelectedPositionGuid) marker.classList.add('selected');
+    marker.style.left = `${pt.x * box.scale}px`;
+    marker.style.top = `${pt.y * box.scale}px`;
+    const baseHeading = Number(p.orientation);
+    const heading = Number.isFinite(baseHeading) ? baseHeading + shift.dtheta + 180 : NaN;
+    if (Number.isFinite(heading)) {
+      marker.style.transform = `translate(-50%, -50%) rotate(${heading}deg)`;
+      marker.innerHTML = '<div class="mir-pos-heading"></div>';
+    }
+    if (showLabels) {
+      const label = document.createElement('div');
+      label.className = 'mir-pos-label';
+      label.textContent = String(p.name || guid);
+      marker.appendChild(label);
+    }
+    marker.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (mirInteraction.draggingMap || mirInteraction.draggingPosGuid || mirInteraction.rotatingPosGuid) return;
+      selectMirPosition(guid);
+    });
+    layer.appendChild(marker);
+  });
+}
+
+function renderMirMarker() {
+  const marker = document.getElementById('mirRobotMarker');
+  const box = getMirViewportBox();
+  if (!marker || !box || !mirLastPose) {
+    if (marker) marker.style.display = 'none';
+    return;
+  }
+  const pt = worldToImagePixels(mirLastPose.x, mirLastPose.y);
+  if (!pt) {
+    marker.style.display = 'none';
+    return;
+  }
+  const heading = Number.isFinite(mirLastPose.orientation) ? mirLastPose.orientation : 0;
+  marker.style.left = `${pt.x * box.scale}px`;
+  marker.style.top = `${pt.y * box.scale}px`;
+  marker.style.transform = `translate(-50%, -50%) rotate(${heading}deg)`;
+  marker.style.display = 'block';
+}
+
+function getMirViewportBox() {
+  const img = document.getElementById('mirMapImage');
+  const stage = document.getElementById('mirMapStage');
+  if (!img || !stage) return null;
+  const base = getRenderedImageBox(img, stage);
+  if (!base) return null;
+  const width = base.renderW * mirInteraction.zoom;
+  const height = base.renderH * mirInteraction.zoom;
+  const left = base.offsetX + mirInteraction.panX - ((width - base.renderW) / 2);
+  const top = base.offsetY + mirInteraction.panY - ((height - base.renderH) / 2);
+  return {
+    left,
+    top,
+    width,
+    height,
+    scale: width / img.naturalWidth,
+  };
+}
+
+function getRenderedImageBox(img, stage) {
+  const iw = img.naturalWidth;
+  const ih = img.naturalHeight;
+  const cw = stage.clientWidth;
+  const ch = stage.clientHeight;
+  if (!iw || !ih || !cw || !ch) return null;
+  const scale = Math.min(cw / iw, ch / ih);
+  const renderW = iw * scale;
+  const renderH = ih * scale;
+  return {
+    scale,
+    offsetX: (cw - renderW) / 2,
+    offsetY: (ch - renderH) / 2,
+    renderW,
+    renderH,
+  };
+}
+
+function worldToImagePixels(worldX, worldY) {
+  const mapX = mapNumber('origin_x');
+  const mapY = mapNumber('origin_y');
+  const mapRes = mapNumber('resolution');
+  const img = document.getElementById('mirMapImage');
+  if (!img || !Number.isFinite(worldX) || !Number.isFinite(worldY) || mapX == null || mapY == null || mapRes == null || mapRes <= 0 || !img.naturalWidth || !img.naturalHeight) {
+    return null;
+  }
+  const x = (worldX - mapX) / mapRes;
+  const y = img.naturalHeight - ((worldY - mapY) / mapRes);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return { x, y };
+}
+
+function getMirPositionByGuid(guid) {
+  if (!guid) return null;
+  return mirMapPositions.find(p => String(p.guid || '') === String(guid)) || null;
+}
+
+function selectMirPosition(guid) {
+  mirSelectedPositionGuid = String(guid || '');
+  mirSelectedPosition = getMirPositionByGuid(mirSelectedPositionGuid);
+  renderMirPositionEditor();
+  renderMirMarkers();
+}
+
+function clearMirPositionSelection() {
+  mirSelectedPositionGuid = null;
+  mirSelectedPosition = null;
+  renderMirPositionEditor();
+  renderMirMarkers();
+}
+
+function renderMirPositionEditor() {
+  const empty = document.getElementById('mirPositionEmpty');
+  const form = document.getElementById('mirPositionForm');
+  const actions = document.getElementById('mirPositionActions');
+  const currentControls = document.getElementById('mirPositionCurrentControls');
+  if (!empty || !form || !actions || !currentControls) return;
+
+  if (!mirSelectedPosition) {
+    empty.style.display = 'block';
+    form.style.display = 'none';
+    currentControls.style.display = 'none';
+    actions.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  form.style.display = 'grid';
+  currentControls.style.display = 'flex';
+  actions.style.display = 'flex';
+
+  const selectedGuid = String(mirSelectedPosition.guid || '');
+  const shift = getMirRenderShiftForGuid(selectedGuid);
+  const baseX = Number(mirSelectedPosition.pos_x);
+  const baseY = Number(mirSelectedPosition.pos_y);
+  const baseOrientation = Number(mirSelectedPosition.orientation);
+  const xForEditor = Number.isFinite(baseX) ? baseX + shift.dx : NaN;
+  const yForEditor = Number.isFinite(baseY) ? baseY + shift.dy : NaN;
+  const orientationForEditor = Number.isFinite(baseOrientation) ? baseOrientation + shift.dtheta : NaN;
+
+  document.getElementById('mirPosGuid').value = selectedGuid;
+  document.getElementById('mirPosName').value = String(mirSelectedPosition.name || '');
+  document.getElementById('mirPosX').value = Number.isFinite(xForEditor) ? String(xForEditor) : '';
+  document.getElementById('mirPosY').value = Number.isFinite(yForEditor) ? String(yForEditor) : '';
+  document.getElementById('mirPosOrientation').value = Number.isFinite(orientationForEditor) ? String(orientationForEditor) : '';
+  document.getElementById('mirPosTypeId').value = Number.isFinite(Number(mirSelectedPosition.type_id)) ? String(mirSelectedPosition.type_id) : '';
+  document.getElementById('mirPosParentId').value = mirSelectedPosition.parent_id == null ? '' : String(mirSelectedPosition.parent_id);
+  document.getElementById('mirPosMapId').value = String(mirSelectedPosition.map_id || mirMapId || '');
+  const useCurrent = document.getElementById('mirPosUseCurrentPose');
+  if (useCurrent) {
+    if (useCurrent.dataset.boundGuid !== selectedGuid) {
+      useCurrent.checked = false;
+      useCurrent.dataset.boundGuid = selectedGuid;
+    }
+  }
+}
+
+function updateMirPositionEditorFromShift(guid) {
+  if (!mirShiftMode) return;
+  if (!guid || !mirSelectedPosition || String(mirSelectedPosition.guid || '') !== String(guid)) return;
+  const shift = getMirShiftForGuid(guid);
+  const baseX = Number(mirSelectedPosition.pos_x);
+  const baseY = Number(mirSelectedPosition.pos_y);
+  const baseOrientation = Number(mirSelectedPosition.orientation);
+  const x = Number.isFinite(baseX) ? baseX + shift.dx : NaN;
+  const y = Number.isFinite(baseY) ? baseY + shift.dy : NaN;
+  const orientation = Number.isFinite(baseOrientation) ? baseOrientation + shift.dtheta : NaN;
+  if (Number.isFinite(x)) document.getElementById('mirPosX').value = String(x);
+  if (Number.isFinite(y)) document.getElementById('mirPosY').value = String(y);
+  if (Number.isFinite(orientation)) document.getElementById('mirPosOrientation').value = String(orientation);
+}
+
+function getFiniteMirPose(pose) {
+  if (!pose || typeof pose !== 'object') return null;
+  const x = Number(pose.x);
+  const y = Number(pose.y);
+  const orientation = Number(pose.orientation);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(orientation)) return null;
+  return { x, y, orientation };
+}
+
+async function ensureMirPoseForEditing() {
+  let pose = getFiniteMirPose(mirLastPose);
+  if (pose) return pose;
+  await pollMirPose();
+  pose = getFiniteMirPose(mirLastPose);
+  return pose;
+}
+
+function setMirPositionFormFromPose(pose) {
+  if (!pose) return;
+  document.getElementById('mirPosX').value = String(pose.x);
+  document.getElementById('mirPosY').value = String(pose.y);
+  document.getElementById('mirPosOrientation').value = String(pose.orientation);
+}
+
+async function copyCurrentRobotPoseToPositionForm() {
+  if (!mirSelectedPositionGuid) return;
+  try {
+    const pose = await ensureMirPoseForEditing();
+    if (!pose) {
+      setMirConnection(false, 'robot pose unavailable');
+      return;
+    }
+    setMirPositionFormFromPose(pose);
+    setMirConnection(true, 'current pose copied');
+  } catch (e) {
+    setMirConnection(false, e.message || 'pose copy failed');
+  }
+}
+
+async function reloadSelectedMirPosition() {
+  if (!mirSelectedPositionGuid) return;
+  try {
+    const r = await fetch(`/api/mir/positions/${encodeURIComponent(mirSelectedPositionGuid)}`);
+    if (!r.ok) throw new Error(await readErrorResponse(r));
+    const data = await r.json();
+    mirSelectedPosition = data.position || null;
+    renderMirPositionEditor();
+    await loadMirPositions();
+  } catch (e) {
+    setMirConnection(false, e.message || 'reload failed');
+  }
+}
+
+async function saveMirPositionProperties() {
+  if (!mirSelectedPositionGuid) return;
+  const useCurrentPose = !!document.getElementById('mirPosUseCurrentPose')?.checked;
+  const existingTypeId = toIntOrNull(mirSelectedPosition?.type_id);
+  const payload = {
+    name: document.getElementById('mirPosName').value,
+    pos_x: toFiniteOrNull(document.getElementById('mirPosX').value),
+    pos_y: toFiniteOrNull(document.getElementById('mirPosY').value),
+    orientation: toFiniteOrNull(document.getElementById('mirPosOrientation').value),
+    type_id: toIntOrNull(document.getElementById('mirPosTypeId').value),
+    parent_id: emptyToNull(document.getElementById('mirPosParentId').value),
+    map_id: emptyToNull(document.getElementById('mirPosMapId').value) || mirMapId,
+  };
+  if (payload.type_id == null && existingTypeId != null) payload.type_id = existingTypeId;
+
+  if (useCurrentPose) {
+    try {
+      const pose = await ensureMirPoseForEditing();
+      if (!pose) {
+        setMirConnection(false, 'robot pose unavailable');
+        return;
+      }
+      payload.pos_x = pose.x;
+      payload.pos_y = pose.y;
+      payload.orientation = pose.orientation;
+      setMirPositionFormFromPose(pose);
+    } catch (e) {
+      setMirConnection(false, e.message || 'pose fetch failed');
+      return;
+    }
+  }
+
+  if (payload.orientation != null) {
+    payload.orientation = normalizeOrientationDeg(payload.orientation);
+  }
+
+  if (payload.pos_x == null || payload.pos_y == null || payload.orientation == null) {
+    setMirConnection(false, 'x/y/orientation required');
+    return;
+  }
+
+  try {
+    const r = await fetch(`/api/mir/positions/${encodeURIComponent(mirSelectedPositionGuid)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(await readErrorResponse(r));
+    const data = await r.json();
+    clearMirShiftForGuid(mirSelectedPositionGuid);
+    mirSelectedPosition = data.position || null;
+    renderMirPositionEditor();
+    await loadMirPositions();
+    await pollMirPose();
+    setMirConnection(true, 'position saved');
+  } catch (e) {
+    setMirConnection(false, e.message || 'save failed');
+  }
+}
+
+function toFiniteOrNull(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toIntOrNull(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+}
+
+function emptyToNull(value) {
+  const v = String(value == null ? '' : value).trim();
+  return v ? v : null;
+}
+
+function normalizeOrientationDeg(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return n;
+  const wrapped = ((n + 180) % 360 + 360) % 360 - 180;
+  return wrapped === -180 ? 180 : wrapped;
+}
+
+function mapNumber(key) {
+  if (!mirMapMeta || typeof mirMapMeta !== 'object') return null;
+  const direct = mirMapMeta[key];
+  const directNum = Number(direct);
+  if (Number.isFinite(directNum)) return directNum;
+  const meta = mirMapMeta.metadata;
+  if (!meta || typeof meta !== 'object') return null;
+  const nestedNum = Number(meta[key]);
+  if (Number.isFinite(nestedNum)) return nestedNum;
+  return null;
+}
+
+function formatMirPose(pose) {
+  if (!pose) return '-';
+  return `x=${fmtNum(pose.x)}, y=${fmtNum(pose.y)}, th=${fmtNum(pose.orientation)}deg`;
+}
+
+function fmtNum(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return '?';
+  return num.toFixed(2);
+}
+
+async function readErrorResponse(resp) {
+  const text = await resp.text();
+  if (!text) return `HTTP ${resp.status}`;
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed?.detail === 'string') return parsed.detail;
+    if (parsed?.detail != null) return JSON.stringify(parsed.detail);
+  } catch {}
+  return text;
+}
+
+// ======================================================================
+// Rendering: World from Snapshot Records
+// ======================================================================
+function renderWorld(records) {
+  const worldRec = records.find(r => r.record_type === 'WORLD');
+  const stations = records.filter(r => r.record_type === 'STATION');
+  const slots    = records.filter(r => r.record_type === 'SLOT');
+  const racks    = records.filter(r => r.record_type === 'RACK');
+  const positions = records.filter(r => r.record_type === 'RACK_POSITION');
+
+  const robotStationId = worldRec?.robot_current_station_id;
+
+  // Index data
+  const slotsByStation = {};
+  slots.forEach(s => { (slotsByStation[s.station_id] ??= []).push(s); });
+
+  const posByRack = {};
+  positions.forEach(p => { (posByRack[p.rack_id] ??= []).push(p); });
+
+  const rackMap = {};
+  racks.forEach(r => { rackMap[r.rack_id] = r; });
+
+  // Populate global index for inspector
+  const sampleRecs = records.filter(r => r.record_type === 'SAMPLE');
+  W = { stations: {}, slots: {}, racks: {}, positions: {}, samples: {}, robotStationId };
+  stations.forEach(s => { W.stations[s.station_id] = s; });
+  slots.forEach(s => { W.slots[`${s.station_id}::${s.station_slot_id}`] = s; });
+  racks.forEach(r => { W.racks[r.rack_id] = r; });
+  positions.forEach(p => { W.positions[`${p.rack_id}::${p.position_index}`] = p; });
+  sampleRecs.forEach(s => { W.samples[s.sample_id] = s; });
+
+  // Classify stations — use kind + known IDs as safety net
+  const PLATE_IDS = ['uLMPlateStation', '3-FingerGripperStation'];
+  const isPlate   = s => s.station_kind === 'ON_ROBOT_PLATE' || PLATE_IDS.includes(s.station_id);
+  const isVirtual = s => s.station_kind === 'VIRTUAL' || s.station_id === 'uLM_GRIPPER';
+
+  const extStations     = stations.filter(s => !isPlate(s) && !isVirtual(s));
+  const plateStations   = stations.filter(s => isPlate(s));
+  const gripperStation  = stations.find(s => isVirtual(s));
+
+  // Build robot card HTML once (reused wherever robot is docked)
+  const robotHtml = buildRobotCardHtml(
+    plateStations, gripperStation, slotsByStation, rackMap, posByRack, robotStationId
+  );
+
+  const grid = document.getElementById('floorPlan');
+  grid.innerHTML = '';
+
+  let robotRendered = false;
+
+  extStations.forEach(st => {
+    const arrow = DOCK_ARROWS[st.station_id] || '\u2192';
+    const isRobotHere = (st.station_id === robotStationId);
+    const pos = getPos(st.station_id);
+
+    const anchor = document.createElement('div');
+    anchor.className = 'station-anchor dock-row';
+    anchor.dataset.stationKey = st.station_id;
+    anchor.style.left = pos.x + 'px';
+    anchor.style.top = pos.y + 'px';
+
+    let html = buildStationCardHtml(st, isRobotHere, slotsByStation, rackMap, posByRack);
+
+    if (isRobotHere) {
+      html += `<div class="dock-arrow">${arrow}</div>`;
+      html += robotHtml;
+      robotRendered = true;
+    }
+
+    anchor.innerHTML = html;
+    grid.appendChild(anchor);
+  });
+
+  // If robot is not at any external station, show it standalone
+  if (!robotRendered && plateStations.length > 0) {
+    const pos = getPos('_robot_standalone');
+    const anchor = document.createElement('div');
+    anchor.className = 'station-anchor dock-row';
+    anchor.dataset.stationKey = '_robot_standalone';
+    anchor.style.left = pos.x + 'px';
+    anchor.style.top = pos.y + 'px';
+    anchor.innerHTML = robotHtml;
+    grid.appendChild(anchor);
+  }
+
+  // Wire up click handlers for inspector + drag
+  wireInspectorClicks(grid);
+  wireDrag(grid);
+}
+
+// ======================================================================
+// Build: Station card (external station)
+// ======================================================================
+function buildStationCardHtml(st, isRobotHere, slotsByStation, rackMap, posByRack) {
+  const stSlots = slotsByStation[st.station_id] || [];
+  const slotsHtml = stSlots.map(sl => buildSlotHtml(sl, rackMap, posByRack)).join('');
+
+  return `<div class="st-card${isRobotHere ? ' robot-here' : ''}" data-inspect="station" data-station="${esc(st.station_id)}">
+    <div class="st-header">
+      <span class="kind-tag ext">EXT</span>
+      <span>${esc(st.station_name || st.station_id)}</span>
+      ${isRobotHere ? '<span class="robot-icon">\uD83E\uDD16</span>' : ''}
+    </div>
+    <div class="st-slots">${slotsHtml}</div>
+  </div>`;
+}
+
+// ======================================================================
+// Build: Robot card (uLM Plate + Gripper)
+// ======================================================================
+function buildRobotCardHtml(plateStations, gripperStation, slotsByStation, rackMap, posByRack, robotStationId) {
+  // plateStations is an array of all ON_ROBOT_PLATE stations (uLMPlateStation, 3-FingerGripperStation, etc.)
+
+  // Gripper contents
+  let gripRackHtml = '';
+  let gripSampleHtml = '';
+  if (gripperStation) {
+    const gripSlots = slotsByStation[gripperStation.station_id] || [];
+    gripSlots.forEach(sl => {
+      if (sl.slot_kind === 'VIRTUAL_GRIPPER_RACK_SLOT' && sl.mounted_rack_id) {
+        gripRackHtml = `<div class="grip-item">\uD83D\uDCE6 Rack: ${esc(sl.mounted_rack_id)}</div>`;
+        const rack = rackMap[sl.mounted_rack_id];
+        const rackPos = rack ? (posByRack[sl.mounted_rack_id] || []) : [];
+        if (rack && rackPos.length > 0) {
+          gripRackHtml += buildRackGridHtml(rack, rackPos, sl.mounted_rack_id);
+        }
+      }
+      if (sl.slot_kind === 'VIRTUAL_GRIPPER_SAMPLE_SLOT') {
+        const ids = sl.mounted_sample_ids || [];
+        if (ids.length > 0) {
+          gripSampleHtml = `<div class="grip-item">\uD83E\uDDEA ${ids.map(s => esc(s)).join(', ')}</div>`;
+        }
+      }
+    });
+  }
+
+  const hasGripContent = gripRackHtml || gripSampleHtml;
+  const gripperHtml = `<div class="gripper-section">
+    <div class="grip-label">Gripper</div>
+    ${hasGripContent ? gripRackHtml + gripSampleHtml : '<div class="grip-empty">Empty</div>'}
+  </div>`;
+
+  // Build slots for ALL plate stations
+  let plateSectionsHtml = '';
+  plateStations.forEach(ps => {
+    const stSlots = slotsByStation[ps.station_id] || [];
+    const slotsHtml = stSlots.map(sl => buildSlotHtml(sl, rackMap, posByRack)).join('');
+    if (slotsHtml) {
+      plateSectionsHtml += `
+        <div class="plate-section">
+          <div class="plate-section-label">${esc(ps.station_name || ps.station_id)}</div>
+          <div class="st-slots">${slotsHtml}</div>
+        </div>`;
+    }
+  });
+
+  // Find station name where robot is parked
+  let locationLabel = 'In transit';
+  if (robotStationId) {
+    locationLabel = `@ ${robotStationId}`;
+  }
+
+  return `<div class="robot-card">
+    <div class="robot-card-header">
+      <span class="robot-emoji">\uD83E\uDD16</span>
+      <span>uLM &mdash; Arm + Plate + 3FG</span>
+      <span style="margin-left:auto;font-size:10px;font-weight:400;color:var(--muted)">${esc(locationLabel)}</span>
+    </div>
+    ${gripperHtml}
+    ${plateSectionsHtml}
+  </div>`;
+}
+
+// ======================================================================
+// Build: Single slot card (shared by stations & robot)
+// ======================================================================
+function buildSlotHtml(slot, rackMap, posByRack) {
+  const hasRack = !!slot.mounted_rack_id;
+  const rack = hasRack ? rackMap[slot.mounted_rack_id] : null;
+  const rackPositions = hasRack ? (posByRack[slot.mounted_rack_id] || []) : [];
+
+  // Gripper sample slot - rendered separately in robot card
+  if (slot.slot_kind === 'VIRTUAL_GRIPPER_SAMPLE_SLOT') return '';
+  if (slot.slot_kind === 'VIRTUAL_GRIPPER_RACK_SLOT') return '';
+
+  let gridHtml = '';
+  if (rack && rackPositions.length > 0) {
+    gridHtml = buildRackGridHtml(rack, rackPositions, slot.mounted_rack_id);
+  }
+
+  return `<div class="slot-card${hasRack ? ' has-rack' : ''}" data-inspect="slot" data-station="${esc(slot.station_id)}" data-slot="${esc(slot.station_slot_id)}">
+    <span class="slot-name">${esc(slot.station_slot_id)}</span>
+    ${hasRack ? `<span class="rack-name">${esc(slot.mounted_rack_id)}</span>` : ''}
+    ${gridHtml}
+  </div>`;
+}
+
+// ======================================================================
+// Build: Rack position grid with indices
+// ======================================================================
+function buildRackGridHtml(rack, rackPositions, rackId) {
+  const cols = rack.cols || 1;
+  const sorted = [...rackPositions].sort((a, b) => a.position_index - b.position_index);
+
+  return `<div class="rack-grid" style="grid-template-columns:repeat(${cols},18px)">
+    ${sorted.map(p => {
+      const posKey = `${rackId}:${p.position_index}`;
+      const wasOcc = prevPositions[posKey];
+      const isOcc = p.position_state === 'OCCUPIED';
+      const changed = wasOcc !== undefined && wasOcc !== isOcc;
+      prevPositions[posKey] = isOcc;
+
+      let cls = 'rack-cell';
+      if (p.position_state === 'PIN') {
+        cls += ' pin';
+      } else if (p.position_state === 'OCCUPIED') {
+        const kind = (p.occupied_object_kind || '').toLowerCase();
+        cls += ` occupied ${kind}`;
+      } else {
+        cls += ' free';
+      }
+      if (changed) cls += ' flash';
+
+      const title = p.position_state === 'OCCUPIED'
+        ? `#${p.position_index}: ${p.occupied_object_id || '?'}`
+        : `#${p.position_index}: ${p.position_state}`;
+
+      return `<div class="${cls}" title="${esc(title)}" data-inspect="pos" data-rack="${esc(rackId)}" data-pos="${p.position_index}">${p.position_index}</div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ======================================================================
+// Rendering: World from state_after (occupancy events)
+// ======================================================================
+function renderWorldFromStateAfter(stateAfter) {
+  const records = [];
+  const robotStation = stateAfter.robot_current_station_id;
+  const rackInGripper = stateAfter.rack_in_gripper_id;
+
+  records.push({ record_type: 'WORLD', robot_current_station_id: robotStation });
+
+  const stationSet = new Set();
+  // Known station kinds (fallback when state_after lacks station_kind)
+  const KNOWN_PLATE_STATIONS = ['uLMPlateStation', '3-FingerGripperStation'];
+  const KNOWN_VIRTUAL_STATIONS = ['uLM_GRIPPER'];
+
+  (stateAfter.station_slots || []).forEach(ss => {
+    if (!stationSet.has(ss.station_id)) {
+      stationSet.add(ss.station_id);
+      let kind = ss.station_kind;
+      if (!kind) {
+        if (KNOWN_PLATE_STATIONS.includes(ss.station_id)) kind = 'ON_ROBOT_PLATE';
+        else if (KNOWN_VIRTUAL_STATIONS.includes(ss.station_id)) kind = 'VIRTUAL';
+        else kind = 'EXTERNAL';
+      }
+      records.push({
+        record_type: 'STATION',
+        station_id: ss.station_id,
+        station_name: ss.station_id,
+        station_kind: kind,
+      });
+    }
+    const rackId = ss.mounted_rack_id || null;
+    records.push({
+      record_type: 'SLOT',
+      station_id: ss.station_id,
+      station_slot_id: ss.station_slot_id,
+      slot_kind: ss.slot_kind || '',
+      mounted_rack_id: rackId,
+      slot_state: rackId ? 'RACK_PRESENT' : 'EMPTY',
+    });
+    if (rackId) {
+      const rack = (stateAfter.racks || []).find(r => r.rack_id === rackId);
+      if (rack) {
+        const capacity = rack.capacity || ((rack.rows || 1) * (rack.cols || 1));
+        records.push({
+          record_type: 'RACK', rack_id: rack.rack_id,
+          rack_type: rack.rack_type || '', pattern: rack.pattern || '',
+          rows: rack.rows, cols: rack.cols, capacity: capacity,
+          blocked_slots: rack.blocked_slots || [],
+        });
+        const occ = rack.occupied_slots || {};
+        for (let i = 1; i <= capacity; i++) {
+          const blocked = (rack.blocked_slots || []).includes(i);
+          const occupantId = occ[String(i)] || occ[i] || null;
+          records.push({
+            record_type: 'RACK_POSITION', rack_id: rack.rack_id,
+            position_index: i,
+            position_state: blocked ? 'PIN' : (occupantId ? 'OCCUPIED' : 'FREE'),
+            occupied_object_id: occupantId,
+            occupied_object_kind: blocked ? 'NONE' : (occupantId ? (String(occupantId).startsWith('CAP_') ? 'CAP' : 'SAMPLE') : 'NONE'),
+          });
+        }
+      }
+    }
+  });
+
+  // Gripper samples
+  const samplesInGripper = [];
+  (stateAfter.sample_locations || []).forEach(sl => {
+    if (sl.location_type === 'GRIPPER') samplesInGripper.push(sl.sample_id);
+  });
+
+  if (!stationSet.has('uLM_GRIPPER')) {
+    records.push({ record_type: 'STATION', station_id: 'uLM_GRIPPER', station_name: 'uLM_GRIPPER', station_kind: 'VIRTUAL' });
+  }
+  records.push({
+    record_type: 'SLOT', station_id: 'uLM_GRIPPER',
+    station_slot_id: 'RackGrip', slot_kind: 'VIRTUAL_GRIPPER_RACK_SLOT',
+    mounted_rack_id: rackInGripper || null,
+    slot_state: rackInGripper ? 'RACK_PRESENT' : 'EMPTY',
+  });
+  records.push({
+    record_type: 'SLOT', station_id: 'uLM_GRIPPER',
+    station_slot_id: 'SampleGrip', slot_kind: 'VIRTUAL_GRIPPER_SAMPLE_SLOT',
+    mounted_sample_ids: samplesInGripper,
+    slot_state: samplesInGripper.length > 0 ? 'SAMPLE_PRESENT' : 'EMPTY',
+  });
+
+  if (rackInGripper) {
+    const rack = (stateAfter.racks || []).find(r => r.rack_id === rackInGripper);
+    if (rack) {
+      const capacity = rack.capacity || ((rack.rows || 1) * (rack.cols || 1));
+      records.push({
+        record_type: 'RACK', rack_id: rack.rack_id,
+        rack_type: rack.rack_type || '', pattern: rack.pattern || '',
+        rows: rack.rows, cols: rack.cols, capacity: capacity,
+        blocked_slots: rack.blocked_slots || [],
+      });
+      const occ = rack.occupied_slots || {};
+      for (let i = 1; i <= capacity; i++) {
+        const blocked = (rack.blocked_slots || []).includes(i);
+        const occupantId = occ[String(i)] || occ[i] || null;
+        records.push({
+          record_type: 'RACK_POSITION', rack_id: rack.rack_id,
+          position_index: i,
+          position_state: blocked ? 'PIN' : (occupantId ? 'OCCUPIED' : 'FREE'),
+          occupied_object_id: occupantId,
+          occupied_object_kind: blocked ? 'NONE' : (occupantId ? (String(occupantId).startsWith('CAP_') ? 'CAP' : 'SAMPLE') : 'NONE'),
+        });
+      }
+    }
+  }
+
+  // Build SAMPLE records from state_after.samples
+  const samplesMap = stateAfter.samples || {};
+  for (const [sampleId, sData] of Object.entries(samplesMap)) {
+    records.push({
+      record_type: 'SAMPLE',
+      sample_id: sampleId,
+      barcode: sData.barcode || sampleId,
+      obj_type: sData.obj_type,
+      length_mm: sData.length_mm,
+      diameter_mm: sData.diameter_mm,
+      cap_state: sData.cap_state || '',
+    });
+  }
+  // Also enrich from sample_locations
+  (stateAfter.sample_locations || []).forEach(sl => {
+    if (!samplesMap[sl.sample_id]) {
+      records.push({
+        record_type: 'SAMPLE',
+        sample_id: sl.sample_id,
+        barcode: sl.sample_id,
+        classification_status: sl.classification_status || '',
+        assigned_route: sl.assigned_route || '',
+      });
+    }
+  });
+
+  renderWorld(records);
+}
+
+// ======================================================================
+// Inspector Panel
+// ======================================================================
+// ======================================================================
+// Drag & Drop for station anchors
+// ======================================================================
+let _justDragged = false;   // suppress click after drag
+
+function wireDrag(container) {
+  let dragging = null;   // { el, offsetX, offsetY, key, moved }
+
+  container.addEventListener('mousedown', (e) => {
+    const anchor = e.target.closest('.station-anchor');
+    if (!anchor) return;
+    // Don't start drag on interactive children (select, input, links)
+    if (e.target.closest('select, input, a, button')) return;
+
+    const rect = anchor.getBoundingClientRect();
+    dragging = {
+      el: anchor,
+      key: anchor.dataset.stationKey,
+      offsetX: e.clientX - rect.left,
+      offsetY: e.clientY - rect.top,
+      moved: false,
+    };
+    anchor.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const wrap = container.parentElement;
+    const wrapRect = wrap.getBoundingClientRect();
+    let x = e.clientX - wrapRect.left + wrap.scrollLeft - dragging.offsetX;
+    let y = e.clientY - wrapRect.top + wrap.scrollTop - dragging.offsetY;
+    x = Math.max(0, x);
+    y = Math.max(0, y);
+    dragging.el.style.left = x + 'px';
+    dragging.el.style.top = y + 'px';
+    dragging.moved = true;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging.el.classList.remove('dragging');
+    if (dragging.moved && dragging.key) {
+      stationPositions[dragging.key] = {
+        x: parseInt(dragging.el.style.left),
+        y: parseInt(dragging.el.style.top),
+      };
+      savePositions();
+      _justDragged = true;
+      setTimeout(() => { _justDragged = false; }, 50);
+    }
+    dragging = null;
+  });
+}
+
+function wireInspectorClicks(container) {
+  container.addEventListener('click', (e) => {
+    if (_justDragged) return;  // ignore click after drag
+    // Find the closest inspectable element
+    const posEl = e.target.closest('[data-inspect="pos"]');
+    const slotEl = e.target.closest('[data-inspect="slot"]');
+    const stEl = e.target.closest('[data-inspect="station"]');
+
+    // Clear previous selection
+    container.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+
+    if (posEl) {
+      posEl.classList.add('selected');
+      inspectPosition(posEl.dataset.rack, parseInt(posEl.dataset.pos));
+      e.stopPropagation();
+    } else if (slotEl) {
+      slotEl.classList.add('selected');
+      inspectSlot(slotEl.dataset.station, slotEl.dataset.slot);
+      e.stopPropagation();
+    } else if (stEl) {
+      inspectStation(stEl.dataset.station);
+      e.stopPropagation();
+    }
+  });
+}
+
+function inspectPosition(rackId, posIndex) {
+  const p = W.positions[`${rackId}::${posIndex}`];
+  const rack = W.racks[rackId];
+  if (!p) return;
+
+  // Find which station/slot this rack is mounted at
+  let mountedAt = '';
+  for (const [key, sl] of Object.entries(W.slots)) {
+    if (sl.mounted_rack_id === rackId) {
+      mountedAt = `${sl.station_id} / ${sl.station_slot_id}`;
+      break;
+    }
+  }
+
+  const stateClass = p.position_state === 'OCCUPIED' ? 'occupied'
+    : p.position_state === 'PIN' ? 'pin' : 'free';
+
+  let rows = [
+    tr('Position', `#${posIndex}`),
+    tr('State', `<span class="insp-state ${stateClass}">${p.position_state}</span>`),
+  ];
+  if (p.position_state === 'OCCUPIED') {
+    const objId = p.occupied_object_id || '?';
+    rows.push(tr('Object', objId));
+    rows.push(tr('Type', p.occupied_object_kind || '?'));
+    // Look up sample details (barcode, dimensions, etc.)
+    const sample = W.samples[objId];
+    if (sample) {
+      if (sample.barcode && sample.barcode !== objId) {
+        rows.push(tr('Barcode', sample.barcode));
+      } else if (sample.barcode) {
+        rows.push(tr('Barcode', sample.barcode));
+      }
+      if (sample.obj_type) rows.push(tr('Obj Type', sample.obj_type));
+      if (sample.cap_state) rows.push(tr('Cap State', sample.cap_state));
+      if (sample.length_mm) rows.push(tr('Size', `${sample.length_mm}\u00d7${sample.diameter_mm} mm`));
+      if (sample.classification_status) rows.push(tr('Class.', sample.classification_status));
+      if (sample.assigned_route) rows.push(tr('Route', sample.assigned_route));
+    }
+  }
+  rows.push(tr('Rack', rackId));
+  if (rack) {
+    rows.push(tr('Rack Type', rack.rack_type || '\u2014'));
+    rows.push(tr('Pattern', `${rack.rows}\u00d7${rack.cols}`));
+  }
+  if (mountedAt) rows.push(tr('Mounted at', mountedAt));
+
+  showInspector('rack-pos', `Position #${posIndex}`, rows.join(''));
+}
+
+function inspectSlot(stationId, slotId) {
+  const sl = W.slots[`${stationId}::${slotId}`];
+  if (!sl) return;
+
+  const hasRack = !!sl.mounted_rack_id;
+  const rack = hasRack ? W.racks[sl.mounted_rack_id] : null;
+
+  let rows = [
+    tr('Slot', slotId),
+    tr('Station', stationId),
+    tr('Slot Kind', sl.slot_kind || '\u2014'),
+    tr('State', `<span class="insp-state ${hasRack ? 'occupied' : 'empty'}">${hasRack ? 'RACK MOUNTED' : 'EMPTY'}</span>`),
+  ];
+
+  if (hasRack) {
+    rows.push(tr('Rack ID', sl.mounted_rack_id));
+    if (rack) {
+      rows.push(tr('Rack Type', rack.rack_type || '\u2014'));
+      rows.push(tr('Pattern', `${rack.rows}\u00d7${rack.cols}`));
+      rows.push(tr('Capacity', rack.capacity || (rack.rows * rack.cols)));
+      // Count occupancy
+      let occ = 0, pins = 0, free = 0;
+      const cap = rack.capacity || (rack.rows * rack.cols) || 0;
+      for (let i = 1; i <= cap; i++) {
+        const pos = W.positions[`${sl.mounted_rack_id}::${i}`];
+        if (!pos) { free++; continue; }
+        if (pos.position_state === 'OCCUPIED') occ++;
+        else if (pos.position_state === 'PIN') pins++;
+        else free++;
+      }
+      rows.push(tr('Occupied', `${occ} / ${cap}`));
+      if (pins) rows.push(tr('Pinned', pins));
+      if (free) rows.push(tr('Free', free));
+    }
+  }
+
+  showInspector('slot', slotId, rows.join(''));
+}
+
+function inspectStation(stationId) {
+  const st = W.stations[stationId];
+  if (!st) return;
+
+  const isRobotHere = (stationId === W.robotStationId);
+
+  // Count slots for this station
+  const stSlots = Object.values(W.slots).filter(sl => sl.station_id === stationId);
+  const slotsWithRack = stSlots.filter(sl => sl.mounted_rack_id);
+
+  let rows = [
+    tr('Station', st.station_name || stationId),
+    tr('Kind', st.station_kind || 'EXTERNAL'),
+    tr('Robot', isRobotHere
+      ? '<span class="insp-state occupied">\uD83E\uDD16 HERE</span>'
+      : '<span class="insp-state free">Not here</span>'),
+    tr('Slots', `${stSlots.length} total, ${slotsWithRack.length} with rack`),
+  ];
+
+  // List each slot
+  stSlots.forEach(sl => {
+    if (sl.slot_kind === 'VIRTUAL_GRIPPER_SAMPLE_SLOT' || sl.slot_kind === 'VIRTUAL_GRIPPER_RACK_SLOT') return;
+    const label = sl.mounted_rack_id ? `\u2713 ${sl.mounted_rack_id}` : 'empty';
+    rows.push(tr(sl.station_slot_id, label));
+  });
+
+  showInspector('station', st.station_name || stationId, rows.join(''));
+}
+
+function showInspector(badgeClass, title, tableRows) {
+  const body = document.getElementById('inspectorBody');
+  body.className = 'inspector-body';
+  body.innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+      <span class="insp-type-badge ${badgeClass}">${badgeClass.replace('-', ' ')}</span>
+    </div>
+    <div class="insp-id">${esc(title)}</div>
+    <table class="insp-table">${tableRows}</table>
+  `;
+}
+
+function tr(label, value) {
+  return `<tr><td>${esc(label)}</td><td>${value}</td></tr>`;
+}
+
+// ======================================================================
+// Event Feed
+// ======================================================================
+function buildFeedItem(evt) {
+  const div = document.createElement('div');
+  div.className = 'feed-item';
+  const ts = evt.timestamp ? evt.timestamp.split('T')[1]?.split('+')[0] || evt.timestamp : '';
+  const evtType = evt.event_type || 'UNKNOWN';
+  const entity = evt.entity_id || '';
+
+  let detail = '';
+  if (evt.source?.station_id && evt.target?.station_id) {
+    detail = `${evt.source.station_id} \u2192 ${evt.target.station_id}`;
+  } else if (evt.target?.station_id) {
+    detail = `\u2192 ${evt.target.station_id}`;
+  } else if (evt.source?.station_id) {
+    detail = `\u2190 ${evt.source.station_id}`;
+  }
+  if (evt.target?.slot_index != null) detail += ` [${evt.target.slot_index}]`;
+
+  div.innerHTML = `
+    <span class="feed-time">${esc(ts)}</span>
+    <span class="feed-type ${evtType}">${evtType}</span>
+    <span class="feed-entity">${esc(entity)}</span>
+    ${detail ? `<span class="feed-detail">${esc(detail)}</span>` : ''}
+  `;
+  return div;
+}
+
+// ======================================================================
+// Polling
+// ======================================================================
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => pollEvents(), POLL_MS);
+}
+function setPollRate(ms) { POLL_MS = parseInt(ms); startPolling(); }
+
+// ======================================================================
+// UI helpers
+// ======================================================================
+function esc(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+function setConnected(ok) {
+  document.getElementById('liveDot').className = 'live-dot' + (ok ? ' connected' : '');
+}
+function setStatus(msg) {
+  document.getElementById('statusBar').innerHTML = '<span>' + msg + '</span>';
+}
+
+// ======================================================================
+// Boot
+// ======================================================================
+init();
+</script>
+</body>
+</html>

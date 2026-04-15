@@ -14,7 +14,17 @@ from typing import Any, Dict, Optional
 import threading
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+def _resolve_project_root() -> Path:
+    env = os.environ.get("UGO_PROJECT_ROOT")
+    if env:
+        return Path(env).resolve()
+    if getattr(sys, "frozen", False):
+        # Frozen exe at <root>/planner_service/planner_service.exe
+        return Path(sys.executable).resolve().parent.parent
+    return Path(__file__).resolve().parents[2]
+
+
+PROJECT_ROOT = _resolve_project_root()
 LIB_DIR = PROJECT_ROOT / "Library"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -129,6 +139,8 @@ class PlannerWebInterfaceBridge:
         self._workflow_process: Optional[subprocess.Popen[Any]] = None
         self._start_grace_s = max(0.0, float(os.getenv("UGO_PLANNER_START_GRACE_S", "0.3")))
         self._stop_timeout_s = max(1.0, float(os.getenv("UGO_PLANNER_STOP_TIMEOUT_S", "10.0")))
+        self._graceful_stop_timeout_s = max(5.0, float(os.getenv("UGO_PLANNER_GRACEFUL_STOP_TIMEOUT_S", "30.0")))
+        self._stopping_since: Optional[float] = None
         self._post_handled_event_to_api = str(os.getenv("UGO_PLANNER_POST_HANDLED_EVENT_TO_API", "0")).strip().lower() in {
             "1",
             "true",
@@ -411,36 +423,18 @@ class PlannerWebInterfaceBridge:
 
     def _event_from_requested_state(self, requested_state: int) -> Optional[int]:
         state_int = int(requested_state)
-        running = self._is_workflow_running()
 
         # START command via requested state.
         if state_int == self._state_starting:
-            if running and self._pause_requested():
-                return self._event_start
-            if not running and int(self._runtime_state) == self._state_stopped:
-                return self._event_start
-            return None
+            return self._event_start
 
-        # STOP command via requested state.
+        # STOP command via requested state — always accepted.
         if state_int == self._state_stopping:
-            if running or int(self._runtime_state) in {self._state_starting, self._state_execute}:
-                return self._event_stop
-            return None
+            return self._event_stop
 
-        # RESET command via requested state.
+        # RESET command via requested state — always accepted.
         if state_int == self._state_resetting:
-            if not running and int(self._runtime_state) == self._state_stopped:
-                return self._event_reset
-            # Allow RESET from paused runtime:
-            # workflow process can still be alive while planner state is STOPPED.
-            if (
-                running
-                and self._pause_requested()
-                and self._workflow_pause_acknowledged()
-                and int(self._runtime_state) == self._state_stopped
-            ):
-                return self._event_reset
-            return None
+            return self._event_reset
 
         return None
 
@@ -459,13 +453,18 @@ class PlannerWebInterfaceBridge:
         env["UGO_PLANNER_PAUSE_REQUEST_FILE"] = str(self._pause_request_file)
         env["UGO_PLANNER_PAUSE_ACK_FILE"] = str(self._pause_ack_file)
         env["UGO_PLANNER_PAUSE_POLL_S"] = str(self._workflow_pause_poll_s)
-        py_paths = [str(PROJECT_ROOT), str(LIB_DIR)]
-        existing_py_path = str(env.get("PYTHONPATH", "")).strip()
-        if existing_py_path:
-            py_paths.append(existing_py_path)
-        env["PYTHONPATH"] = os.pathsep.join(py_paths)
-        env["PYTHONUNBUFFERED"] = "1"
-        cmd = [sys.executable, "-u", "-m", self._workflow_module]
+        env["UGO_PROJECT_ROOT"] = str(PROJECT_ROOT)
+        if getattr(sys, "frozen", False):
+            # Frozen exe: re-invoke ourselves with --run-module
+            cmd = [sys.executable, "--run-module", self._workflow_module]
+        else:
+            py_paths = [str(PROJECT_ROOT), str(LIB_DIR)]
+            existing_py_path = str(env.get("PYTHONPATH", "")).strip()
+            if existing_py_path:
+                py_paths.append(existing_py_path)
+            env["PYTHONPATH"] = os.pathsep.join(py_paths)
+            env["PYTHONUNBUFFERED"] = "1"
+            cmd = [sys.executable, "-u", "-m", self._workflow_module]
         _safe_print(f"Starting planner workflow: {' '.join(cmd)}")
 
         try:
@@ -560,6 +559,7 @@ class PlannerWebInterfaceBridge:
                     {
                         "station_id": station_id,
                         "station_slot_id": station_slot_id,
+                        "station_kind": station.kind.value,
                         "slot_kind": slot_cfg.kind.value,
                         "jig_id": slot_cfg.jig_id,
                         "itm_id": slot_cfg.itm_id,
@@ -667,12 +667,32 @@ class PlannerWebInterfaceBridge:
                     }
                 )
 
+        # Sample details (barcode, dimensions, cap state, etc.)
+        samples = {}
+        for sample_id, sample in sorted(world.samples.items()):
+            samples[sample_id] = {
+                "id": sample.id,
+                "barcode": sample.barcode,
+                "obj_type": sample.obj_type,
+                "length_mm": sample.length_mm,
+                "diameter_mm": sample.diameter_mm,
+                "cap_state": sample.cap_state.value if hasattr(sample.cap_state, "value") else str(sample.cap_state),
+            }
+        # Enrich sample_locations with state info
+        for sl in sample_locations:
+            sid = sl["sample_id"]
+            ss = world.sample_states.get(sid)
+            if ss:
+                sl["classification_status"] = ss.classification_status.value if hasattr(ss.classification_status, "value") else str(ss.classification_status)
+                sl["assigned_route"] = ss.assigned_route or ""
+
         return {
             "robot_current_station_id": world.robot_current_station_id,
             "rack_in_gripper_id": world.rack_in_gripper_id,
             "station_slots": station_slots,
             "racks": racks,
             "sample_locations": sample_locations,
+            "samples": samples,
         }
 
     @staticmethod
@@ -747,6 +767,16 @@ class PlannerWebInterfaceBridge:
             _safe_print(f"World reset to baseline failed: {exc}")
             return False
 
+    def _force_stop_workflow(self) -> None:
+        """Force-stop the workflow process regardless of state. Always lands in STOPPED."""
+        if self._is_workflow_running():
+            _safe_print("Force-stopping workflow process")
+            self._stop_workflow()
+        self._workflow_process = None
+        self._clear_workflow_pause_control()
+        self._stopping_since = None
+        self._runtime_state = self._state_stopped
+
     def _handle_event_automatic(self, event: int) -> None:
         if self._post_handled_event_to_api:
             self.publish_current_event(event, force=True)
@@ -757,41 +787,44 @@ class PlannerWebInterfaceBridge:
                     _safe_print("Resuming paused planner workflow")
                     self._clear_workflow_pause_request()
                 self._runtime_state = self._state_execute
+                self._stopping_since = None
                 self.publish_current_state(self._runtime_state, force=True)
                 return
-            if self._runtime_state != self._state_stopped:
+            # Accept START from any non-running state (recover from stuck STOPPING/RESETTING)
+            if self._runtime_state not in {self._state_stopped, self._state_stopping, self._state_resetting}:
                 _safe_print(f"Ignoring START event while state={self._runtime_state}")
                 return
+            if self._runtime_state in {self._state_stopping, self._state_resetting}:
+                _safe_print(f"START requested from {self._runtime_state}; force-stopping first.")
+                self._force_stop_workflow()
             self._start_workflow()
             return
 
         if event == self._event_stop:
+            if self._runtime_state == self._state_stopping:
+                # Second STOP while already stopping → escalate to force-kill
+                _safe_print("STOP requested while already STOPPING; force-killing workflow.")
+                self._force_stop_workflow()
+                self.publish_current_state(self._runtime_state, force=True)
+                return
             self._request_graceful_stop()
+            self._stopping_since = time.time()
             return
 
         if event == self._event_reset:
+            # RESET always works: stop workflow first (force if needed), then reset.
             if self._is_workflow_running():
-                paused_running = (
-                    self._pause_requested()
-                    and self._workflow_pause_acknowledged()
-                    and int(self._runtime_state) == self._state_stopped
-                )
-                if not paused_running:
-                    _safe_print("Ignoring RESET event while planner is running; stop first.")
-                    return
-                _safe_print("RESET requested while planner is paused; stopping paused workflow first.")
-                if not self._stop_workflow():
-                    _safe_print("RESET aborted: failed to stop paused workflow process.")
-                    return
-            elif self._runtime_state == self._state_execute:
-                _safe_print("Ignoring RESET event while planner is running; stop first.")
-                return
+                _safe_print("RESET requested; stopping workflow first.")
+                self._force_stop_workflow()
             self._clear_workflow_pause_control()
             self._dismiss_active_prompt()
+            self._stopping_since = None
             self._publish_transient_state_with_min_hold(self._state_resetting)
-            self._reset_world_to_baseline()
+            ok = self._reset_world_to_baseline()
             self._runtime_state = self._state_stopped
             self.publish_current_state(self._runtime_state, force=True)
+            if not ok:
+                _safe_print("RESET completed with errors (world reset failed).")
             return
 
         _safe_print(f"Ignoring unknown event={event}")
@@ -856,22 +889,42 @@ class PlannerWebInterfaceBridge:
                 self._handle_event_automatic(command_event)
 
             self._refresh_workflow_runtime_state()
+
+            # STOPPING timeout: force-kill if graceful stop takes too long.
+            if (
+                self._stopping_since is not None
+                and self._runtime_state == self._state_stopping
+                and self._is_workflow_running()
+            ):
+                elapsed = time.time() - self._stopping_since
+                if elapsed > self._graceful_stop_timeout_s:
+                    _safe_print(
+                        f"Graceful stop timeout ({elapsed:.1f}s > {self._graceful_stop_timeout_s:.1f}s); "
+                        "force-killing workflow."
+                    )
+                    self._force_stop_workflow()
+                    self.publish_current_state(self._runtime_state, force=True)
+
             if self._pause_requested():
                 if self._is_workflow_running():
                     if self._workflow_pause_acknowledged():
                         self._runtime_state = self._state_stopped
+                        self._stopping_since = None
                     else:
                         self._runtime_state = self._state_stopping
                 else:
                     self._clear_workflow_pause_control()
                     self._runtime_state = self._state_stopped
+                    self._stopping_since = None
             else:
                 if self._is_workflow_running():
                     if self._runtime_state != self._state_starting:
                         self._runtime_state = self._state_execute
+                        self._stopping_since = None
                 elif self._runtime_state in {self._state_execute, self._state_starting, self._state_stopping}:
                     self._runtime_state = self._state_stopped
                     self._clear_workflow_pause_control()
+                    self._stopping_since = None
 
             self._publish_runtime_state(snap.requested_state)
             snap.runtime_mode = self._runtime_mode
@@ -922,4 +975,13 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    if getattr(sys, "frozen", False) and "--run-module" in sys.argv:
+        # Frozen subprocess mode: import and run the requested module.
+        idx = sys.argv.index("--run-module")
+        module_name = sys.argv[idx + 1]
+        import importlib
+        mod = importlib.import_module(module_name)
+        if hasattr(mod, "main"):
+            mod.main()
+        sys.exit(0)
     main()

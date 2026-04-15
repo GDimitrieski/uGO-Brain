@@ -9,9 +9,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if os.environ.get("UGO_PROJECT_ROOT"):
+    PROJECT_ROOT = Path(os.environ["UGO_PROJECT_ROOT"]).resolve()
+elif getattr(sys, "frozen", False):
+    PROJECT_ROOT = Path(sys.executable).resolve().parent.parent
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+LIB_DIR = PROJECT_ROOT / "Library"
+if str(LIB_DIR) not in sys.path:
+    sys.path.insert(0, str(LIB_DIR))
 
 from engine.bt_nodes import ActionNode, Blackboard, ConditionNode, ForEachNode, Node, RetryNode, SequenceNode, Status, UserInteractionRetryNode
 from engine.command_layer import CommandSender
@@ -4670,12 +4678,126 @@ def build_tree(
             return f"Provisioning rack from {source} to {target} for {process}"
         return f"{action_type} sample {sample} ({process})"
 
-    def _resolve_gripper_state_on_skip(action: DynamicPlanAction, bb: Blackboard) -> None:
-        """When the operator skips a failed action, resolve any gripper state.
+    def _resolve_all_gripper_samples_to_source() -> None:
+        """Resolve ALL samples on the gripper back to their source rack slot.
 
-        If a sample is on the gripper, assume the operator manually placed it
-        at the intended target. If a rack is on the gripper, same assumption.
-        Also registers provisioned racks so they get returned later.
+        Used on **retry**: the operator removed the sample from the gripper
+        and placed it back where it was picked from.
+        """
+        for sid in list(world._sample_ids_in_gripper()):
+            state = world.sample_states.get(sid)
+            if state is None:
+                continue
+            # Find the rack that still has an empty slot where this sample was
+            # (pick_sample_to_gripper removed it from occupied_slots).
+            # We can't know the exact source slot, but we can find racks at
+            # the source station. For safety, just remove from gripper —
+            # the planner will re-plan.
+            # Actually the simplest: remove sample from gripper by removing
+            # from tracking. The planner won't plan for it anymore.
+            # But that's destructive. Better: check if any rack has a
+            # reserved slot for this sample.
+            placed = False
+            for rack_id, rack in world.racks.items():
+                # Check reserved slots first (place_sample_from_gripper uses reserve)
+                for slot_idx, reserved_sid in list(rack.reserved_slots.items()):
+                    if str(reserved_sid) == str(sid):
+                        rack.reserved_slots.pop(slot_idx, None)
+                        rack.occupied_slots[slot_idx] = sid
+                        loc_key = None
+                        for (st_id, ss_id), r_id in world.rack_placements.items():
+                            if str(r_id) == str(rack_id):
+                                loc_key = (st_id, ss_id)
+                                break
+                        if loc_key:
+                            state.location = RackLocation(
+                                station_id=loc_key[0],
+                                station_slot_id=loc_key[1],
+                                rack_id=rack_id,
+                                slot_index=int(slot_idx),
+                            )
+                            print(
+                                f"Retry: sample '{sid}' returned to "
+                                f"{loc_key[0]}.{loc_key[1]}[{slot_idx}] "
+                                "(operator returned to source)"
+                            )
+                            placed = True
+                            break
+                if placed:
+                    break
+            if not placed:
+                # No reserved slot found. Remove from world tracking entirely.
+                print(
+                    f"Retry: sample '{sid}' removed from world tracking "
+                    "(was on gripper, no source slot recoverable)"
+                )
+                world.sample_states.pop(sid, None)
+                world.samples.pop(sid, None)
+
+        # Rack on gripper
+        if world.rack_in_gripper_id is not None:
+            stale_rack_id = world.rack_in_gripper_id
+            world.rack_in_gripper_id = None
+            print(
+                f"Retry: rack '{stale_rack_id}' removed from gripper "
+                "(operator returned to source)"
+            )
+
+    def _resolve_all_gripper_samples_to_target(action: DynamicPlanAction) -> None:
+        """Resolve ALL samples on the gripper to the action's target.
+
+        Used on **skip**: the operator took the sample from the gripper
+        and placed it at the intended target, completing the action manually.
+        """
+        for sid in list(world._sample_ids_in_gripper()):
+            state = world.sample_states.get(sid)
+            if state is None:
+                continue
+            try:
+                world.place_sample_from_gripper(
+                    target_station_id=str(action.target_station_id),
+                    target_station_slot_id=str(action.target_station_slot_id),
+                    target_slot_index=int(action.target_slot_index),
+                    sample_id=sid,
+                )
+                print(
+                    f"Skip: sample '{sid}' placed at "
+                    f"{action.target_station_id}.{action.target_station_slot_id}[{action.target_slot_index}] "
+                    "(operator completed manually)"
+                )
+            except Exception as exc:
+                # Target slot may be occupied. Remove from tracking as last resort.
+                print(
+                    f"Skip: sample '{sid}' could not be placed at target ({exc}). "
+                    "Removing from world tracking."
+                )
+                world.sample_states.pop(sid, None)
+                world.samples.pop(sid, None)
+
+        # Rack on gripper
+        if world.rack_in_gripper_id is not None:
+            gripped_rack_id = world.rack_in_gripper_id
+            try:
+                world.place_rack_from_gripper(
+                    target_station_id=str(action.target_station_id),
+                    target_station_slot_id=str(action.target_station_slot_id),
+                )
+                print(
+                    f"Skip: rack '{gripped_rack_id}' placed at "
+                    f"{action.target_station_id}.{action.target_station_slot_id} "
+                    "(operator completed manually)"
+                )
+            except Exception as exc:
+                world.rack_in_gripper_id = None
+                print(
+                    f"Skip: rack '{gripped_rack_id}' removed from gripper ({exc})"
+                )
+
+    def _resolve_gripper_state_on_skip(action: DynamicPlanAction, bb: Blackboard) -> None:
+        """Handle skip-specific bookkeeping (provisioned rack registration).
+
+        Gripper samples/racks are already resolved to target by
+        _resolve_all_gripper_samples_to_target before this is called.
         """
         action_type = str(action.action_type).strip().upper()
 
@@ -4784,6 +4906,53 @@ def build_tree(
         print(f"StateDriven action failed: unsupported action_type '{action.action_type}'")
         return False
 
+    def _action_requires_external_navigation(action: Optional[DynamicPlanAction]) -> bool:
+        """Check if executing this action will require navigating to an external station."""
+        if action is None:
+            return False
+        action_type = str(action.action_type).strip().upper()
+        if action_type == "PROVISION_RACK":
+            # Rack provisioning always involves external stations (fridge, archive, etc.)
+            return True
+        if action_type == "STAGE_SAMPLE":
+            # Stage needs navigation if source and target are at different external stations
+            sample_id = str(action.sample_id)
+            state = world.sample_states.get(sample_id)
+            if state is None or not isinstance(state.location, RackLocation):
+                return False
+            source_station_id = str(state.location.station_id)
+            target_station_id = str(action.target_station_id)
+            if source_station_id != target_station_id:
+                return True
+            return False
+        if action_type == "PROCESS_SAMPLE":
+            # Processing happens at the target station (3FG = on plate, centrifuge = external)
+            target_station_id = str(action.target_station_id)
+            try:
+                station = world.get_station(target_station_id)
+                if station.kind == StationKind.ON_ROBOT_PLATE:
+                    return False
+            except Exception:
+                pass
+            return world.needs_navigation(target_station_id)
+        return False
+
+    def _ensure_at_charger(task_prefix: str = "StateDriven.OpportunisticCharge") -> bool:
+        """Navigate to charger if not already there. Returns True on success."""
+        if world.robot_current_station_id == CHARGE_STATION_ID:
+            return True
+        charge_station = world.get_station(CHARGE_STATION_ID)
+        if not charge_station.amr_pos_target:
+            return True  # No charger configured — skip silently
+        ok, _ = _run_task("Charge", {}, task_prefix)
+        if ok:
+            try:
+                world.set_robot_station(CHARGE_STATION_ID)
+            except Exception:
+                pass
+            _invalidate_station_reference_cache()
+        return ok
+
     def _run_state_driven_planning_loop(bb: Blackboard) -> bool:
         if dynamic_state_planner is None:
             print(
@@ -4869,12 +5038,14 @@ def build_tree(
 
                 # Nothing to return. Keep polling if centrifuge is running.
                 if _has_running_centrifuge_jobs(bb):
+                    _ensure_at_charger("StateDriven.ChargeWhileWaiting")
                     if STATE_DRIVEN_WAIT_POLL_S > 0:
                         time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
                     continue
 
                 # No rack returns, no centrifuge jobs.
                 if status == "IDLE":
+                    _ensure_at_charger("StateDriven.ChargeBeforeIdle")
                     bb["state_driven_actions_executed"] = list(executed_actions)
                     return True
 
@@ -4907,9 +5078,12 @@ def build_tree(
                     timeout=300,
                 )
                 if action_id == "retry":
+                    # Operator returned item to source. Clear gripper.
+                    _resolve_all_gripper_samples_to_source()
                     continue
                 if action_id == "skip":
-                    # Resolve gripper state: assume operator manually completed the action.
+                    # Operator completed the action manually. Place at target.
+                    _resolve_all_gripper_samples_to_target(action)
                     _resolve_gripper_state_on_skip(action, bb)
                     executed_actions.append(action.to_dict())
                     executed_action_count += 1

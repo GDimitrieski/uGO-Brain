@@ -277,6 +277,30 @@ def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[st
                     }
                 )
 
+    # ── SAMPLE records ──
+    for sample_id in sorted(world.samples.keys()):
+        sample = world.samples[sample_id]
+        sample_state = world.sample_states.get(sample_id)
+        records.append(
+            {
+                "timestamp": ts,
+                "snapshot_id": snapshot_id,
+                "record_type": "SAMPLE",
+                "sample_id": sample_id,
+                "barcode": sample.barcode,
+                "obj_type": int(sample.obj_type),
+                "length_mm": sample.length_mm,
+                "diameter_mm": sample.diameter_mm,
+                "cap_state": sample.cap_state.value if hasattr(sample.cap_state, "value") else str(sample.cap_state),
+                "classification_status": (
+                    sample_state.classification_status.value
+                    if sample_state and hasattr(sample_state.classification_status, "value")
+                    else ""
+                ),
+                "assigned_route": sample_state.assigned_route if sample_state else "",
+            }
+        )
+
     for cap_id in sorted(world.caps.keys()):
         cap = world.caps[cap_id]
         cap_state = world.cap_states.get(cap_id)

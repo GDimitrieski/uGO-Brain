@@ -1,0 +1,112 @@
+===============================================================================
+  Planner Web Interface — UI State Machine
+===============================================================================
+
+  File: integration/planner_web_interface/service.py
+  Class: PlannerWebInterfaceBridge
+
+
+STATES
+------
+  STOPPED     (0)  — No workflow running. Ready for START or RESET.
+  EXECUTE     (1)  — Workflow is running.
+  STOPPING    (2)  — Graceful stop requested. Waiting for workflow to pause.
+  RESETTING   (3)  — World reset in progress.
+  STARTING    (4)  — Workflow subprocess launching (transient).
+  MANUAL_READY(0)  — Manual mode. Planner disabled.
+
+
+EVENTS (from UI)
+----------------
+  RESET  (0)  — Reset world to baseline config.
+  START  (1)  — Start or resume workflow.
+  STOP   (2)  — Stop workflow (graceful, then force).
+
+
+TRANSITION RULES
+----------------
+
+  START event:
+    From STOPPED            → STARTING → EXECUTE (launch workflow)
+    From STOPPING (stuck)   → force-stop workflow → STARTING → EXECUTE
+    From RESETTING (stuck)  → force-stop workflow → STARTING → EXECUTE
+    From EXECUTE (paused)   → resume paused workflow → EXECUTE
+    From EXECUTE (running)  → no-op
+
+  STOP event:
+    From EXECUTE / STARTING → STOPPING (graceful pause request)
+    From STOPPING (2nd press) → force-kill workflow → STOPPED
+    From STOPPING (timeout 30s) → auto force-kill → STOPPED
+    From STOPPED            → no-op
+
+  RESET event:
+    From ANY state          → force-stop workflow if running
+                            → RESETTING (transient)
+                            → reset world to baseline
+                            → STOPPED
+    Note: RESET always works. No preconditions.
+
+
+GRACEFUL STOP MECHANISM
+-----------------------
+  1. Service writes a pause-request file.
+  2. Workflow checks for this file before each action.
+  3. If found, workflow writes a pause-ack file and blocks.
+  4. Service detects ack → sets state to STOPPED.
+  5. If ack not received within 30s → force-kill (proc.terminate + proc.kill).
+  6. If user presses STOP again while STOPPING → immediate force-kill.
+
+
+FORCE STOP (_force_stop_workflow)
+---------------------------------
+  Called when:
+    - STOP timeout exceeded (30s)
+    - Second STOP while already STOPPING
+    - RESET while workflow is running
+    - START from stuck STOPPING/RESETTING state
+
+  Behavior:
+    1. proc.terminate()
+    2. proc.wait(timeout=10s)
+    3. If still alive: proc.kill()
+    4. Clear pause control files
+    5. Set state = STOPPED
+
+
+STATE RECOVERY
+--------------
+  The system never gets permanently stuck:
+    - STOPPING: auto-recovers via 30s timeout or second STOP
+    - RESETTING: always transitions to STOPPED (even if reset fails)
+    - START accepted from stuck STOPPING/RESETTING (force-stops first)
+    - RESET accepted from ANY state (force-stops first)
+
+
+MODE SWITCHING (AUTOMATIC ↔ MANUAL)
+------------------------------------
+  AUTOMATIC mode:
+    - Events (START/STOP/RESET) are processed
+    - Workflow process managed by service
+    - State machine active
+
+  MANUAL mode:
+    - Workflow force-stopped if running
+    - State set to MANUAL_READY (0)
+    - No events processed
+    - Switch back to AUTOMATIC: state becomes STOPPED
+
+
+ENVIRONMENT VARIABLES
+---------------------
+  UGO_PLANNER_EVENT_RESET           = 0
+  UGO_PLANNER_EVENT_START           = 1
+  UGO_PLANNER_EVENT_STOP            = 2
+  UGO_PLANNER_STATE_EXECUTE         = 1
+  UGO_PLANNER_STATE_STOPPING        = 2
+  UGO_PLANNER_STATE_RESETTING       = 3
+  UGO_PLANNER_STATE_STARTING        = 4
+  UGO_PLANNER_STATE_MANUAL_READY    = 0
+  UGO_PLANNER_STATE_STOPPED         = 0
+  UGO_PLANNER_STOP_TIMEOUT_S        = 10.0  (force-kill after terminate)
+  UGO_PLANNER_GRACEFUL_STOP_TIMEOUT_S = 30.0 (escalate graceful to force)
+  UGO_PLANNER_TRANSIENT_MIN_HOLD_S  = 1.5   (min time in STARTING/RESETTING)

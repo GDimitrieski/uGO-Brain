@@ -1,6 +1,7 @@
 """Sender construction helpers for workflow runners."""
 
 import os
+import sys
 from pathlib import Path
 from typing import Optional, Union
 
@@ -10,7 +11,12 @@ from engine.ugo_robot_client import UgoRobotClient
 from Library.credentials import credentials
 from Library.login import login
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if os.environ.get("UGO_PROJECT_ROOT"):
+    PROJECT_ROOT = Path(os.environ["UGO_PROJECT_ROOT"]).resolve()
+elif getattr(sys, "frozen", False):
+    PROJECT_ROOT = Path(sys.executable).resolve().parent.parent
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_TASK_CATALOG = PROJECT_ROOT / "Available_Tasks.json"
 
 
