@@ -7,9 +7,10 @@ from world.lab_world import ProcessType, RackType, build_default_world
 PLATE_STATION_ID = "uLMPlateStation"
 INPUT_STATION_ID = "InputStation"
 INPUT_URG_SLOT_ID = "URGRackSlot2"
-PLATE_ARCHIVE_SLOT_ID = "URGFridgeRackSlot"
+PLATE_URG_SLOT_ID = "URGRackSlot"
+PLATE_FRIDGE_SLOT_ID = "URGFridgeRackSlot"
 ARCHIVE_STATION_ID = "ArchiveStation"
-ARCHIVE_SLOT_ID = "URGFridgeRackSlot"
+ARCHIVE_SLOT_ID = "URGRackSlot"
 FRIDGE_STATION_ID = "FridgeStation"
 FRIDGE_SLOT_1 = "URGFridgeRackSlot1"
 FRIDGE_SLOT_2 = "URGFridgeRackSlot2"
@@ -30,9 +31,9 @@ def _archivation_policy() -> ProcessPolicy:
     return ProcessPolicy(
         process=ProcessType.ARCHIVATION,
         target_station_id=PLATE_STATION_ID,
-        target_jig_ids=(13,),
-        required_rack_types=(RackType.FRIDGE_URG_RACK,),
-        rack_source_station_ids=(ARCHIVE_STATION_ID, "FridgeStation"),
+        target_jig_ids=(1,),
+        required_rack_types=(RackType.URG_RACK,),
+        rack_source_station_ids=(ARCHIVE_STATION_ID,),
         return_provisioned_rack_after_process=True,
         loading_strategy="SEQUENTIAL",
     )
@@ -51,29 +52,6 @@ def _decap_policy() -> ProcessPolicy:
 class DynamicPlannerRackProvisioningTests(unittest.TestCase):
     def _prepare_world_for_archive_provisioning(self):
         world = build_default_world()
-
-        if world.rack_placements.get((ARCHIVE_STATION_ID, ARCHIVE_SLOT_ID)) is None:
-            if world.rack_placements.get((PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID)) is not None:
-                world.move_rack(
-                    source_station_id=PLATE_STATION_ID,
-                    source_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
-                    target_station_id=ARCHIVE_STATION_ID,
-                    target_station_slot_id=ARCHIVE_SLOT_ID,
-                )
-            elif world.rack_placements.get((FRIDGE_STATION_ID, FRIDGE_SLOT_1)) is not None:
-                world.move_rack(
-                    source_station_id=FRIDGE_STATION_ID,
-                    source_station_slot_id=FRIDGE_SLOT_1,
-                    target_station_id=ARCHIVE_STATION_ID,
-                    target_station_slot_id=ARCHIVE_SLOT_ID,
-                )
-            elif world.rack_placements.get((FRIDGE_STATION_ID, FRIDGE_SLOT_2)) is not None:
-                world.move_rack(
-                    source_station_id=FRIDGE_STATION_ID,
-                    source_station_slot_id=FRIDGE_SLOT_2,
-                    target_station_id=ARCHIVE_STATION_ID,
-                    target_station_slot_id=ARCHIVE_SLOT_ID,
-                )
 
         sample_id = world.ensure_placeholder_sample(
             station_id=INPUT_STATION_ID,
@@ -102,7 +80,7 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
         self.assertEqual(result.action.source_station_id, ARCHIVE_STATION_ID)
         self.assertEqual(result.action.source_station_slot_id, ARCHIVE_SLOT_ID)
         self.assertEqual(result.action.target_station_id, PLATE_STATION_ID)
-        self.assertEqual(result.action.target_station_slot_id, PLATE_ARCHIVE_SLOT_ID)
+        self.assertEqual(result.action.target_station_slot_id, PLATE_URG_SLOT_ID)
 
     def test_stages_sample_after_archive_rack_is_provisioned(self) -> None:
         world, _ = self._prepare_world_for_archive_provisioning()
@@ -125,19 +103,19 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
         assert result.action is not None
         self.assertEqual(result.action.action_type, "STAGE_SAMPLE")
         self.assertEqual(result.action.target_station_id, PLATE_STATION_ID)
-        self.assertEqual(result.action.target_station_slot_id, PLATE_ARCHIVE_SLOT_ID)
+        self.assertEqual(result.action.target_station_slot_id, PLATE_URG_SLOT_ID)
         self.assertEqual(result.action.process, ProcessType.ARCHIVATION)
 
     def test_prioritizes_upstream_stage_over_ready_archivation_process(self) -> None:
         world = build_default_world()
 
         # Make ARCHIVATION immediately processable for sample A.
-        if world.rack_placements.get((PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID)) is None:
+        if world.rack_placements.get((PLATE_STATION_ID, PLATE_URG_SLOT_ID)) is None:
             world.move_rack(
                 source_station_id=ARCHIVE_STATION_ID,
                 source_station_slot_id=ARCHIVE_SLOT_ID,
                 target_station_id=PLATE_STATION_ID,
-                target_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+                target_station_slot_id=PLATE_URG_SLOT_ID,
             )
         sample_a = world.ensure_placeholder_sample(
             station_id=INPUT_STATION_ID,
@@ -156,7 +134,7 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
             source_station_slot_id=INPUT_URG_SLOT_ID,
             source_slot_index=1,
             target_station_id=PLATE_STATION_ID,
-            target_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+            target_station_slot_id=PLATE_URG_SLOT_ID,
             target_slot_index=1,
         )
 
@@ -191,14 +169,14 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
 
     def test_plan_next_skips_excluded_samples(self) -> None:
         world = build_default_world()
-        if world.rack_placements.get((PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID)) is None:
+        if world.rack_placements.get((PLATE_STATION_ID, PLATE_URG_SLOT_ID)) is None:
             world.move_rack(
                 source_station_id=ARCHIVE_STATION_ID,
                 source_station_slot_id=ARCHIVE_SLOT_ID,
                 target_station_id=PLATE_STATION_ID,
-                target_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+                target_station_slot_id=PLATE_URG_SLOT_ID,
             )
-        target_rack = world.get_rack_at(PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID)
+        target_rack = world.get_rack_at(PLATE_STATION_ID, PLATE_URG_SLOT_ID)
         free_slots = [
             idx for idx in target_rack.available_slots()
             if int(idx) not in set(int(x) for x in target_rack.occupied_slots.keys())
@@ -224,7 +202,7 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
             source_station_slot_id=INPUT_URG_SLOT_ID,
             source_slot_index=1,
             target_station_id=PLATE_STATION_ID,
-            target_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+            target_station_slot_id=PLATE_URG_SLOT_ID,
             target_slot_index=slot_a,
         )
 
@@ -245,7 +223,7 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
             source_station_slot_id=INPUT_URG_SLOT_ID,
             source_slot_index=2,
             target_station_id=PLATE_STATION_ID,
-            target_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+            target_station_slot_id=PLATE_URG_SLOT_ID,
             target_slot_index=slot_b,
         )
 
@@ -260,17 +238,17 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
 
     def _prepare_world_for_kreuzprobe_terminal_return(self):
         world = build_default_world()
-        mounted_plate_rack = world.rack_placements.get((PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID))
+        mounted_plate_rack = world.rack_placements.get((PLATE_STATION_ID, PLATE_FRIDGE_SLOT_ID))
         if mounted_plate_rack is not None:
             if world.rack_placements.get((FRIDGE_STATION_ID, FRIDGE_SLOT_1)) is not None:
                 self.fail("Cannot prepare Kreuzprobe terminal-return test: fridge source slot already occupied.")
             world.move_rack(
                 source_station_id=PLATE_STATION_ID,
-                source_station_slot_id=PLATE_ARCHIVE_SLOT_ID,
+                source_station_slot_id=PLATE_FRIDGE_SLOT_ID,
                 target_station_id=FRIDGE_STATION_ID,
                 target_station_slot_id=FRIDGE_SLOT_1,
             )
-        self.assertIsNone(world.rack_placements.get((PLATE_STATION_ID, PLATE_ARCHIVE_SLOT_ID)))
+        self.assertIsNone(world.rack_placements.get((PLATE_STATION_ID, PLATE_FRIDGE_SLOT_ID)))
 
         source_rack_id = world.rack_placements.get((FRIDGE_STATION_ID, FRIDGE_SLOT_1))
         self.assertIsNotNone(source_rack_id)
@@ -321,7 +299,7 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
                     "source_station_slot_id": FRIDGE_SLOT_1,
                     "required_rack_id": str(source_rack_id),
                     "target_station_id": PLATE_STATION_ID,
-                    "target_station_slot_id": PLATE_ARCHIVE_SLOT_ID,
+                    "target_station_slot_id": PLATE_FRIDGE_SLOT_ID,
                     "target_slot_index": int(source_slot_index),
                 },
             },
@@ -343,7 +321,7 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
         self.assertEqual(result.action.source_station_id, FRIDGE_STATION_ID)
         self.assertEqual(result.action.source_station_slot_id, FRIDGE_SLOT_1)
         self.assertEqual(result.action.target_station_id, PLATE_STATION_ID)
-        self.assertEqual(result.action.target_station_slot_id, PLATE_ARCHIVE_SLOT_ID)
+        self.assertEqual(result.action.target_station_slot_id, PLATE_FRIDGE_SLOT_ID)
         self.assertEqual(world.rack_placements.get((FRIDGE_STATION_ID, FRIDGE_SLOT_1)), source_rack_id)
 
     def test_kreuzprobe_archivation_stages_back_to_original_fridge_slot(self) -> None:
@@ -371,7 +349,7 @@ class DynamicPlannerRackProvisioningTests(unittest.TestCase):
         self.assertEqual(result.action.process, ProcessType.ARCHIVATION)
         self.assertEqual(result.action.action_type, "STAGE_SAMPLE")
         self.assertEqual(result.action.target_station_id, PLATE_STATION_ID)
-        self.assertEqual(result.action.target_station_slot_id, PLATE_ARCHIVE_SLOT_ID)
+        self.assertEqual(result.action.target_station_slot_id, PLATE_FRIDGE_SLOT_ID)
         self.assertEqual(int(result.action.target_slot_index), int(source_slot_index))
 
     def test_centrifuge_process_starts_when_all_available_samples_are_staged(self) -> None:

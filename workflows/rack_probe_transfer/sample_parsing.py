@@ -80,8 +80,8 @@ def _try_parse_presence_mask_positions(value: Any) -> Optional[List[int]]:
     """Parse camera mask formats like "[P,F,P,...]" and return 1-based occupied positions.
 
     Convention:
-    - F => sample present
-    - P => no sample
+    - P => sample present
+    - F => no sample
     """
     tokens: List[str] = []
 
@@ -120,7 +120,7 @@ def _try_parse_presence_mask_positions(value: Any) -> Optional[List[int]]:
         return None
 
     # Camera mask is 1-based when mapped to rack slot positions.
-    return [idx for idx, token in enumerate(tokens, start=1) if token == "F"]
+    return [idx for idx, token in enumerate(tokens, start=1) if token == "P"]
 
 
 def _to_bool(value: Any, default: bool = False) -> bool:

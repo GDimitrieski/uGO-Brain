@@ -1,0 +1,472 @@
+Login successful.
+{'data': {'user': {'id': 2, 'name': 'planner', 'isAdmin': False, 'isMod': False, 'isPlanner': True, 'createdAt': '2023-03-14T15:47:20.510Z', 'updatedAt': '2023-03-14T15:47:20.510Z'}, 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzc2MjQzNDgyLCJleHAiOjE3NzYyNzIyODJ9.9_i4_Zd_uxzt1HJO9Hh8_TOCZrJpsEdF4bNtilNYDl4'}, 'message': 'login'}
+State sent successfully.
+{'data': {'state': 0}, 'message': 'State received'}
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#1 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 prev=None -> new=0
+[BRIDGE_DEBUG] sync#1 edge_detected new_event=None new_requested_state=0
+[BRIDGE_DEBUG] sync#1 command_event derived from requested_state=0 -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#2 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#2 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#2 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#3 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#3 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#3 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#4 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#4 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#4 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#5 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#5 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#5 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#6 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#6 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#6 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#7 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#7 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#7 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#8 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#8 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#8 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#9 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#9 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#9 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#10 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#10 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#10 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#11 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#11 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#11 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#12 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#12 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#12 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#13 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#13 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#13 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#14 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#14 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#14 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#15 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#15 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#15 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#16 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#16 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#16 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#17 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#17 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#17 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#18 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#18 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#18 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#19 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#19 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#19 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#20 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#20 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#20 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#21 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#21 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#21 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#22 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#22 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#22 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#23 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#23 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#23 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#24 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#24 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#24 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#25 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#25 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#25 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#26 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#26 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#26 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#27 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#27 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#27 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#28 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#28 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#28 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#29 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#29 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#29 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#30 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#30 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#30 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#31 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#31 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#31 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#32 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#32 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#32 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#33 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#33 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#33 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#34 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#34 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#34 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#35 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#35 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#35 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#36 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#36 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#36 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#37 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#37 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#37 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#38 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#38 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#38 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#39 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#39 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#39 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#40 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#40 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#40 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#41 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#41 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#41 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#42 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#42 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#42 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#43 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#43 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#43 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#44 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#44 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#44 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#45 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#45 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#45 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#46 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#46 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#46 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#47 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#47 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#47 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#48 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#48 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#48 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#49 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#49 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#49 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#50 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#50 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#50 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#51 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#51 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#51 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+[BRIDGE_DEBUG] sync#52 polled mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False workflow_pid=None
+[BRIDGE_DEBUG] consume_event raw=None last_requested_event=None -> new=None (reset edge cache)
+[BRIDGE_DEBUG] consume_state raw=0 last_requested_state=0 -> new=None
+[BRIDGE_DEBUG] sync#52 edge_detected new_event=None new_requested_state=None
+[BRIDGE_DEBUG] sync#52 command_event from event edge -> None
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False

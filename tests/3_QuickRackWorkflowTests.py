@@ -983,15 +983,15 @@ def _build_cases(input_slot: int) -> List[RackWorkflowCase]:
             name="PickUpArchiveRack",
             direction="PICKUP",
             station_id="ArchiveStation",
-            station_slot_id="URGFridgeRackSlot",
-            plate_jig_id=13,
+            station_slot_id="URGRackSlot",
+            plate_jig_id=1,
         ),
         RackWorkflowCase(
             name="ReturnArchiveRack",
             direction="RETURN",
             station_id="ArchiveStation",
-            station_slot_id="URGFridgeRackSlot",
-            plate_jig_id=13,
+            station_slot_id="URGRackSlot",
+            plate_jig_id=1,
         ),
     ]
 

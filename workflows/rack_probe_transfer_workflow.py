@@ -2175,12 +2175,11 @@ def build_tree(
         if cached["wise_error"]:
             print(f"DevicePoller warning: {cached['wise_error']}")
 
-        # Sync centrifuge jobs from cached diagnostics (modifies bb — must stay in main thread)
-        if not _sync_active_centrifuge_jobs(bb, loop_index):
-            return False
-
         # Apply centrifuge state
         runtime_assignments = cached["centrifuge_diagnostics"]
+        # Sync centrifuge jobs from cached diagnostics (modifies bb — must stay in main thread)
+        if not _sync_active_centrifuge_jobs(bb, loop_index, runtime_assignments=runtime_assignments):
+            return False
         if cached["centrifuge_error"]:
             print(f"DevicePoller warning: {cached['centrifuge_error']}")
 
@@ -3201,22 +3200,29 @@ def build_tree(
         rack_type = str(getattr(getattr(rack, "rack_type", ""), "value", getattr(rack, "rack_type", "")))
         return rack_type.strip().upper()
 
-    def _device_managed_rack_types() -> Set[str]:
-        """Rack types that belong to stations which actively process samples.
+    def _processing_station_ids() -> Set[str]:
+        """Stations that host a device which physically operates on samples.
 
-        A station is considered a processing station only if it appears as a
-        candidate_device_station_id in a process policy.  Sensor-only stations
-        (e.g. InputStation with a WISE presence sensor) are excluded so their
-        racks can be freely returned when idle.
+        A station is "processing" only if at least one process policy declares
+        `requires_device: true` and lists the station in `candidate_device_station_ids`.
+        Storage / transit stations (InputStation, ArchiveStation, FridgeStation) do
+        NOT host a device that operates on samples in place, so their racks remain
+        auto-returnable even if other policies happen to reference them as sources
+        or candidate stations.
         """
-        processing_station_ids: Set[str] = set()
+        ids: Set[str] = set()
         if dynamic_state_planner is not None:
             for policy in dynamic_state_planner.policies.values():
+                if not bool(getattr(policy, "requires_device", False)):
+                    continue
                 for sid in policy.candidate_device_station_ids:
-                    processing_station_ids.add(str(sid).strip())
+                    ids.add(str(sid).strip())
+        return ids
 
+    def _device_managed_rack_types() -> Set[str]:
+        """Rack types that belong to stations which actively process samples."""
         rack_types: Set[str] = set()
-        for station_id in sorted(processing_station_ids):
+        for station_id in sorted(_processing_station_ids()):
             try:
                 station = world.get_station(station_id)
             except Exception:
@@ -3623,23 +3629,25 @@ def build_tree(
             return []
         return sorted({str(x).strip() for x in job.get("sample_ids", []) if str(x).strip()})
 
-    def _sync_active_centrifuge_jobs(bb: Blackboard, loop_index: int) -> bool:
-        try:
-            runtime_centrifuges = runtime_devices.get_centrifuges_at_station(CENTRIFUGE_STATION_ID)
-        except Exception:
-            return True
+    def _sync_active_centrifuge_jobs(
+        bb: Blackboard,
+        loop_index: int,
+        *,
+        runtime_assignments: Optional[Sequence[Dict[str, Any]]] = None,
+    ) -> bool:
+        # Main-thread sync must stay non-blocking; consume diagnostics collected
+        # by the background poller instead of calling diagnose() directly.
+        diagnostics_by_device: Dict[str, Dict[str, Any]] = {}
+        if isinstance(runtime_assignments, (list, tuple)):
+            for payload in runtime_assignments:
+                if not isinstance(payload, dict):
+                    continue
+                device_id = str(payload.get("device_id", "")).strip()
+                if not device_id:
+                    continue
+                diagnostics_by_device[device_id] = dict(payload)
 
-        for runtime_centrifuge in runtime_centrifuges:
-            device_id = str(runtime_centrifuge.identity.device_id)
-            try:
-                diag = dict(runtime_centrifuge.diagnose())
-            except Exception as exc:
-                print(
-                    "StateDriven centrifuge background sync warning: diagnose failed "
-                    f"(device='{device_id}', loop={int(loop_index)}, error={exc})"
-                )
-                continue
-
+        for device_id, diag in diagnostics_by_device.items():
             runtime_packml = str(diag.get("packml_state", "")).strip().upper()
             runtime_fault = str(diag.get("fault_code", "")).strip()
             runtime_spinning = bool(diag.get("rotor_spinning", False))

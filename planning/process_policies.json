@@ -82,8 +82,8 @@
     },
     "ARCHIVATION": {
       "target_station_id": "uLMPlateStation",
-      "target_jig_ids": [13],
-      "required_rack_types": ["FRIDGE_URG_RACK"],
+      "target_jig_ids": [1],
+      "required_rack_types": ["URG_RACK"],
       "allowed_target_rack_id_prefixes": ["RACK_ARCHIVE_"],
       "candidate_device_station_ids": ["ArchiveStation"],
       "rack_source_station_ids": ["ArchiveStation"],

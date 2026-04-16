@@ -1376,9 +1376,9 @@ def default_world_config() -> Dict[str, Any]:
                 "landmark_id": "LM_ARCHIVE_001",
                 "slot_configs": [
                     {
-                        "slot_id": "URGFridgeRackSlot",
-                        "kind": "FRIDGE_URG_RACK_SLOT",
-                        "jig_id": 13,
+                        "slot_id": "URGRackSlot",
+                        "kind": "URG_RACK_SLOT",
+                        "jig_id": 1,
                         "itm_id": 9,
                         "rack_capacity": 1,
                         "rack_pattern": "1x1",
@@ -1386,7 +1386,7 @@ def default_world_config() -> Dict[str, Any]:
                         "rack_cols": 1,
                         "rack_index": 1,
                         "obj_nbr_offset": 0,
-                        "accepted_rack_types": ["FRIDGE_URG_RACK"],
+                        "accepted_rack_types": ["URG_RACK"],
                     }
                 ],
             },
@@ -1756,7 +1756,7 @@ def default_world_config() -> Dict[str, Any]:
                 "pin_obj_type": 9001,
                 "rows": 8,
                 "cols": 4,
-                "blocked_slots": [15, 18],
+                "blocked_slots": [14, 19],
             },
             {
                 "id": "RACK_ULM_CENTRIFUGE_01",
@@ -1886,12 +1886,22 @@ def default_world_config() -> Dict[str, Any]:
             {
                 "id": "RACK_FRIDGE_URG_4x11_01",
                 "rack_type": "FRIDGE_URG_RACK",
-                "capacity": 42,
+                "capacity": 44,
                 "pattern": "ARCHIVE_4x11_PIN2",
                 "pin_obj_type": 9015,
                 "rows": 11,
                 "cols": 4,
-                "blocked_slots": [42, 43],
+                "blocked_slots": [12, 23],
+            },
+            {
+                "id": "RACK_ARCHIVE_URG_4x8_01",
+                "rack_type": "URG_RACK",
+                "capacity": 32,
+                "pattern": "URG_4x8_PIN2",
+                "pin_obj_type": 551,
+                "rows": 8,
+                "cols": 4,
+                "blocked_slots": [14, 19],
             },
             {
                 "id": "RACK_3FG_SAMPLE_HOLDER_01",
@@ -2115,6 +2125,7 @@ def default_world_config() -> Dict[str, Any]:
             {"station_id": "uLMPlateStation", "station_slot_id": "TaraRacksSlot1", "rack_id": "RACK_ULM_TARA_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "IntermediateRackSlot1", "rack_id": "RACK_ULM_INTERMEDIATE_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "URGFridgeRackSlot", "rack_id": "RACK_FRIDGE_URG_4x11_01"},
+            {"station_id": "ArchiveStation", "station_slot_id": "URGRackSlot", "rack_id": "RACK_ARCHIVE_URG_4x8_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "BioRadIH500Slot1", "rack_id": "RACK_ULM_BIORAD_IH500_01"},
             {"station_id": "uLMPlateStation", "station_slot_id": "BioRadIH500Slot2", "rack_id": "RACK_ULM_BIORAD_IH500_02"},
             {"station_id": "uLMPlateStation", "station_slot_id": "BioRadIH500Slot3", "rack_id": "RACK_ULM_BIORAD_IH500_03"},
@@ -2994,4 +3005,3 @@ class WorldConfigManager:
 
     def set_robot_station(self, station_id: Optional[str]) -> None:
         self.data["robot_current_station_id"] = station_id
-

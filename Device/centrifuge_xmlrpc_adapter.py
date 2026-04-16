@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 
-DEFAULT_CENTRIFUGE_RPC_URL = "http://192.168.137.104:50002"
+DEFAULT_CENTRIFUGE_RPC_URL = "http://192.168.15.231:50002"
 DEFAULT_CENTRIFUGE_RPC_TIMEOUT_S = 50.0
 
 
