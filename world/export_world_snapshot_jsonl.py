@@ -23,9 +23,19 @@ def _now_iso() -> str:
     return datetime.now().astimezone().isoformat(timespec="milliseconds")
 
 
-def _index_to_row_col(slot_index: int, cols: Optional[int]) -> Dict[str, Optional[int]]:
+def _index_to_row_col(
+    slot_index: int,
+    rows: Optional[int],
+    cols: Optional[int],
+    pattern: Optional[str],
+) -> Dict[str, Optional[int]]:
     if cols is None or cols <= 0:
         return {"row": None, "col": None}
+    if pattern == "ARCHIVE_4x11_PIN2" and rows is not None and rows > 0:
+        return {
+            "row": rows - ((slot_index - 1) % rows),
+            "col": ((slot_index - 1) // rows) + 1,
+        }
     return {"row": ((slot_index - 1) // cols) + 1, "col": ((slot_index - 1) % cols) + 1}
 
 
@@ -130,7 +140,7 @@ def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[st
             )
 
             for pos in range(1, rack.capacity + 1):
-                row_col = _index_to_row_col(pos, rack.cols)
+                row_col = _index_to_row_col(pos, rack.rows, rack.cols, rack.pattern)
                 if pos in rack.blocked_slots:
                     pos_state = "PIN"
                     sample_id = None
@@ -244,7 +254,7 @@ def build_snapshot_records(world: WorldModel, config_path: Path) -> List[Dict[st
                 }
             )
             for pos in range(1, rack.capacity + 1):
-                row_col = _index_to_row_col(pos, rack.cols)
+                row_col = _index_to_row_col(pos, rack.rows, rack.cols, rack.pattern)
                 if pos in rack.blocked_slots:
                     pos_state = "PIN"
                     sample_id = None

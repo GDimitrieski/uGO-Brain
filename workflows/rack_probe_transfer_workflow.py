@@ -1424,8 +1424,15 @@ def build_tree(
                 print("AwaitInputRack failed: InputStation WISE module not configured for slot readiness")
                 return Status.FAILURE
             if not details.get("online", False) or details.get("stale", True):
-                print("AwaitInputRack failed: InputStation WISE module offline or stale")
-                return Status.FAILURE
+                last_notice = float(bb.get("input_rack_wait_last_wise_notice_s", 0.0))
+                now_s = time.monotonic()
+                if (now_s - last_notice) > 5.0:
+                    print(
+                        "AwaitInputRack: InputStation WISE module offline or stale; "
+                        "waiting for connection recovery"
+                    )
+                    bb["input_rack_wait_last_wise_notice_s"] = now_s
+                return Status.RUNNING
             if details.get("all_ready", False):
                 updated_id = _update_world_input_rack_from_wise_ready()
                 if updated_id:
@@ -2180,6 +2187,7 @@ def build_tree(
         # Sync centrifuge jobs from cached diagnostics (modifies bb — must stay in main thread)
         if not _sync_active_centrifuge_jobs(bb, loop_index, runtime_assignments=runtime_assignments):
             return False
+        _sync_active_ih500_jobs(bb, loop_index)
         if cached["centrifuge_error"]:
             print(f"DevicePoller warning: {cached['centrifuge_error']}")
 
@@ -3604,11 +3612,64 @@ def build_tree(
         holds = _get_sample_process_holds(bb)
         out: Set[str] = set()
         for sample_id, payload in holds.items():
-            process = str(payload.get("process", "")).strip().upper()
             status = str(payload.get("status", "")).strip().upper()
-            if process == ProcessType.CENTRIFUGATION.value and status == SAMPLE_HOLD_STATUS_RUNNING:
+            if status == SAMPLE_HOLD_STATUS_RUNNING:
                 out.add(str(sample_id))
         return out
+
+    def _ready_to_unload_hold_sample_ids(bb: Blackboard) -> Set[str]:
+        holds = _get_sample_process_holds(bb)
+        out: Set[str] = set()
+        for sample_id, payload in holds.items():
+            status = str(payload.get("status", "")).strip().upper()
+            if status == SAMPLE_HOLD_STATUS_READY_TO_UNLOAD:
+                out.add(str(sample_id))
+        return out
+
+    def _effective_pending_processes_for_sample(sample_id: str) -> Tuple[ProcessType, ...]:
+        if dynamic_state_planner is not None:
+            try:
+                return tuple(dynamic_state_planner._effective_pending_processes(world, str(sample_id)))
+            except Exception:
+                pass
+        try:
+            return tuple(world.pending_processes(str(sample_id)))
+        except Exception:
+            return tuple()
+
+    def _blocked_sample_ids_for_active_device_jobs(bb: Blackboard) -> Set[str]:
+        jobs = _get_active_device_jobs(bb)
+        busy_processes: Set[str] = set()
+        for payload in jobs.values():
+            process = str(payload.get("process", "")).strip().upper()
+            if process:
+                busy_processes.add(process)
+        if not busy_processes:
+            return set()
+
+        ready_ids = _ready_to_unload_hold_sample_ids(bb)
+        blocked: Set[str] = set()
+        for sample_id in sorted(world.sample_states.keys()):
+            pending = _effective_pending_processes_for_sample(sample_id)
+            if not pending:
+                continue
+            process = pending[0]
+            process_txt = str(getattr(process, "value", process)).strip().upper()
+            if process_txt in busy_processes and str(sample_id) not in ready_ids:
+                blocked.add(str(sample_id))
+        return blocked
+
+    def _has_active_device_jobs(bb: Blackboard) -> bool:
+        jobs = _get_active_device_jobs(bb)
+        return bool(jobs)
+
+    def _has_running_external_device_jobs(bb: Blackboard) -> bool:
+        jobs = _get_active_device_jobs(bb)
+        for payload in jobs.values():
+            status = str(payload.get("status", "")).strip().upper()
+            if status == SAMPLE_HOLD_STATUS_RUNNING:
+                return True
+        return False
 
     def _has_running_centrifuge_jobs(bb: Blackboard) -> bool:
         jobs = _get_active_device_jobs(bb)
@@ -3774,6 +3835,276 @@ def build_tree(
             )
         return [(idx, source_by_idx[idx], target_by_idx[idx]) for idx in sorted(source_idx)]
 
+    def _loaded_ih500_pending_sample_ids_by_slot() -> Dict[int, List[str]]:
+        out: Dict[int, List[str]] = {}
+        try:
+            slot_pairs = _ih500_slot_pairs()
+        except Exception:
+            return out
+        for idx, _, target_cfg in slot_pairs:
+            rack_id = _rack_id_at(world, IH500_STATION_ID, str(target_cfg.slot_id))
+            if not rack_id:
+                continue
+            rack = world.racks.get(str(rack_id))
+            if rack is None:
+                continue
+            sample_ids: List[str] = []
+            for sample_id in rack.occupied_slots.values():
+                try:
+                    pending = world.pending_processes(str(sample_id))
+                except Exception:
+                    continue
+                if ProcessType.IMMUNOHEMATOLOGY_ANALYSIS in pending:
+                    sample_ids.append(str(sample_id))
+            unique_sample_ids = sorted({str(x).strip() for x in sample_ids if str(x).strip()})
+            if unique_sample_ids:
+                out[int(idx)] = unique_sample_ids
+        return out
+
+    def _register_ih500_running_job(
+        bb: Blackboard,
+        *,
+        device_id: str,
+        sample_ids: Sequence[str],
+        reason: str,
+    ) -> None:
+        did = str(device_id).strip()
+        if not did:
+            return
+        unique_samples = sorted({str(x).strip() for x in sample_ids if str(x).strip()})
+        if not unique_samples:
+            return
+
+        now_ts = _local_now_iso()
+        jobs = _get_active_device_jobs(bb)
+        existing = dict(jobs.get(did, {}))
+        started_ts = str(existing.get("started_ts", "")).strip() or now_ts
+        jobs[did] = {
+            **existing,
+            "process": ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value,
+            "status": SAMPLE_HOLD_STATUS_RUNNING,
+            "started_ts": started_ts,
+            "updated_ts": now_ts,
+            "sample_ids": list(unique_samples),
+            "reason": str(reason),
+        }
+        _set_active_device_jobs(bb, jobs)
+
+        holds = _get_sample_process_holds(bb)
+        for sample_id in unique_samples:
+            hold = dict(holds.get(sample_id, {}))
+            hold["process"] = ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value
+            hold["device_id"] = did
+            hold["status"] = SAMPLE_HOLD_STATUS_RUNNING
+            hold["reason"] = str(reason)
+            hold["updated_ts"] = now_ts
+            hold["created_ts"] = str(hold.get("created_ts", "")).strip() or started_ts
+            holds[sample_id] = hold
+        _set_sample_process_holds(bb, holds)
+
+    def _clear_ih500_job_and_holds(
+        bb: Blackboard,
+        *,
+        device_id: str,
+        sample_ids: Optional[Sequence[str]] = None,
+    ) -> None:
+        did = str(device_id).strip()
+        jobs = _get_active_device_jobs(bb)
+        job = dict(jobs.get(did, {})) if did else {}
+
+        release_ids: Set[str] = set()
+        if sample_ids is not None:
+            release_ids |= {str(x).strip() for x in sample_ids if str(x).strip()}
+        if job:
+            release_ids |= {str(x).strip() for x in job.get("sample_ids", []) if str(x).strip()}
+
+        holds = _get_sample_process_holds(bb)
+        for sample_id in release_ids:
+            hold = dict(holds.get(sample_id, {}))
+            process = str(hold.get("process", "")).strip().upper()
+            if process == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value:
+                holds.pop(sample_id, None)
+        _set_sample_process_holds(bb, holds)
+
+        jobs_changed = False
+        if did and did in jobs:
+            jobs.pop(did, None)
+            jobs_changed = True
+        elif release_ids:
+            for candidate_id, payload in list(jobs.items()):
+                process = str(payload.get("process", "")).strip().upper()
+                if process != ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value:
+                    continue
+                job_sample_ids = {
+                    str(x).strip()
+                    for x in payload.get("sample_ids", [])
+                    if str(x).strip()
+                }
+                if job_sample_ids & release_ids:
+                    jobs.pop(candidate_id, None)
+                    jobs_changed = True
+        if jobs_changed:
+            _set_active_device_jobs(bb, jobs)
+
+    def _sync_active_ih500_jobs(bb: Blackboard, loop_index: int) -> None:
+        jobs = _get_active_device_jobs(bb)
+        has_ih500_job = any(
+            str(payload.get("process", "")).strip().upper() == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value
+            for payload in jobs.values()
+        )
+        if not has_ih500_job:
+            bootstrap_by_slot = _loaded_ih500_pending_sample_ids_by_slot()
+            bootstrap_sample_ids = sorted(
+                {
+                    sid
+                    for sample_ids in bootstrap_by_slot.values()
+                    for sid in sample_ids
+                }
+            )
+            bootstrap_device_id = _resolve_immuno_device_id()
+            if bootstrap_device_id and bootstrap_sample_ids:
+                _register_ih500_running_job(
+                    bb,
+                    device_id=bootstrap_device_id,
+                    sample_ids=bootstrap_sample_ids,
+                    reason="IH500 racks detected in device; rebuilding in-flight job state.",
+                )
+                jobs = _get_active_device_jobs(bb)
+        job_items = list(jobs.items())
+        holds = _get_sample_process_holds(bb)
+        holds_changed = False
+        jobs_changed = False
+
+        for device_id, payload in job_items:
+            process = str(payload.get("process", "")).strip().upper()
+            if process != ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value:
+                continue
+
+            active_by_slot = _loaded_ih500_pending_sample_ids_by_slot()
+            active_sample_ids = sorted({sid for sample_ids in active_by_slot.values() for sid in sample_ids})
+            previous_sample_ids = {
+                str(x).strip()
+                for x in payload.get("sample_ids", [])
+                if str(x).strip()
+            }
+
+            if not active_sample_ids:
+                for sid in previous_sample_ids:
+                    hold = dict(holds.get(sid, {}))
+                    hold_process = str(hold.get("process", "")).strip().upper()
+                    if hold_process == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value:
+                        holds.pop(sid, None)
+                        holds_changed = True
+                jobs.pop(device_id, None)
+                jobs_changed = True
+                continue
+
+            ready_details = _wise_ready_details_for_device(
+                device_id,
+                required_slots=sorted(active_by_slot.keys()),
+            )
+            ready_slots = {
+                int(x)
+                for x in ready_details.get("ready_slots", [])
+                if int(x) in active_by_slot
+            }
+            ready_sample_ids = {
+                sid
+                for slot_idx, sample_ids in active_by_slot.items()
+                if int(slot_idx) in ready_slots
+                for sid in sample_ids
+            }
+            running_sample_ids = set(active_sample_ids) - set(ready_sample_ids)
+
+            for sid in previous_sample_ids - set(active_sample_ids):
+                hold = dict(holds.get(sid, {}))
+                hold_process = str(hold.get("process", "")).strip().upper()
+                if hold_process == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value:
+                    holds.pop(sid, None)
+                    holds_changed = True
+
+            now_ts = _local_now_iso()
+            for sid in sorted(running_sample_ids):
+                hold = dict(holds.get(sid, {}))
+                hold["process"] = ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value
+                hold["device_id"] = str(device_id)
+                hold["status"] = SAMPLE_HOLD_STATUS_RUNNING
+                hold["reason"] = "IH500 rack loaded; waiting for Wise-ready signal."
+                hold["updated_ts"] = now_ts
+                hold["created_ts"] = str(hold.get("created_ts", "")).strip() or str(
+                    payload.get("started_ts", "")
+                ).strip() or now_ts
+                if holds.get(sid) != hold:
+                    holds[sid] = hold
+                    holds_changed = True
+
+            for sid in sorted(ready_sample_ids):
+                hold = dict(holds.get(sid, {}))
+                hold["process"] = ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value
+                hold["device_id"] = str(device_id)
+                hold["status"] = SAMPLE_HOLD_STATUS_READY_TO_UNLOAD
+                hold["reason"] = "IH500 Wise ready; unload can continue."
+                hold["updated_ts"] = now_ts
+                hold["created_ts"] = str(hold.get("created_ts", "")).strip() or str(
+                    payload.get("started_ts", "")
+                ).strip() or now_ts
+                if holds.get(sid) != hold:
+                    holds[sid] = hold
+                    holds_changed = True
+
+            prior_ready_sample_ids = {
+                str(x).strip()
+                for x in payload.get("ready_sample_ids", [])
+                if str(x).strip()
+            }
+            job_status = (
+                SAMPLE_HOLD_STATUS_READY_TO_UNLOAD
+                if ready_sample_ids and not running_sample_ids
+                else SAMPLE_HOLD_STATUS_RUNNING
+            )
+            updated_job = {
+                **dict(payload),
+                "process": ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value,
+                "status": job_status,
+                "sample_ids": list(active_sample_ids),
+                "ready_sample_ids": sorted(ready_sample_ids),
+                "running_sample_ids": sorted(running_sample_ids),
+                "required_slots": sorted(active_by_slot.keys()),
+                "ready_slots": sorted(ready_slots),
+                "updated_ts": now_ts,
+                "reason": (
+                    "IH500 Wise ready; unload can continue."
+                    if ready_sample_ids
+                    else "IH500 rack loaded; waiting for Wise-ready signal."
+                ),
+            }
+            if jobs.get(device_id) != updated_job:
+                jobs[device_id] = updated_job
+                jobs_changed = True
+
+            if ready_sample_ids and ready_sample_ids != prior_ready_sample_ids:
+                append_world_event(
+                    occupancy_records,
+                    world,
+                    event_type="STATE_DRIVEN_WAIT_SATISFIED",
+                    entity_type="WORKFLOW",
+                    entity_id="STATE_DRIVEN_PLANNING",
+                    details={
+                        "phase": "StateDrivenPlanning",
+                        "loop_index": int(loop_index),
+                        "process": ProcessType.IMMUNOHEMATOLOGY_ANALYSIS.value,
+                        "device_id": str(device_id),
+                        "source": "WISE",
+                        "ready_slots": sorted(ready_slots),
+                        "required_slots": sorted(active_by_slot.keys()),
+                    },
+                )
+
+        if holds_changed:
+            _set_sample_process_holds(bb, holds)
+        if jobs_changed:
+            _set_active_device_jobs(bb, jobs)
+
     def _resolve_immuno_device_id(preferred_device_id: str = "") -> str:
         preferred = str(preferred_device_id or "").strip()
         if preferred:
@@ -3808,6 +4139,25 @@ def build_tree(
         bb["state_driven_wait_wise_required_slots"] = [int(x) for x in sorted({int(x) for x in required_slots})]
         bb["state_driven_wait_armed_ts"] = _local_now_iso()
 
+    def _arm_centrifuge_wait_for_packml(
+        bb: Blackboard,
+        *,
+        device_id: str,
+        reason: str,
+        ready_states: Optional[Sequence[str]] = None,
+    ) -> None:
+        resolved_ready_states = _resolve_wait_ready_states(ready_states or WAIT_READY_PACKML_STATES)
+        bb["state_driven_waiting_external_completion"] = True
+        bb["state_driven_waiting_reason"] = str(reason)
+        bb["state_driven_wait_process"] = ProcessType.CENTRIFUGATION.value
+        bb["state_driven_wait_device_id"] = str(device_id)
+        bb["state_driven_wait_source"] = "PACKML"
+        bb["state_driven_wait_ready_states"] = sorted(resolved_ready_states)
+        bb.pop("state_driven_wait_last_packml_state", None)
+        bb.pop("state_driven_wait_wise_required_slots", None)
+        bb.pop("state_driven_wait_last_wise_state", None)
+        bb["state_driven_wait_armed_ts"] = _local_now_iso()
+
     def _check_ih500_wise_unload_gate(
         task_prefix: str,
         bb: Blackboard,
@@ -3840,11 +4190,11 @@ def build_tree(
             return False, False, [], required
         if not bool(details.get("online", False)) or bool(details.get("stale", True)):
             print(
-                f"{task_prefix} prerequisite failed: Wise state unavailable for unload decision "
+                f"{task_prefix}: Wise state unavailable for unload decision; waiting for connection recovery "
                 f"(device='{did}', online={details.get('online', False)}, stale={details.get('stale', True)}, "
                 f"error='{details.get('error', '')}')"
             )
-            return False, False, [], required
+            return False, True, [], list(required)
 
         ready_slots_raw = details.get("ready_slots", [])
         missing_slots_raw = details.get("missing_slots", [])
@@ -4038,6 +4388,20 @@ def build_tree(
             )
             if not allow_unload:
                 if waiting:
+                    active_job_sample_ids = sorted(
+                        {
+                            sid
+                            for sample_ids in _loaded_ih500_pending_sample_ids_by_slot().values()
+                            for sid in sample_ids
+                        }
+                    )
+                    if immuno_device_id and active_job_sample_ids:
+                        _register_ih500_running_job(
+                            bb,
+                            device_id=immuno_device_id,
+                            sample_ids=active_job_sample_ids,
+                            reason="IH500 racks loaded; waiting for Wise-ready signal.",
+                        )
                     bb["last_ih500_cycle_mode"] = "LOAD_WAIT_READY"
                     bb["last_ih500_cycle_ts"] = _local_now_iso()
                     return True
@@ -4051,6 +4415,20 @@ def build_tree(
             )
             if not allow_unload:
                 if waiting:
+                    active_job_sample_ids = sorted(
+                        {
+                            sid
+                            for sample_ids in _loaded_ih500_pending_sample_ids_by_slot().values()
+                            for sid in sample_ids
+                        }
+                    )
+                    if immuno_device_id and active_job_sample_ids:
+                        _register_ih500_running_job(
+                            bb,
+                            device_id=immuno_device_id,
+                            sample_ids=active_job_sample_ids,
+                            reason="IH500 racks loaded; waiting for Wise-ready signal.",
+                        )
                     bb["last_ih500_cycle_mode"] = "WAIT_READY"
                     bb["last_ih500_cycle_ts"] = _local_now_iso()
                     return True
@@ -4075,6 +4453,20 @@ def build_tree(
                     required_slots=[int(x) for x in pending_unload_slots],
                     reason=wait_reason,
                 )
+                active_job_sample_ids = sorted(
+                    {
+                        sid
+                        for sample_ids in _loaded_ih500_pending_sample_ids_by_slot().values()
+                        for sid in sample_ids
+                    }
+                )
+                if immuno_device_id and active_job_sample_ids:
+                    _register_ih500_running_job(
+                        bb,
+                        device_id=immuno_device_id,
+                        sample_ids=active_job_sample_ids,
+                        reason="IH500 racks loaded; waiting for Wise-ready signal.",
+                    )
                 print(wait_reason)
                 bb["last_ih500_cycle_mode"] = f"{mode}_WAIT_READY"
                 bb["last_ih500_cycle_ts"] = _local_now_iso()
@@ -4156,6 +4548,11 @@ def build_tree(
 
         pending_after_unload = sorted({int(x) for x in pending_unload_slots if int(x) > 0})
         if pending_after_unload:
+            _clear_ih500_job_and_holds(
+                bb,
+                device_id=immuno_device_id,
+                sample_ids=sorted(completed_sample_ids),
+            )
             wait_reason = (
                 "IH500 unload deferred: waiting for remaining Wise rack-ready sensors "
                 f"(device='{immuno_device_id}', ready_slots={sorted(unload_ready_set)}, "
@@ -4167,11 +4564,30 @@ def build_tree(
                 required_slots=pending_after_unload,
                 reason=wait_reason,
             )
+            active_job_sample_ids = sorted(
+                {
+                    sid
+                    for sample_ids in _loaded_ih500_pending_sample_ids_by_slot().values()
+                    for sid in sample_ids
+                }
+            )
+            if immuno_device_id and active_job_sample_ids:
+                _register_ih500_running_job(
+                    bb,
+                    device_id=immuno_device_id,
+                    sample_ids=active_job_sample_ids,
+                    reason="IH500 racks loaded; waiting for Wise-ready signal.",
+                )
             print(wait_reason)
             bb["last_ih500_cycle_mode"] = f"{mode}_PARTIAL_WAIT_READY"
             bb["last_ih500_cycle_ts"] = _local_now_iso()
             return True
 
+        _clear_ih500_job_and_holds(
+            bb,
+            device_id=immuno_device_id,
+            sample_ids=sorted(completed_sample_ids),
+        )
         bb["state_driven_waiting_external_completion"] = False
         bb["state_driven_waiting_reason"] = ""
         bb.pop("state_driven_wait_source", None)
@@ -4611,15 +5027,35 @@ def build_tree(
                             "runtime reports cycle completion."
                         ),
                     )
-            bb["state_driven_waiting_external_completion"] = False
-            bb["state_driven_waiting_reason"] = ""
-            bb.pop("state_driven_wait_process", None)
-            bb.pop("state_driven_wait_device_id", None)
-            bb.pop("state_driven_wait_ready_states", None)
-            bb.pop("state_driven_wait_last_packml_state", None)
-            bb.pop("state_driven_wait_source", None)
-            bb.pop("state_driven_wait_wise_required_slots", None)
-            bb.pop("state_driven_wait_last_wise_state", None)
+                if not wait_device_id:
+                    print(
+                        "StateDriven centrifugation failed: no runtime centrifuge device id "
+                        "available to arm post-load wait."
+                    )
+                    return False
+                _set_world_device_packml_state(
+                    wait_device_id,
+                    "EXECUTE",
+                    source="CentrifugeCycle.Load",
+                )
+                _arm_centrifuge_wait_for_packml(
+                    bb,
+                    device_id=wait_device_id,
+                    reason=(
+                        "Centrifuge cycle running; waiting for PACKML ready state "
+                        "before initiating unload."
+                    ),
+                )
+            else:
+                bb["state_driven_waiting_external_completion"] = False
+                bb["state_driven_waiting_reason"] = ""
+                bb.pop("state_driven_wait_process", None)
+                bb.pop("state_driven_wait_device_id", None)
+                bb.pop("state_driven_wait_ready_states", None)
+                bb.pop("state_driven_wait_last_packml_state", None)
+                bb.pop("state_driven_wait_source", None)
+                bb.pop("state_driven_wait_wise_required_slots", None)
+                bb.pop("state_driven_wait_last_wise_state", None)
             bb["state_driven_last_action"] = action.to_dict()
             return True
 
@@ -4644,6 +5080,15 @@ def build_tree(
             return True
 
         if process == ProcessType.IMMUNOHEMATOLOGY_ANALYSIS:
+            hold_payload = _get_sample_process_holds(bb).get(sample_id, {})
+            hold_status = str(hold_payload.get("status", "")).strip().upper()
+            if hold_status == SAMPLE_HOLD_STATUS_RUNNING:
+                print(
+                    "StateDriven immuno analysis deferred: sample is still in active IH500 cycle "
+                    f"(sample='{sample_id}', hold_status={hold_status})"
+                )
+                bb["state_driven_last_action"] = action.to_dict()
+                return True
             ok = _execute_ih500_immuno_cycle(
                 sample_id,
                 bb,
@@ -4980,6 +5425,7 @@ def build_tree(
             loop_index += 1
             if not _refresh_world_device_states_from_runtime_sources(bb, loop_index):
                 return False
+            wait_detail = ""
             if bool(bb.get("state_driven_waiting_external_completion", False)):
                 if not _is_external_wait_satisfied(bb, loop_index):
                     wait_reason = str(bb.get("state_driven_waiting_reason", "")).strip()
@@ -4988,10 +5434,8 @@ def build_tree(
                     if wait_device:
                         wait_detail += f" ({wait_device})"
                     _post_step_status_prompt("handoff_to_state_driven_planning", detail=wait_detail, bb=bb)
-                    if STATE_DRIVEN_WAIT_POLL_S > 0:
-                        time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
-                    continue
-            excluded_sample_ids = _running_hold_sample_ids(bb)
+            excluded_sample_ids = set(_running_hold_sample_ids(bb))
+            excluded_sample_ids.update(_blocked_sample_ids_for_active_device_jobs(bb))
             bb["state_driven_excluded_sample_ids"] = sorted(excluded_sample_ids)
             try:
                 dynamic_result = dynamic_state_planner.plan_next(
@@ -5044,14 +5488,20 @@ def build_tree(
                     bb["state_driven_actions_executed"] = list(executed_actions)
                     continue
 
-                # Nothing to return. Keep polling if centrifuge is running.
-                if _has_running_centrifuge_jobs(bb):
+                # Nothing to return. Keep polling if external device work is still running.
+                if _has_running_external_device_jobs(bb):
+                    if wait_detail:
+                        _post_step_status_prompt(
+                            "handoff_to_state_driven_planning",
+                            detail=wait_detail,
+                            bb=bb,
+                        )
                     _ensure_at_charger("StateDriven.ChargeWhileWaiting")
                     if STATE_DRIVEN_WAIT_POLL_S > 0:
                         time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
                     continue
 
-                # No rack returns, no centrifuge jobs.
+                # No rack returns, no active external jobs.
                 if status == "IDLE":
                     _ensure_at_charger("StateDriven.ChargeBeforeIdle")
                     bb["state_driven_actions_executed"] = list(executed_actions)
@@ -5099,12 +5549,6 @@ def build_tree(
                 return False
             executed_actions.append(action.to_dict())
             executed_action_count += 1
-
-            if bool(bb.get("state_driven_waiting_external_completion", False)):
-                bb["state_driven_actions_executed"] = list(executed_actions)
-                if STATE_DRIVEN_WAIT_POLL_S > 0:
-                    time.sleep(float(STATE_DRIVEN_WAIT_POLL_S))
-                continue
 
         print(
             "StateDriven planning failed: maximum action limit reached "

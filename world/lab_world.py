@@ -1470,7 +1470,7 @@ def default_world_config() -> Dict[str, Any]:
                         "rack_rows": 1,
                         "rack_cols": 3,
                         "rack_index": 2,
-                        "obj_nbr_offset": 12,
+                        "obj_nbr_offset": 13,
                         "accepted_rack_types": ["BIORAD_IH500_RACK"],
                     },
                     {
@@ -1483,7 +1483,7 @@ def default_world_config() -> Dict[str, Any]:
                         "rack_rows": 1,
                         "rack_cols": 3,
                         "rack_index": 3,
-                        "obj_nbr_offset": 24,
+                        "obj_nbr_offset": 26,
                         "accepted_rack_types": ["BIORAD_IH500_RACK"],
                     },
                 ],
@@ -1632,7 +1632,7 @@ def default_world_config() -> Dict[str, Any]:
                         "rack_rows": 1,
                         "rack_cols": 3,
                         "rack_index": 2,
-                        "obj_nbr_offset": 12,
+                        "obj_nbr_offset": 13,
                         "accepted_rack_types": ["BIORAD_IH500_RACK"],
                     },
                     {
@@ -1645,7 +1645,7 @@ def default_world_config() -> Dict[str, Any]:
                         "rack_rows": 1,
                         "rack_cols": 3,
                         "rack_index": 3,
-                        "obj_nbr_offset": 24,
+                        "obj_nbr_offset": 26,
                         "accepted_rack_types": ["BIORAD_IH500_RACK"],
                     },
                     {

@@ -1,6 +1,6 @@
 {
   "mir": {
-    "base_url": "http://192.168.1.171",
+    "base_url": "http://192.168.12.20",
     "api_prefix": "/api/v2.0.0",
     "username": "distributor",
     "password": "distributor",

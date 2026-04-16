@@ -1,0 +1,505 @@
+Login successful.
+{'data': {'user': {'id': 2, 'name': 'planner', 'isAdmin': False, 'isMod': False, 'isPlanner': True, 'createdAt': '2023-03-14T15:47:20.510Z', 'updatedAt': '2023-03-14T15:47:20.510Z'}, 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzc2MzQ1MTgwLCJleHAiOjE3NzYzNzM5ODB9.pGjUwC097COVbdZT1QHPhSpDhR3q5-RQPdxERh0YVSc'}, 'message': 'login'}
+State sent successfully.
+{'data': {'state': 0}, 'message': 'State received'}
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': 0}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+{'data': {'promptId': '483af665-6cb4-480d-999b-b711cf23125d', 'dismissedAt': '2026-04-16T13:13:01.013Z'}, 'message': 'Control system prompt dismissed'}
+Transient state begin: RESETTING (3), min_hold_s=1.500
+State sent successfully.
+{'data': {'state': 3}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 3}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 3}, 'message': 'State received'}
+Transient state end: RESETTING held_for_s=1.517
+World reset to baseline complete. Backup folder: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\versions\reset_20260416_151302
+State sent successfully.
+{'data': {'state': 0}, 'message': 'State received'}
+Bridge sync: mode=automatic requested_event=0 requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}Login successful.
+{'data': {'user': {'id': 2, 'name': 'planner', 'isAdmin': False, 'isMod': False, 'isPlanner': True, 'createdAt': '2023-03-14T15:47:20.510Z', 'updatedAt': '2023-03-14T15:47:20.510Z'}, 'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzc2MzQ1MjYwLCJleHAiOjE3NzYzNzQwNjB9.2DYLdUWx86RmVfCDBJEr8MxzikFHQhTtEn_HyZxm4es'}, 'message': 'login'}
+Sender mode: uGO backend HTTP (default)
+World resume: restored from C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.jsonl
+Trace session: append (world resumed from previous snapshot)
+post_planner_prompt payload: {"title": "Validating prerequisites", "body": "Validating prerequisites", "actions": []}
+{'data': {'uuid': '76381e4e-a4ec-4f63-932c-3050f0281e61'}, 'message': 'Control system prompt created'}
+TREE: Status.RUNNING
+post_planner_prompt payload: {"title": "Waiting for Input Rack at Input Station", "body": "Waiting for Input Rack at Input Station", "actions": []}
+{'data': {'uuid': '7e03dba5-9f25-4c10-becd-38bbcd6c0632'}, 'message': 'Control system prompt created'}
+TREE: Status.RUNNING
+post_planner_prompt payload: {"title": "Navigation to the Input Station", "body": "Navigate InputStation at InputStation", "actions": []}
+{'data': {'uuid': '07d4f036-17ba-4409-9da8-3285134424af'}, 'message': 'Control system prompt created'}
+Task request successful.
+{'data': {'RequestId': '3c7e4aa7-e640-46a7-9f42-405ce455d48b', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '3c7e4aa7-e640-46a7-9f42-405ce455d48b', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '3c7e4aa7-e640-46a7-9f42-405ce455d48b', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '3c7e4aa7-e640-46a7-9f42-405ce455d48b', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '3c7e4aa7-e640-46a7-9f42-405ce455d48b', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 0}}
+Bridge sync: mode=automatic requested_event=None requested_state=0 runtime_state=0 workflow_running=False
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 4}}
+Transient state begin: STARTING (4), min_hold_s=1.500
+State sent successfully.
+{'data': {'state': 4}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 4}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 4}, 'message': 'State received'}
+Transient state end: STARTING held_for_s=1.509
+Starting planner workflow: C:\Users\GoceDimitrieskiUnite\AppData\Local\Programs\Python\Python39\python.exe -u -m workflows.rack_probe_transfer_workflow
+State sent successfully.
+{'data': {'state': 1}, 'message': 'State received'}
+State sent successfully.
+{'data': {'state': 1}, 'message': 'State received'}
+Bridge sync: mode=automatic requested_event=None requested_state=4 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=True
+Mode: {'data': 'automatic', 'message': 'Get Mode'}
+Event: {'message': 'Get Planner event', 'data': {'event': None}}
+Planner State: {'message': 'Get Planner State', 'data': {'state': 1}}
+Bridge sync: mode=automatic requested_event=None requested_state=1 runtime_state=1 workflow_running=TrueFailed to retrieve task status: 404 Client Error: Not Found for url: http://192.168.14.120:8080/api/task/3c7e4aa7-e640-46a7-9f42-405ce455d48b
+Failed to retrieve task status: 404 Client Error: Not Found for url: http://192.168.14.120:8080/api/task/3c7e4aa7-e640-46a7-9f42-405ce455d48b
+Failed to retrieve task status: 404 Client Error: Not Found for url: http://192.168.14.120:8080/api/task/3c7e4aa7-e640-46a7-9f42-405ce455d48b
+Failed to retrieve task status: 404 Client Error: Not Found for url: http://192.168.14.120:8080/api/task/3c7e4aa7-e640-46a7-9f42-405ce455d48b
+Failed to retrieve task status: 404 Client Error: Not Found for url: http://192.168.14.120:8080/api/task/3c7e4aa7-e640-46a7-9f42-405ce455d48b
+post_planner_error payload: {"errorCode": "STEP_FAILED", "message": "GettingNewSamples.nav_input failed attempt 1/1", "action": "ABORT"}
+{'data': {'errorCode': 'STEP_FAILED', 'message': 'GettingNewSamples.nav_input failed attempt 1/1', 'action': 'ABORT', 'createdAt': '2026-04-16T13:14:29.174Z', 'uuid': '61f09582-5930-457c-97ff-757317f9b2ec'}, 'message': 'Error code received'}
+Error sent successfully.
+{'message': 'Error code marked as accepted', 'data': {'errorCode': 'STEP_FAILED', 'message': 'GettingNewSamples.nav_input failed attempt 1/1', 'action': 'ABORT', 'createdAt': '2026-04-16T13:14:29.174Z', 'acceptedAt': '2026-04-16T13:14:29.190Z', 'uuid': '61f09582-5930-457c-97ff-757317f9b2ec'}}
+GettingNewSamples.nav_input failed: get_request_status returned None 5 times in a row
+post_planner_prompt payload: {"title": "Navigation to the Input Station", "body": "Navigate InputStation at InputStation", "actions": []}
+{'data': {'uuid': '6f48a1cc-1c96-4471-a9e0-d31bcd5d17bd'}, 'message': 'Control system prompt created'}
+Task request successful.
+{'data': {'RequestId': '7aabe0be-3504-47ca-aa37-c9044333889a', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'EXECUTE', 'error': 'null', 'outputs': {'Position': '2', 'Results': 'NavigationComplete'}}}
+Request Status: {'data': {'id': '7aabe0be-3504-47ca-aa37-c9044333889a', 'status': 'COMPLETE', 'error': 'null', 'outputs': {'Position': '2', 'Results': 'NavigationComplete'}}}
+TREE: Status.RUNNING
+post_planner_prompt payload: {"title": "Referencing robot coordinates at Input Station", "body": "Scan Landmark InputStation at InputStation", "actions": []}
+{'data': {'uuid': '13cd4314-9c5e-47fb-b42e-6783edeacad1'}, 'message': 'Control system prompt created'}
+Task request successful.
+{'data': {'RequestId': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'STOPPED', 'error': 'null', 'outputs': {}}}
+post_planner_error payload: {"errorCode": "STEP_FAILED", "message": "GettingNewSamples.scan_input_landmark failed attempt 1/1", "action": "ABORT"}
+{'data': {'errorCode': 'STEP_FAILED', 'message': 'GettingNewSamples.scan_input_landmark failed attempt 1/1', 'action': 'ABORT', 'createdAt': '2026-04-16T13:15:26.886Z', 'uuid': 'c0397ef8-0605-43d7-a044-8e2cc756ec1e'}, 'message': 'Error code received'}
+Error sent successfully.
+{'message': 'Error code marked as accepted', 'data': {'errorCode': 'STEP_FAILED', 'message': 'GettingNewSamples.scan_input_landmark failed attempt 1/1', 'action': 'ABORT', 'createdAt': '2026-04-16T13:15:26.886Z', 'acceptedAt': '2026-04-16T13:15:26.901Z', 'uuid': 'c0397ef8-0605-43d7-a044-8e2cc756ec1e'}}
+GettingNewSamples.scan_input_landmark failed: {'data': {'id': '51c49bb1-8b37-4769-89d6-6d217420a5a4', 'status': 'STOPPED', 'error': 'null', 'outputs': {}}}
+post_planner_prompt payload: {"title": "Referencing robot coordinates at Input Station", "body": "Scan Landmark InputStation at InputStation", "actions": []}
+{'data': {'uuid': '863dd91c-0b73-493a-8cc9-4a51e759ccb1'}, 'message': 'Control system prompt created'}
+Task request successful.
+{'data': {'RequestId': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'STOPPED', 'error': 'null', 'outputs': {}}}
+post_planner_error payload: {"errorCode": "STEP_FAILED", "message": "GettingNewSamples.scan_input_landmark failed attempt 1/1", "action": "ABORT"}
+{'data': {'errorCode': 'STEP_FAILED', 'message': 'GettingNewSamples.scan_input_landmark failed attempt 1/1', 'action': 'ABORT', 'createdAt': '2026-04-16T13:15:52.547Z', 'uuid': '93353153-2803-489f-a5c1-e6c260c79345'}, 'message': 'Error code received'}
+Error sent successfully.
+{'message': 'Error code marked as accepted', 'data': {'errorCode': 'STEP_FAILED', 'message': 'GettingNewSamples.scan_input_landmark failed attempt 1/1', 'action': 'ABORT', 'createdAt': '2026-04-16T13:15:52.547Z', 'acceptedAt': '2026-04-16T13:15:52.559Z', 'uuid': '93353153-2803-489f-a5c1-e6c260c79345'}}
+GettingNewSamples.scan_input_landmark failed: {'data': {'id': 'bf76125c-b8b1-4831-b02c-a5da00004d93', 'status': 'STOPPED', 'error': 'null', 'outputs': {}}}
+post_planner_prompt payload: {"title": "Referencing robot coordinates at Input Station", "body": "Scan Landmark InputStation at InputStation", "actions": []}
+{'data': {'uuid': '2b1b5ee3-de54-4852-b888-47e45f35ac33'}, 'message': 'Control system prompt created'}
+Task request successful.
+{'data': {'RequestId': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'InstrumentId': 'UGO_Node', 'ModuleId': 'UGOClient'}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'PENDING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'EXECUTE', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'STOPPING', 'error': 'null', 'outputs': {}}}
+Request Status: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'STOPPED', 'error': 'null', 'outputs': {}}}
+post_planner_error payload: {"errorCode": "STEP_FAILED", "message": "GettingNewSamples.scan_input_landmark failed attempt 1/1", "action": "ABORT"}
+{'data': {'errorCode': 'STEP_FAILED', 'message': 'GettingNewSamples.scan_input_landmark failed attempt 1/1', 'action': 'ABORT', 'createdAt': '2026-04-16T13:16:01.888Z', 'uuid': 'da1c9c69-6d0c-4f80-9b38-086f1af07174'}, 'message': 'Error code received'}
+Error sent successfully.
+{'message': 'Error code marked as accepted', 'data': {'errorCode': 'STEP_FAILED', 'message': 'GettingNewSamples.scan_input_landmark failed attempt 1/1', 'action': 'ABORT', 'createdAt': '2026-04-16T13:16:01.888Z', 'acceptedAt': '2026-04-16T13:16:01.919Z', 'uuid': 'da1c9c69-6d0c-4f80-9b38-086f1af07174'}}
+GettingNewSamples.scan_input_landmark failed: {'data': {'id': 'f75e177c-0887-4b03-a32d-4e23a1ee9607', 'status': 'STOPPED', 'error': 'null', 'outputs': {}}}
+TREE: Status.FAILURE
+Final blackboard: {'workflow_mode': 'GETTING_NEW_SAMPLES', 'centrifuge_mode': 'AUTO', 'final_plate_target': None, 'tree_profile': 'planner_getting_new_samples_v1', 'planned_steps': ['await_input_rack_present', 'nav_input', 'scan_input_landmark', 'transfer_input_rack', 'charge', 'camera_inspect_urg_for_new_samples', 'urg_sort_via_3fg_router', 'handoff_to_state_driven_planning'], 'dynamic_process_policies_file': 'C:\\Users\\GoceDimitrieskiUnite\\OneDrive - United Robotics Group GmbH\\Dokumente\\URSim_VIRTUAL-5.24.0.1219432\\VM Shared\\uGO\\uGO-Brain\\planning\\process_policies.json', 'planner_use_wise_readiness': False, 'scaffold_steps': ['await_input_rack_present', 'nav_input', 'scan_input_landmark', 'transfer_input_rack', 'charge', 'camera_inspect_urg_for_new_samples', 'urg_sort_via_3fg_router', 'handoff_to_state_driven_planning'], 'last_plan_step': 'scan_input_landmark', 'workflow_context_message': 'Executing GettingNewSamples.scan_input_landmark', 'workflow_context_ts': '2026-04-16T15:15:52.717+02:00', '_await_input_rack_prompt_posted': True, 'input_rack_wait_last_poll_s': 144658.515, 'input_rack_wait_loop': 1, 'wise_status_update_assignments': [{'device_id': 'BIORAD_IH500_DEVICE_01', 'online': True, 'stale': False, 'error': '', 'ready_slots': [1], 'missing_slots': [2, 3], 'all_ready': False}, {'device_id': 'INPUT_STATION_WISE_DEVICE_01', 'online': True, 'stale': False, 'error': '', 'ready_slots': [1], 'missing_slots': [], 'all_ready': True}], 'input_rack_wait_last_wise': {'configured': True, 'enabled': True, 'online': True, 'stale': False, 'required_slots': [1], 'ready_slots': [1], 'missing_slots': [], 'ready_by_slot': {'1': True}, 'all_ready': True, 'error': ''}, 'input_rack_id': 'RACK_INPUT_URG_01', 'station_reference_nav_epoch': 1}
+Final sample states: {'DUMMY_0001': "RackLocation(station_id='uLMPlateStation', station_slot_id='TaraRacksSlot1', rack_id='RACK_ULM_TARA_01', slot_index=1)", 'DUMMY_0002': "RackLocation(station_id='uLMPlateStation', station_slot_id='TaraRacksSlot1', rack_id='RACK_ULM_TARA_01', slot_index=2)", 'DUMMY_0003': "RackLocation(station_id='uLMPlateStation', station_slot_id='TaraRacksSlot1', rack_id='RACK_ULM_TARA_01', slot_index=3)", 'KREUZPROBE_0001': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=1)", 'KREUZPROBE_0002': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=2)", 'KREUZPROBE_0003': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=3)", 'KREUZPROBE_0004': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=4)", 'KREUZPROBE_0005': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=5)", 'KREUZPROBE_0006': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=6)", 'KREUZPROBE_0007': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=7)", 'KREUZPROBE_0008': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=8)", 'KREUZPROBE_0009': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=9)", 'KREUZPROBE_0010': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=10)", 'KREUZPROBE_0011': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=11)", 'KREUZPROBE_0012': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=13)", 'KREUZPROBE_0013': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=14)", 'KREUZPROBE_0014': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=15)", 'KREUZPROBE_0015': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=16)", 'KREUZPROBE_0016': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=17)", 'KREUZPROBE_0017': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=18)", 'KREUZPROBE_0018': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=19)", 'KREUZPROBE_0019': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=20)", 'KREUZPROBE_0020': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=21)", 'KREUZPROBE_0021': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=22)", 'KREUZPROBE_0022': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=24)", 'KREUZPROBE_0023': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=25)", 'KREUZPROBE_0024': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=26)", 'KREUZPROBE_0025': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=27)", 'KREUZPROBE_0026': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=28)", 'KREUZPROBE_0027': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=29)", 'KREUZPROBE_0028': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=30)", 'KREUZPROBE_0029': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=31)", 'KREUZPROBE_0030': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=32)", 'KREUZPROBE_0031': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=33)", 'KREUZPROBE_0032': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=34)", 'KREUZPROBE_0033': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=35)", 'KREUZPROBE_0034': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=36)", 'KREUZPROBE_0035': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=37)", 'KREUZPROBE_0036': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=38)", 'KREUZPROBE_0037': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=39)", 'KREUZPROBE_0038': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=40)", 'KREUZPROBE_0039': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=41)", 'KREUZPROBE_0040': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=42)", 'KREUZPROBE_0041': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=43)", 'KREUZPROBE_0042': "RackLocation(station_id='FridgeStation', station_slot_id='URGFridgeRackSlot1', rack_id='RACK_FRIDGE_URG_4x11_01', slot_index=44)"}
+World config loaded from: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_config.json
+World file backup created: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\versions\world_snapshot.20260416_151602_020.jsonl.bak
+Workflow did not complete successfully; execution trace/state transition canonical files were not updated.
+WIP trace: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\tracing\tree_execution_trace.wip.csv
+WIP state transitions: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\tracing\tree_state_changes.wip.csv
+Occupancy trace written to C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.csv
+Occupancy events written to C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.jsonl
+World snapshot written to C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_snapshot.jsonl
+WIP occupancy trace mirror: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.wip.csv
+WIP occupancy events mirror: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_occupancy_trace.wip.jsonl
+WIP world snapshot mirror: C:\Users\GoceDimitrieskiUnite\OneDrive - United Robotics Group GmbH\Dokumente\URSim_VIRTUAL-5.24.0.1219432\VM Shared\uGO\uGO-Brain\world\world_snapshot.wip.jsonl

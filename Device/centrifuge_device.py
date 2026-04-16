@@ -59,7 +59,10 @@ class CentrifugeAnalyzerDevice(AnalyzerDeviceRuntime):
             self._fault_message = f"Centrifuge XML-RPC fault code {remote_error}"
             self._state = PackMLState.FAULTED
         else:
-            if self._fault_message.startswith("Centrifuge XML-RPC fault code"):
+            # Clear stale transport/controller-side faults once remote device reports
+            # healthy error code again. Otherwise a past transient XML-RPC failure can
+            # keep the runtime latched in FAULT for subsequent cycles.
+            if self._fault_message.startswith("Centrifuge XML-RPC fault code") or self._fault_code == "CENTRIFUGE_XMLRPC":
                 self._fault_code = ""
                 self._fault_message = ""
             if remote_state == 4:

@@ -2010,12 +2010,46 @@ function buildSlotHtml(slot, rackMap, posByRack) {
   </div>`;
 }
 
+function getRackGridCoordinates(rack, position) {
+  const idx = Number(position.position_index);
+  const rows = Number(rack?.rows);
+  const cols = Number(rack?.cols);
+
+  if (!Number.isFinite(idx) || idx <= 0) return { row: Number.MAX_SAFE_INTEGER, col: Number.MAX_SAFE_INTEGER };
+
+  if (rack?.pattern === 'ARCHIVE_4x11_PIN2' && Number.isFinite(rows) && rows > 0) {
+    return {
+      row: rows - ((idx - 1) % rows),
+      col: Math.floor((idx - 1) / rows) + 1,
+    };
+  }
+
+  const explicitRow = Number(position.row);
+  const explicitCol = Number(position.col);
+  if (Number.isFinite(explicitRow) && explicitRow > 0 && Number.isFinite(explicitCol) && explicitCol > 0) {
+    return { row: explicitRow, col: explicitCol };
+  }
+
+  if (!Number.isFinite(cols) || cols <= 0) return { row: idx, col: 1 };
+
+  return {
+    row: Math.floor((idx - 1) / cols) + 1,
+    col: ((idx - 1) % cols) + 1,
+  };
+}
+
 // ======================================================================
 // Build: Rack position grid with indices
 // ======================================================================
 function buildRackGridHtml(rack, rackPositions, rackId) {
   const cols = rack.cols || 1;
-  const sorted = [...rackPositions].sort((a, b) => a.position_index - b.position_index);
+  const sorted = [...rackPositions]
+    .map(p => ({ ...p, _grid: getRackGridCoordinates(rack, p) }))
+    .sort((a, b) => (
+      (a._grid.row - b._grid.row) ||
+      (a._grid.col - b._grid.col) ||
+      (a.position_index - b.position_index)
+    ));
 
   return `<div class="rack-grid" style="grid-template-columns:repeat(${cols},18px)">
     ${sorted.map(p => {
@@ -2099,9 +2133,12 @@ function renderWorldFromStateAfter(stateAfter) {
         for (let i = 1; i <= capacity; i++) {
           const blocked = (rack.blocked_slots || []).includes(i);
           const occupantId = occ[String(i)] || occ[i] || null;
+          const layout = getRackGridCoordinates(rack, { position_index: i });
           records.push({
             record_type: 'RACK_POSITION', rack_id: rack.rack_id,
             position_index: i,
+            row: layout.row,
+            col: layout.col,
             position_state: blocked ? 'PIN' : (occupantId ? 'OCCUPIED' : 'FREE'),
             occupied_object_id: occupantId,
             occupied_object_kind: blocked ? 'NONE' : (occupantId ? (String(occupantId).startsWith('CAP_') ? 'CAP' : 'SAMPLE') : 'NONE'),
@@ -2147,9 +2184,12 @@ function renderWorldFromStateAfter(stateAfter) {
       for (let i = 1; i <= capacity; i++) {
         const blocked = (rack.blocked_slots || []).includes(i);
         const occupantId = occ[String(i)] || occ[i] || null;
+        const layout = getRackGridCoordinates(rack, { position_index: i });
         records.push({
           record_type: 'RACK_POSITION', rack_id: rack.rack_id,
           position_index: i,
+          row: layout.row,
+          col: layout.col,
           position_state: blocked ? 'PIN' : (occupantId ? 'OCCUPIED' : 'FREE'),
           occupied_object_id: occupantId,
           occupied_object_kind: blocked ? 'NONE' : (occupantId ? (String(occupantId).startsWith('CAP_') ? 'CAP' : 'SAMPLE') : 'NONE'),
